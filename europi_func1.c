@@ -1351,5 +1351,3 @@ int quantize(int raw, int scale){
 	}
 };
 
-
-
