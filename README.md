@@ -20,7 +20,7 @@ The primary Europi module interfaces with a number of secondary modules.
 
 The 6hp Europi Minion extends the output capabilities of the Europi by providing an additional 4 x CV and 4 x Gate outputs. Up to 8 Minions can be daisy-chained together so that, including the main Europi module, a complete system can support 34 x CV and 34 x Gate outputs.
 
-The Europi MIDI Minion adds MIDI In, Out and Thru capability and can be used as a means of note entry, as a Clock source and also as a MIDI output.
+The Europi MIDI Minion adds MIDI In, Out and Thru capability and can be used as a means of note entry, as a Clock source and also as a MIDI output. Up to 4 MIDI Minions can be connected to a Europi.
 
 The intention is that, being open sourced, the initial hardware platform could be extended to include support for additional modules, control surfaces and such like, either by using the existing I2C bus that links the Europi to the Minions, or leveraging the USB capabilities of the Raspberry Pi.
 
@@ -30,15 +30,20 @@ The Europi is not an analogue sequencer, it is a digital sequencer that outputs 
 
 The output of the DACs have a full-scale output range of 0 to approx 5 volts. In reality, due to manufacturing tolerances, these outputs rarely reach a true zero and often have a minimum achievable output of around 20mv, so the DAC outputs are buffered via Op Amps that are biased with a slight negative voltage, and have an amplification factor of around 2.5 thus a true zero and full-scale 10v output can be set in software, which removes the need for complex and fiddly trimmer potentiometers.
 
+The resistors biasing this output buffer circuit could be selected so that the output sings between, say +/-5v instead of the usual 0-10v, which would then be suitable for use as an audio output (via suitable drivers).
+
 The CV and Gate outputs are connected to the Raspberry Pi using the Inter-Integrated Circuit (I2C) bus. This is the slower of the Pi's two busses, but is the more flexible and extensible of the two. The faster SPI bus is used for the LCD display and its associated touchscreen interface.
+
+It is the I2C bus that is used to daisy-chain the various Minions to the main Europi.
 
 The soft buttons, push-button rotary encoder, and external clock and reset inputs are connected to GPIO pins of the Raspberry Pi via suitable interface circuitry which provides over- and reverse-voltage protection.
 
-The MIDI Minion connects to the built-in UART of the Raspberry Pi via suitable opto-isolating circuitry.
+Future expansion plans include a CV & Gate Input Minion for driving the Europi from External CV/Gate sources, and a USB & HDMI Minion that connects the Raspberry Pi's USB output to a 2-Port Powered USB Hub, and brings the HDMI output through to a Eurorack panel. The latter is intended to make it simpler to pogram the Europi in situ, and opens the possibility for the connection of other control surfaces via USB.  
+
 
 ## Language and environment
 
-Europi is written in C as it is fairly efficient and links directly with the PIGPIO library. System and operational states are held in global variables. Opinions are divided over the use of global variables in C, though our view is that in a monolithic application such as this, global variables are both quick & efficient (less stack overheads) and simple to understand.
+Europi is written in C as it is fairly efficient and links directly with the PIGPIO library (see below). System and operational states are held in global variables. Opinions are divided over the use of global variables in C, though our view is that in a monolithic application such as this, global variables are both quick & efficient (less stack overheads) and simple to understand.
 
 ## Principle of operation
 
