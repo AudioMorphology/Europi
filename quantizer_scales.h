@@ -1,6 +1,7 @@
-// Copyright 2016 Richard R. Goodwin / Audio Morphology
+// Copyright 2016 Richard R. Goodwin / Audio Morphology / Olivier Gillet
 //
-// Author: Richard R. Goodwin (richard.goodwin@morphology.co.uk)
+// Authors: Richard R. Goodwin (richard.goodwin@morphology.co.uk)
+//          Olivier Gillet (ol.gillet@gmail.com)
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -21,6 +22,40 @@
 // THE SOFTWARE.
 // 
 // See http://creativecommons.org/licenses/MIT/ for more information.
+//-------------------------------------------------------------------------------
+
+// The values in the scale_values array and, indeed, the names of the various scales
+// came from the Mutable Instruments Braids software, released by Olivier Gillet 
+// under a CC License. So, I have incorporated the same license, and have included 
+// Olivier's License declaration, below, to make it clear that I am not claiming 
+// ownership or proprietary rights over any aspects of these quantisation scales
+
+//-------------------------------------------------------------------------------
+// Copyright 2015 Olivier Gillet.
+//
+// Author: Olivier Gillet (ol.gillet@gmail.com)
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+// 
+// See http://creativecommons.org/licenses/MIT/ for more information.
+//
+// -----------------------------------------------------------------------------
 
 /*
  * QUANTIZATION SCALES
@@ -30,10 +65,6 @@
  * value that should be returned.
  * 
  * Values are based on 6000 discrete values per Octave
- * 
- * The values in these tables, and the scale names are derived
- * from the Quantization routines written by Olivier Gillet, and
- * included with his Braids opensource software
  */
 
 int lower_boundary[49][12] = {
