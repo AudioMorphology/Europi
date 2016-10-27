@@ -1059,6 +1059,8 @@ int DACFinderGeneral(unsigned address)
 	 * we have a valid handle, however whether there is actually
 	 * a device on this address can seemingly only be determined 
 	 * by attempting to write to it, and read back what we wrote
+	 * 
+	 * This is some stuff I wrote
 	 */
 	 ctrl_reg = ((address & 0xC) << 4)|0x10;
 	 test_val = rand()%0xFFFF;
