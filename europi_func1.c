@@ -1060,7 +1060,7 @@ int DACFinderGeneral(unsigned address)
 	 * a device on this address can seemingly only be determined 
 	 * by attempting to write to it, and read back what we wrote
 	 * 
-	 * This is some stuff I wrote
+	 * This is some stuff I wrote and then some more
 	 */
 	 ctrl_reg = ((address & 0xC) << 4)|0x10;
 	 test_val = rand()%0xFFFF;
