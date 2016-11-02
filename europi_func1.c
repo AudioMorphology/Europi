@@ -1054,7 +1054,8 @@ int EuropiFinder()
 	return DACHandle;
 }
 
-/* looks for an MCP23008 on the passed address. If one
+/* 
+ * Looks for an MCP23008 on the passed address. If one
  * exists, then it should be safe to assume that this is 
  * a Minion, in which case it is safe to pass back a handle
  * to the DAC8574

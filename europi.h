@@ -115,7 +115,6 @@ void channel_level(int channel, int level);
 void gate_state(int channel, int state);
 void touch_interrupt(int gpio, int level, uint32_t tick);
 void button_touched(int x, int y);
-int DACFinderGeneral(unsigned address);
 int MinonFinder(unsigned address);
 int EuropiFinder(void);
 void DACSingleChannelWrite(unsigned handle, uint8_t address, uint8_t channel, uint16_t voltage);
