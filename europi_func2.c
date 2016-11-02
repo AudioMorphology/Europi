@@ -308,6 +308,19 @@ void init_sequence(void)
 			Europi.tracks[track].channels[0].steps[28].slew_length = 30000;
 			Europi.tracks[track].channels[0].steps[28].slew_type = Linear;
 			Europi.tracks[track].channels[0].steps[28].slew_shape = Rising;			
+
+		if(track > 2){
+			for (step=0;step<=31;step++){
+				Europi.tracks[track].channels[CV_OUT].steps[step].raw_value = 1000 * step;
+				Europi.tracks[track].channels[CV_OUT].steps[step].slew_length = 30000;
+				Europi.tracks[track].channels[CV_OUT].steps[step].slew_type = Linear;
+				Europi.tracks[track].channels[CV_OUT].steps[step].slew_shape = Both;
+				Europi.tracks[track].channels[GATE_OUT].steps[step].gate_value = 1;
+				Europi.tracks[track].channels[GATE_OUT].steps[step].retrigger = 1; 
+ 
+			}
+			quantize_track(track,0);
+		}
 		
 		}
 	

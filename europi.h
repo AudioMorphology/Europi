@@ -29,6 +29,8 @@
 
 /* GPIO Port Assignments 		*/
 /* RPi Header pins in comments	*/
+#define I2C_SDA		2	/* PIN 3	*/
+#define I2C_SCL		3	/* PIN 5	*/
 #define MASTER_CLK	18	/* PIN 12	*/
 #define BUTTON1_IN	5	/* PIN 29	*/
 #define BUTTON2_IN	6	/* PIN 31	*/
@@ -114,6 +116,8 @@ void gate_state(int channel, int state);
 void touch_interrupt(int gpio, int level, uint32_t tick);
 void button_touched(int x, int y);
 int DACFinderGeneral(unsigned address);
+int MinonFinder(unsigned address);
+int EuropiFinder(void);
 void DACSingleChannelWrite(unsigned handle, uint8_t address, uint8_t channel, uint16_t voltage);
 void GATESingleOutput(unsigned handle, uint8_t channel,int Device,int Value);
 void hardware_init(void);

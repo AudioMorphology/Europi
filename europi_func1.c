@@ -1025,58 +1025,62 @@ void button_4(int gpio, int level, uint32_t tick)
 	}
 }
 
-/* 
- * DACFinderGeneral
- * 
- * Function specifically looks for a DAC8574 Quad DAC
- * on the Address specified and, if successful, returns
- * an i2c handle to the device.
- * 
- * Using standard Europi Hardware, the DAC8574 on the Europi
- * is hard wired to address 8 (ie A3=1, A2=0, A1=0, A0=0) the
- * address of the Minions is, however, user-selectable between
- * 0 and 7 (ie up to 8 Minions are supported on a single Europi)
- * The DAC Base address is defined in europi.h
- * 
- * The i2c Bus address changed from the early model Raspberry Pi
- * where it used to be Bus 0. On the Later Models it is Bus 1
- * Initially this is hard-coded to i2c Bus 1, though this could
- * be user-configurable
+/*
+ * Specifically looks for a PCF8574 on the default
+ * address of 0x20 this should be unique to the Main
+ * Europi module, therefore it should be safe to 
+ * return a handle to the DAC8574 on the anticipated
+ * address of 0x08
  */
-int DACFinderGeneral(unsigned address)
+int EuropiFinder()
+{
+	int retval;
+	int DACHandle;
+	unsigned pcf_addr = PCF_BASE_ADDR;
+	unsigned pcf_handle = i2cOpen(1,pcf_addr,0);
+	if(pcf_handle < 0)return -1;
+	// Unfortunately, this tends to retun a valid handle even though the
+	// device doesn't exist. The only way to really check it is there 
+	// to try writing to it, which will fail if it doesn't exist.
+	retval = i2cWriteByte(pcf_handle, (unsigned)(0xF0));
+	// either that worked, or it didn't. Either way we
+	// need to close the handle to the device for the
+	// time being
+	i2cClose(pcf_handle);
+	if(retval < 0) return -1;	
+	// pass back a handle to the DAC8574, 
+	// which will be on i2c Address 0x4C
+	DACHandle = i2cOpen(1,DAC_BASE_ADDR,0);
+	return DACHandle;
+}
+
+/* looks for an MCP23008 on the passed address. If one
+ * exists, then it should be safe to assume that this is 
+ * a Minion, in which case it is safe to pass back a handle
+ * to the DAC8574
+ */
+int MinionFinder(unsigned address)
 {
 	int handle;
+	int mcp_handle;
 	int retval;
 	unsigned i2cAddr;
-	uint8_t ctrl_reg;
-	unsigned readval;
-	unsigned test_val;
-	if(address > 8) return -1;
-	i2cAddr = DAC_BASE_ADDR | (address & 0x3);
-	handle = i2cOpen(1,i2cAddr,0);
-	if (handle < 0) return -1;
+	if((address > 8) || (address < 0)) return -1;
+	i2cAddr = MCP_BASE_ADDR | (address & 0x7);
+	mcp_handle = i2cOpen(1,i2cAddr,0);
+	if (mcp_handle < 0) return -1;
 	/* 
 	 * we have a valid handle, however whether there is actually
 	 * a device on this address can seemingly only be determined 
-	 * by attempting to write to it, and read back what we wrote
+	 * by attempting to write to it.
 	 */
-	 ctrl_reg = ((address & 0xC) << 4)|0x10;
-	 test_val = rand()%0xFFFF;
-	 retval = i2cWriteWordData(handle,ctrl_reg,test_val);		// some random value
-	 if(retval != 0) {
-		 i2cClose(handle);
-		 return -1;
-	 } 
-	 readval = i2cReadWordData(handle, ctrl_reg);
-	 if(readval == test_val){
-		 /* write 0 back to it for now */
-		i2cWriteWordData(handle,ctrl_reg,0x0);	 
-		return handle;	/* Test Data read back correctly */
-	 }
-	 else {
-		i2cClose(handle);
-		return -1;
-	 }
+	 retval = i2cWriteWordData(mcp_handle, 0x00, (unsigned)(0x0));
+	 // close the handle to the PCF8574 (it will be re-opened shortly)
+	 i2cClose(mcp_handle);
+	 if(retval < 0) return -1;
+	 i2cAddr = DAC_BASE_ADDR | (address & 0x3);
+	 handle = i2cOpen(1,i2cAddr,0);
+	 return handle;
 }
 
 /* 
@@ -1193,13 +1197,13 @@ void hardware_init(void)
 		Europi.tracks[track].channels[1].enabled = FALSE;
 	}
 	/* 
-	 * Specifically look for a DSAC8574 on address 0x08
+	 * Specifically look for a PCF8574 on address 0x38
 	 * if one exists, then it's on the Europi, so the first
 	 * two Tracks will be allocated to the Europi
 	 */
-	address = 0x08;
 	track = 0;
-	handle = DACFinderGeneral(address);
+	address = 0x08;
+	handle = EuropiFinder();
 	if (handle >=0){
 		/* we have a Europi - it supports 2 Tracks each with 2 channels (CV + GATE) */
 		log_msg("Europi Found on i2cAddress %d handle = %d\n",address, handle);
@@ -1260,7 +1264,7 @@ void hardware_init(void)
 	 * 0 - 7. Each Minion supports 4 Tracks
 	 */
 	for (address=0;address<=7;address++){
-		handle = DACFinderGeneral(address);
+		handle = MinionFinder(address);
 		if(handle >= 0){
 			log_msg("Minion Found on Address %d handle = %d\n",address, handle);
 			/* Get a handle to the associated MCP23008 */
