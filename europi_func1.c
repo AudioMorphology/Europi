@@ -1048,35 +1048,78 @@ int DACFinderGeneral(unsigned address)
 	int handle;
 	int retval;
 	unsigned i2cAddr;
+	unsigned addr_tmp;
 	uint8_t ctrl_reg;
 	unsigned readval;
 	unsigned test_val;
+	char inBuf[30];
+	char outBuf[30];
 	if(address > 8) return -1;
-	i2cAddr = DAC_BASE_ADDR | (address & 0x3);
-	handle = i2cOpen(1,i2cAddr,0);
+	addr_tmp = address;
+	i2cAddr = DAC_BASE_ADDR | (addr_tmp & 0x3);
+	handle = bbI2COpen(I2C_SDA,I2C_SCL, 100000);
+	log_msg("handle: %d\n",handle);
+	//handle = i2cOpen(1,i2cAddr,0);
 	if (handle < 0) return -1;
-	/* 
+		/* 
 	 * we have a valid handle, however whether there is actually
 	 * a device on this address can seemingly only be determined 
 	 * by attempting to write to it, and read back what we wrote
-	 * 
-	 * This is some stuff I wrote and then some more
 	 */
-	 ctrl_reg = ((address & 0xC) << 4)|0x10;
+	 ctrl_reg = (((address & 0xC) << 4) & 0xC0) |0x10;
 	 test_val = rand()%0xFFFF;
-	 retval = i2cWriteWordData(handle,ctrl_reg,test_val);		// some random value
-	 if(retval != 0) {
-		 i2cClose(handle);
+ 
+	 inBuf[0] = 0x04;		// Set Address
+	 inBuf[1] = i2cAddr;	// Device Address
+	 inBuf[2] = 0x02;		// Start
+	 inBuf[3] = 0x07;		// Write
+	 inBuf[4] = 0x03;		// Write 3 Bytes
+	 inBuf[5] = ctrl_reg;	// Control Register
+	 inBuf[6] = (test_val >> 8) & 0x00FF;		// MSB
+	 inBuf[7] = (test_val & 0x00FF);			// LSB
+	 inBuf[8] = 0x03;		// Stop
+	 //inBuf[9] = 0x00;		// End
+
+	 retval = bbI2CZip(I2C_SDA, inBuf, 9, outBuf, 0);
+	 log_msg("Retval: %d MSB: %0x LSB: %x, i2cAddr: %0x, ctrl_reg: %0x\n",retval,inBuf[6],inBuf[7],i2cAddr,ctrl_reg);
+	 
+	 if (retval == 0x0){
+		 bbI2CClose(I2C_SDA);
+		 return handle;
+	 }
+	 else {
+		 bbI2CClose(I2C_SDA);
 		 return -1;
-	 } 
-	 readval = i2cReadWordData(handle, ctrl_reg);
+	 }
+	 
+	 // Did we get back what we wrote out
+	 //inBuf[0] = 0x04;		// Set Address
+	 //inBuf[1] = i2cAddr;	// Device Address
+	 inBuf[0] = 0x02;		// Start
+	 inBuf[1] = 0x07;		// Write
+	 inBuf[2] = 0x01;		// Write 1 Byte
+	 inBuf[3] = ctrl_reg;	// Control Register
+	 inBuf[4] = 0x02;		// Repeated Start
+	 inBuf[5] = 0x06;		// Read
+	 inBuf[6] = 0x02;		// 2 Bytes
+	 inBuf[7] = 0x03;		// Stop
+	 inBuf[8] = 0x00;		// End
+	 
+	 retval = bbI2CZip(I2C_SDA, inBuf, 9, outBuf, 20);
+	 
+	 
+	 log_msg("Ret: %d, Test: %0x, Ret: %0x%0x\n",retval,test_val,outBuf[0],outBuf[1]);
+	 retval = bbI2CClose(I2C_SDA);
+	 readval = ((outBuf[0] << 8) & 0xFF00) | outBuf[1];
+	 log_msg("Test: %0x, Read: %0x\n",test_val, readval);
 	 if(readval == test_val){
 		 /* write 0 back to it for now */
-		i2cWriteWordData(handle,ctrl_reg,0x0);	 
+		//i2cWriteWordData(handle,ctrl_reg,0x0);	 
+		log_msg("Device found on Addr: %0x\n",address);
 		return handle;	/* Test Data read back correctly */
 	 }
 	 else {
-		i2cClose(handle);
+		//i2cClose(handle);
 		return -1;
 	 }
 }
@@ -1199,6 +1242,7 @@ void hardware_init(void)
 	 * if one exists, then it's on the Europi, so the first
 	 * two Tracks will be allocated to the Europi
 	 */
+
 	address = 0x08;
 	track = 0;
 	handle = DACFinderGeneral(address);

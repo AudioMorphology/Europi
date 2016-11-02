@@ -29,6 +29,8 @@
 
 /* GPIO Port Assignments 		*/
 /* RPi Header pins in comments	*/
+#define I2C_SDA		2	/* PIN 3	*/
+#define I2C_SCL		3	/* PIN 5	*/
 #define MASTER_CLK	18	/* PIN 12	*/
 #define BUTTON1_IN	5	/* PIN 29	*/
 #define BUTTON2_IN	6	/* PIN 31	*/
