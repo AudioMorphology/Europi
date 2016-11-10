@@ -559,26 +559,20 @@ static void *TriggerThread(void *arg)
 		GATESingleOutput(pSlew->i2c_handle, pSlew->i2c_channel,pSlew->i2c_device,1);
 		if (pSlew->retrigger_count == 1){
 			/* Wait until approximately the end of the step */
-			//usleep(pSlew->slew_length);
 			usleep((step_ticks * 95)/100);
-			//log_msg("Retrig: %d, Ticks: %d, Sleep time: %d\n",pSlew->retrigger_count,step_ticks,(step_ticks * 90)/100);
-			//log_msg("Sleep: %d\n",((step_ticks * 100)/50) / 1);
 			/* Gate Off */
 			GATESingleOutput(pSlew->i2c_handle, pSlew->i2c_channel,pSlew->i2c_device,0);
 		}
 		else if (pSlew->retrigger_count > 1){
 			/* this step is to be re-triggered, so work out the sleep length between triggers 
-			 * Work on 90% of the the total step time, as this gives a bit of leeway for the
+			 * Work on 95% of the the total step time, as this gives a bit of leeway for the
 			 * function calling overhead
 			 */
 			int sleep_time = (((step_ticks * 95)/100) / pSlew->retrigger_count);
-			//log_msg("Retrig: %d, Ticks: %d, Sleep time: %d\n",pSlew->retrigger_count,step_ticks,sleep_time);
 			int i;
 			for (i = 0; i < pSlew->retrigger_count; i++){
 				/* Gate On */
 				GATESingleOutput(pSlew->i2c_handle, pSlew->i2c_channel,pSlew->i2c_device,1);
-				//usleep(pSlew->slew_length);
-				//log_msg("Sleep time: %d\n",sleep_time);
 				usleep(sleep_time);
 				/* Gate Off */
 				GATESingleOutput(pSlew->i2c_handle, pSlew->i2c_channel,pSlew->i2c_device,0);
