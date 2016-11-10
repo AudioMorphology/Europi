@@ -24,6 +24,10 @@ The Europi MIDI Minion adds MIDI In, Out and Thru capability and can be used as 
 
 The intention is that, being open sourced, the initial hardware platform could be extended to include support for additional modules, control surfaces and such like, either by using the existing I2C bus that links the Europi to the Minions, or leveraging the USB capabilities of the Raspberry Pi.
 
+## Open Source Hardware Certification
+
+Europi Hardware is certified under the Open Source Hardware Certification Program. Certification Number UK000002
+
 ## Interfaces
 
 The Europi is not an analogue sequencer, it is a digital sequencer that outputs analogue CV and Gate signals. Due to its digital nature the CV outputs are not infinitely variable, but are converted from digital to analogue using 16-Bit Digital to Analogue Converters  (DACs). This gives a resolution of around 6,000 discrete steps per octave over a 10 volt range, ie 500 per semitone. So, whilst the CV outputs are not continuously variable as in a true Analogue sequencer, the resolution is sufficiently high such that the difference isn't discernable in the vast majority of applications.
@@ -34,7 +38,7 @@ The resistors biasing this output buffer circuit could be selected so that the o
 
 The CV and Gate outputs are connected to the Raspberry Pi using the Inter-Integrated Circuit (I2C) bus. This is the slower of the Pi's two busses, but is the more flexible and extensible of the two. The faster SPI bus is used for the LCD display and its associated touchscreen interface.
 
-It is the I2C bus that is used to daisy-chain the various Minions to the main Europi.
+It is the I2C bus that is used to daisy-chain the various Minions to the main Europi. The I2C Bus is driven at 400KHz
 
 The soft buttons, push-button rotary encoder, and external clock and reset inputs are connected to GPIO pins of the Raspberry Pi via suitable interface circuitry which provides over- and reverse-voltage protection.
 
@@ -55,7 +59,7 @@ A divisor value of 96 was chosen as this is readily divisible by 2, 3, 4, 6, 8, 
 
 Due to the nature of the PIGPIO library, the PWM frequency can only be set to an integer number of cycles per second (Hz) and given the internal 96PPQN division, a range of typical BPM frequencies can be obtained using the following formula: BPM = (PWM/48)/60. So, for example, a PWM frequency of 200Hz will yield a corresponding BPM of 250 201Hz will yield 251.25 Etc. Obviously therefore, some BPM values cannot be realised using the internal clock due to this integer Hz limitation.
 
-Using the external clock is a different matter as, presumably, an external oscillator can be set to any fractional frequency. The external clock is treated similarly to the internal clock - an alert function is registered against the GPIO pin to which it is applied (GPIO pin !!! Physical pin !!!) and this is therefore called each time the external clock changes state. 
+Using the external clock is a different matter as, presumably, an external oscillator can be set to any fractional frequency. The external clock is treated similarly to the internal clock - an alert function is registered against the GPIO pin to which it is applied (GPIO pin 12 Physical pin 32) and this is therefore called each time the external clock changes state. 
 
 The MIDI Minion can alo be used as a clock source at the normal speed of 24 PPQN. 
 
