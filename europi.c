@@ -52,13 +52,13 @@ int clock_source = INT_CLK;	/* INT_CLK = Internal, EXT_CLK = External Clock Sour
 int clock_freq=192;		/* speed of the main internal clock in Hz */
 uint8_t PCF8574_state=0xF0; /* current state of the PCF8574 Ports on the Europi */
 int led_on = 0;
-int current_step = 0;
+//int current_step = 0;
 int step_one = TRUE;	/* used for resetting the sequence to start from the first step */
 int step_one_state = LOW; /*records whether the Step 1 pulse needs to be turned off */
 int selected_step = -1;	/* records the step that is currently selected. -1=Nothing selected */
-int last_step = 32;		/* last step in the sequence - can be changed to shorten the loop point */
+//int last_step = 32;		/* last step in the sequence - can be changed to shorten the loop point */
 uint32_t step_tick = 0;	/* used to record the start point of each step in ticks */
-uint32_t step_ticks = 0;	/* Records the length of each step in ticks (used to limit slew length) */
+uint32_t step_ticks = 250000;	/* Records the length of each step in ticks (used to limit slew length) Init value of 250000 is so it doesn't go nuts */
 uint32_t slew_interval = 1000; /* number of microseconds between each sucessive level change during a slew */
 /* global variables used by the touchscreen interface */
 int  xres,yres,x;

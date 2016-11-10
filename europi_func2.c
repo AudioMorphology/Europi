@@ -192,12 +192,14 @@ void init_sequence(void)
 	
 	//Temp - set all outputs to 0
 	for (track=0;track<MAX_TRACKS;track++){
+		Europi.tracks[track].last_step = rand() % 32;
 		if (Europi.tracks[track].channels[0].enabled == TRUE){
 			for (step=0;step<MAX_STEPS;step++){
 			Europi.tracks[track].channels[0].steps[step].scaled_value = 280; //410;
 			}
 		}
 	}
+	Europi.tracks[0].last_step = 32; /* track 0 always 32 steps */
 	for (track=0;track<MAX_TRACKS;track++){
 		if (Europi.tracks[track].channels[0].enabled == TRUE){
 			
@@ -213,8 +215,8 @@ void init_sequence(void)
 			quantize_track(track,0);
 */			
 
-			Europi.tracks[track].channels[0].steps[0].raw_value = 22920;
-			Europi.tracks[track].channels[0].steps[1].raw_value = 16891;
+			Europi.tracks[track].channels[0].steps[0].raw_value = 2500;
+			Europi.tracks[track].channels[0].steps[1].raw_value = 2500;
 			Europi.tracks[track].channels[0].steps[2].raw_value = 0000;
 			Europi.tracks[track].channels[0].steps[3].raw_value = 1500;
 			Europi.tracks[track].channels[0].steps[4].raw_value = 2500;
@@ -252,7 +254,14 @@ void init_sequence(void)
 			
 			// gate needed for each step
 			for (step=0;step<32;step++){
-				Europi.tracks[track].channels[1].steps[step].gate_value = 1;  
+				int gate_prob = rand() % 100;
+				//if (gate_prob > 20){
+					Europi.tracks[track].channels[1].steps[step].gate_value = 1;
+					Europi.tracks[track].channels[1].steps[step].retrigger = 1;
+				//}
+				//else {
+				//	Europi.tracks[track].channels[1].steps[step].gate_value = 0;
+				//}
 			}
 			// some ratchets to make it more interesting
 			Europi.tracks[track].channels[1].steps[0].retrigger = 2;
@@ -312,7 +321,31 @@ void init_sequence(void)
 		if(track > 2){
 			for (step=0;step<=31;step++){
 				Europi.tracks[track].channels[CV_OUT].steps[step].raw_value = 1000 * step;
-				Europi.tracks[track].channels[CV_OUT].steps[step].slew_length = 30000;
+				//Europi.tracks[track].channels[CV_OUT].steps[step].slew_length = rand() % 30000;
+				Europi.tracks[track].channels[CV_OUT].steps[step].slew_length = 50000;
+				int gate_prob = rand() % 100;
+				if (gate_prob > 30){
+				Europi.tracks[track].channels[CV_OUT].steps[step].slew_type = Off;
+				}
+				else {
+				Europi.tracks[track].channels[CV_OUT].steps[step].slew_type = Linear;
+				}
+				Europi.tracks[track].channels[CV_OUT].steps[step].slew_shape = Both;
+				gate_prob = rand() % 100;
+				if (gate_prob > 20){
+					Europi.tracks[track].channels[GATE_OUT].steps[step].gate_value = 1;
+				}
+				else {
+					Europi.tracks[track].channels[GATE_OUT].steps[step].gate_value = 0;
+					}
+				Europi.tracks[track].channels[GATE_OUT].steps[step].retrigger = rand() %4; 
+ 
+			}
+			quantize_track(track,12);
+		}
+			/*for (step=0;step<=31;step++){
+				Europi.tracks[track].channels[CV_OUT].steps[step].raw_value = 1000 * step;
+				Europi.tracks[track].channels[CV_OUT].steps[step].slew_length = 0;
 				Europi.tracks[track].channels[CV_OUT].steps[step].slew_type = Linear;
 				Europi.tracks[track].channels[CV_OUT].steps[step].slew_shape = Both;
 				Europi.tracks[track].channels[GATE_OUT].steps[step].gate_value = 1;
@@ -320,7 +353,7 @@ void init_sequence(void)
  
 			}
 			quantize_track(track,0);
-		}
+			*/
 		
 		}
 	

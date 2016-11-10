@@ -90,6 +90,12 @@ enum slew_shape_t {
 	Falling
 };
 
+enum gate_type_t {
+	GateOff,
+	Trigger,
+	ReTrigger,
+	Gate
+};
 
 /* Function Prototypes in europi_func1 */
 int startup(void);
@@ -105,6 +111,7 @@ void button_2(int gpio, int level, uint32_t tick);
 void button_3(int gpio, int level, uint32_t tick);
 void button_4(int gpio, int level, uint32_t tick);
 void next_step(void);
+void next_step_old(void);
 void splash_screen(void);
 void paint_front_panel(void); 
 void step_button_grid(void);
@@ -123,6 +130,7 @@ void hardware_init(void);
 int quantize(int raw, int scale);
 void retrigger(int counter);
 static void *SlewThread(void *arg);
+static void *TriggerThread(void *arg);
 
 /* Function Prototypes in europi_func2 */
 void pitch_adjust(int dir, int vel);
@@ -241,11 +249,14 @@ struct slew {
 	int i2c_handle;			/* Handle to the i2c device that outputs this track */
 	int i2c_address;		/* Address of this device on the i2c Bus - address need to match the physical A3-A0 pins */
 	int i2c_channel;		/* Individual channel (on multi-channel i2c devices) */
+	int i2c_device;			/* Type of device (needed for Gate / Trigger outputs */
 	uint16_t start_value; 	/* Value for start of slew */
 	uint16_t end_value; 	/* Value to reach at end of slew */
 	uint32_t slew_length;	/* How long we've got to get there (in microseconds) */
 	enum slew_t slew_type;	/* Off, Linear, Logarithmic, Exponential */	
-	enum slew_shape_t slew_shape; /* Both, Rising, Falling */	
+	enum slew_shape_t slew_shape; /* Both, Rising, Falling */
+	enum gate_type_t gate_type;   /* Off, Trigger, Gate */
+	int retrigger_count;	/* How many times to re-trigger during the step */
 };
 
 
@@ -297,6 +308,8 @@ struct channel {
  */
 struct track{
 	int track_index;
+	int current_step;		/* Tracks where this track is going next */
+	int last_step;			/* sets the end step for a particular track */
 	struct channel channels[MAX_CHANNELS];	/* a TRACK contains an array of CHANNELs */
 };
 /*
