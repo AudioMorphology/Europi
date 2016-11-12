@@ -192,6 +192,7 @@ void init_sequence(void)
 	
 	//Temp - set all outputs to 0
 	for (track=0;track<MAX_TRACKS;track++){
+		Europi.tracks[track].track_busy = FALSE;
 		Europi.tracks[track].last_step = rand() % 32;
 		if (Europi.tracks[track].channels[0].enabled == TRUE){
 			for (step=0;step<MAX_STEPS;step++){
@@ -201,7 +202,9 @@ void init_sequence(void)
 	}
 	Europi.tracks[0].last_step = 32; /* track 0 always 32 steps */
 	for (track=0;track<MAX_TRACKS;track++){
-		if (Europi.tracks[track].channels[0].enabled == TRUE){
+
+			
+
 			
 /*			for (step=0;step<=31;step++){
 				Europi.tracks[track].channels[CV_OUT].steps[step].raw_value = 1000 * step;
@@ -356,8 +359,9 @@ void init_sequence(void)
 			*/
 		
 		}
-	
-	}
+		// test AD ramp
+		Europi.tracks[2].last_step = 2;
+		Europi.tracks[2].channels[CV_OUT].steps[0].slew_type = AD;
 
 }
 

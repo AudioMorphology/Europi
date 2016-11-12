@@ -81,7 +81,8 @@ enum slew_t {
 	Linear,
 	Logarithmic,
 	Exponential,
-	ADSR
+	ADSR,
+	AD
 };
 
 enum slew_shape_t {
@@ -95,6 +96,11 @@ enum gate_type_t {
 	Trigger,
 	ReTrigger,
 	Gate
+};
+
+enum shot_type_t {
+	OneShot,
+	Repeat
 };
 
 /* Function Prototypes in europi_func1 */
@@ -128,9 +134,9 @@ void DACSingleChannelWrite(unsigned handle, uint8_t address, uint8_t channel, ui
 void GATESingleOutput(unsigned handle, uint8_t channel,int Device,int Value);
 void hardware_init(void);
 int quantize(int raw, int scale);
-void retrigger(int counter);
 static void *SlewThread(void *arg);
-static void *TriggerThread(void *arg);
+static void *GateThread(void *arg);
+static void *AdThread(void *arg);
 
 /* Function Prototypes in europi_func2 */
 void pitch_adjust(int dir, int vel);
@@ -255,10 +261,47 @@ struct slew {
 	uint32_t slew_length;	/* How long we've got to get there (in microseconds) */
 	enum slew_t slew_type;	/* Off, Linear, Logarithmic, Exponential */	
 	enum slew_shape_t slew_shape; /* Both, Rising, Falling */
+};
+
+struct gate {
+	int i2c_handle;			/* Handle to the i2c device that outputs this track */
+	int i2c_address;		/* Address of this device on the i2c Bus - address need to match the physical A3-A0 pins */
+	int i2c_channel;		/* Individual channel (on multi-channel i2c devices) */
+	int i2c_device;			/* Type of device (needed for Gate / Trigger outputs */
+	uint32_t gate_length;	/* Gate ON period (in microseconds) */
 	enum gate_type_t gate_type;   /* Off, Trigger, Gate */
 	int retrigger_count;	/* How many times to re-trigger during the step */
 };
 
+struct adsr {
+	int i2c_handle;			/* Handle to the i2c device that outputs this track */
+	int i2c_address;		/* Address of this device on the i2c Bus - address need to match the physical A3-A0 pins */
+	int i2c_channel;		/* Individual channel (on multi-channel i2c devices) */
+	int i2c_device;			/* Type of device (needed for Gate / Trigger outputs */
+	uint16_t a_start_value;	/* Start value for Attack Ramp */
+	uint16_t a_end_value;	/* End value for Attack Ramp */
+	uint32_t a_length;		/* Length of Attack Ramp */
+	uint16_t d_start_value;	/* Start value for Decay Ramp */
+	uint16_t d_end_value;	/* End value for Decay Ramp */
+	uint32_t d_length;		/* Length of Decay Ramp */
+	uint32_t s_length;		/* Length of Sustain */
+	uint16_t r_start_value;	/* Start value for Release Ramp */
+	uint16_t r_end_value;	/* End value for Release Ramp */
+	uint32_t r_length;		/* Length of Release Ramp */
+};
+
+struct ad {
+	int i2c_handle;			/* Handle to the i2c device that outputs this track */
+	int i2c_address;		/* Address of this device on the i2c Bus - address need to match the physical A3-A0 pins */
+	int i2c_channel;		/* Individual channel (on multi-channel i2c devices) */
+	int i2c_device;			/* Type of device (needed for Gate / Trigger outputs */
+	uint16_t a_start_value;	/* Start value for Attack Ramp */
+	uint16_t a_end_value;	/* End value for Attack Ramp */
+	uint32_t a_length;		/* Length of Attack Ramp */
+	uint16_t d_end_value;	/* End value for Decay Ramp */
+	uint32_t d_length;		/* Length of Decay Ramp */
+	enum shot_type_t shot_type; /* One-shot or Repeat */
+};
 
 /*
  * STEP is an individual step in a sequence. Steps
@@ -267,10 +310,9 @@ struct slew {
  * 
  */
 struct step {
-	int step_index;
-	int raw_value;		/* Non-scaled value to output on a 6000 step/Octave scale*/
+	int raw_value;			/* Non-scaled value to output on a 6000 step/Octave scale*/
 	uint16_t scaled_value; 	/* Scaled / Quantised value to output */
-	enum slew_t slew_type;		/* Off, Linear, Logarithmic, Exponential */
+	enum slew_t slew_type;	/* Off, Linear, Logarithmic, Exponential, AD, ADSR */
 	enum slew_shape_t slew_shape;	/* Both, Rising, Falling*/
 	uint32_t slew_length; 	/* Slew length (in microseconds) */
 	int retrigger;			/* Number of times to retrigger this step - permitted values are 0,2,3 or 4 */
@@ -307,7 +349,7 @@ struct channel {
  * together - a CV output plus its associated GATE output.
  */
 struct track{
-	int track_index;
+	int track_busy;			/* If TRUE then this Track won't advance to the next step */
 	int current_step;		/* Tracks where this track is going next */
 	int last_step;			/* sets the end step for a particular track */
 	struct channel channels[MAX_CHANNELS];	/* a TRACK contains an array of CHANNELs */

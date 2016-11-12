@@ -95,7 +95,7 @@ extern enum encoder_focus_t encoder_focus;
 extern struct europi Europi;
 extern pthread_attr_t detached_attr;		
 extern int test_v;
-pthread_t slewThreadId; 		// Slew thread id
+pthread_t ThreadId; 		// Pointer to detatched Thread Ids (re-used by each/every detatched thread)
 
 
 /* Internal Clock
@@ -131,165 +131,7 @@ void external_clock(int gpio, int level, uint32_t tick)
 		if (level == 1) next_step();
 	}
 }
-/*
- * RETRIGGER
- * 
- * called from both the master and external clocks and
- * moves the sequence on to the next step, forces re-triggers 
- * of any repeating gates.
- * 
- * Both the Master and External clock callbacks call this function
- * depending on the clock source, and both maintain the same 96-step
- * counter.
- */
-void retrigger(int counter){
-	int track;
-	switch(counter) {
-		case 0:
-			/* start of a new cycle */
-			next_step();
-			/* IF we've got Europi hardware, set the Clock output */
-			if (is_europi == TRUE){
-				/* Track 0 Channel 1 will have the GPIO Handle for the PCF8574 channel 2 is Clock Out*/
-				GATESingleOutput(Europi.tracks[0].channels[GATE_OUT].i2c_handle,CLOCK_OUT,DEV_PCF8574,HIGH);
-			}
-			break;
-		case 21:
-			/* Re-trig 4 LOW */
-			for (track = 0;track < MAX_TRACKS; track++){
-				if ((Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ) 
-					&&  (Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1)
-					&& (Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].retrigger == 4))
-					{
-					GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,LOW);
-				}
-			}
-			break;
-		case 24:
-			/* Re-trig 4 High */
-			for (track = 0;track < MAX_TRACKS; track++){
-				if ((Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ) 
-					&&  (Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1)
-					&& (Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].retrigger == 4))
-					{
-					GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,HIGH);
-				}
-			}
-			break;
-		case 29:
-			/* Re-trig 3 Low */
-			for (track = 0;track < MAX_TRACKS; track++){
-				if ((Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ) 
-					&&  (Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1)
-					&& (Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].retrigger == 3))
-					{
-					GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,LOW);
-				}
-			}
-			break;
-		case 32:
-			/* Re-trig 3 High */
-			for (track = 0;track < MAX_TRACKS; track++){
-				if ((Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ) 
-					&&  (Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1)
-					&& (Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].retrigger == 3))
-					{
-					GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,HIGH);
-				}
-			}
-			break;
-		case 45:
-			/* Re-trig 2 & 4 Lows */
-			for (track = 0;track < MAX_TRACKS; track++){
-				if ((Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ) 
-					&&  (Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1)
-					&& ((Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].retrigger == 2)
-					|| (Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].retrigger == 4)))
-					{
-					GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,LOW);
-				}
-			}
-			break;
-		case 48:
-			/* IF we've got Europi hardware, set the Clock output, and end the Step1 pulse if required */
-			if (is_europi == TRUE){
-				/* Track 0 Channel 1 will have the GPIO Handle for the PCF8574 channel 2 is Clock Out*/
-				GATESingleOutput(Europi.tracks[0].channels[GATE_OUT].i2c_handle,CLOCK_OUT,DEV_PCF8574,LOW);
-				if(step_one_state == HIGH){
-					/* also need to end the Step 1 pulse */
-					GATESingleOutput(Europi.tracks[0].channels[GATE_OUT].i2c_handle,STEP1_OUT,DEV_PCF8574,LOW);
-					step_one_state = LOW;
-					}
-			}
-			/* Re-trig 2 & 4 High */
-			for (track = 0;track < MAX_TRACKS; track++){
-				if ((Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ) 
-					&&  (Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1)
-					&& ((Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].retrigger == 2)
-					|| (Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].retrigger == 4)))
-					{
-					GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,HIGH);
-				}
-			}
-			break;
-		case 61:
-			/* Re-trig 3 Low */
-			for (track = 0;track < MAX_TRACKS; track++){
-				if ((Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ) 
-					&&  (Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1)
-					&& (Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].retrigger == 3))
-					{ 
-					GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,LOW);
-				}
-			}
-			break;
-		case 64:
-			/* Re-trig 3 High */
-			for (track = 0;track < MAX_TRACKS; track++){
-				if ((Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ) 
-					&&  (Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1)
-					&& (Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].retrigger == 3))
-					{
-					GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,HIGH);
-				}
-			}
-			break;
-		case 69:
-			/* Re-trig 4 Low */
-			for (track = 0;track < MAX_TRACKS; track++){
-				if ((Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ) 
-					&&  (Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1)
-					&& (Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].retrigger == 4))
-					{
-					GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,LOW);
-				}
-			}
-			break;
-		case 72:
-			/* Re-trig 4 High */
-			for (track = 0;track < MAX_TRACKS; track++){
-				if ((Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ) 
-					&&  (Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1)
-					&& (Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].retrigger == 4))
-					{
-					GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,HIGH);
-				}
-			}
-			break;
-		case 92:
-			/* Gate OFF for all channels unless tied */
-			for (track = 0;track < MAX_TRACKS; track++){
-				if (Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ) 
-					{
-					//log_msg("handle: %d, channel: %d, Device: %d, Value: %d\n",Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,LOW);
 
-					GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,LOW);
-					//GATESingleOutput(3, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,LOW);
-				}
-			}
-			break;
-	}		
-}
 /* run/stop switch input
  * called whenever the switch changes state
  */
@@ -331,79 +173,101 @@ void next_step(void)
 	int previous_step, channel, track;
 	/* look for something to do */
 	for (track = 0;track < MAX_TRACKS; track++){
-		/* Each Track has its own end point */
-		previous_step = Europi.tracks[track].current_step;
-		if (++Europi.tracks[track].current_step >= Europi.tracks[track].last_step || step_one == TRUE){
-			Europi.tracks[track].current_step = 0;
-			/* IF we've got Europi hardware, trigger the Step 1 pulse as Track 0 passes through Step 0 */
-			if ((is_europi == TRUE) && (track == 0)){
-				/* Track 0 Channel 1 will have the GPIO Handle for the PCF8574 channel 3 is Step 1 Out*/
-				struct slew Slew;
-				Slew.i2c_handle = Europi.tracks[0].channels[GATE_OUT].i2c_handle;
-				Slew.i2c_address = Europi.tracks[0].channels[GATE_OUT].i2c_address;
-				Slew.i2c_channel = STEP1_OUT;
-				Slew.i2c_device = DEV_PCF8574;
-				Slew.slew_length = 10000;			/* 10 MS Pulse */
-				Slew.gate_type = Trigger;
-				struct slew *pSlew = malloc(sizeof(struct slew));
-				memcpy(pSlew, &Slew, sizeof(struct slew));
-				//pthread_attr_t attr;
-				//int rc = pthread_attr_init(&attr);
-				//rc = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-				if(pthread_create(&slewThreadId, &detached_attr, &TriggerThread, pSlew)){
-					log_msg("Slew thread creation error\n");
+		/* if this track is busy doing something else, then it won't advance to the next step */
+		if (Europi.tracks[track].track_busy == FALSE){
+			/* Each Track has its own end point */
+			previous_step = Europi.tracks[track].current_step;
+			if (++Europi.tracks[track].current_step >= Europi.tracks[track].last_step || step_one == TRUE){
+				Europi.tracks[track].current_step = 0;
+				/* IF we've got Europi hardware, trigger the Step 1 pulse as Track 0 passes through Step 0 */
+				if ((is_europi == TRUE) && (track == 0)){
+					/* Track 0 Channel 1 will have the GPIO Handle for the PCF8574 channel 3 is Step 1 Out*/
+					struct gate sGate;
+					sGate.i2c_handle = Europi.tracks[0].channels[GATE_OUT].i2c_handle;
+					sGate.i2c_address = Europi.tracks[0].channels[GATE_OUT].i2c_address;
+					sGate.i2c_channel = STEP1_OUT;
+					sGate.i2c_device = DEV_PCF8574;
+					sGate.gate_length = 10000;			/* 10 MS Pulse */
+					sGate.gate_type = Trigger;
+					struct gate *pGate = malloc(sizeof(struct gate));
+					memcpy(pGate, &sGate, sizeof(struct gate));
+					if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
+						log_msg("Gate thread creation error\n");
+					}
+					
 				}
-				
 			}
-		}
-		
-		/* set the CV for each channel, BUT ONLY if slew is OFF */
-		if ((Europi.tracks[track].channels[CV_OUT].enabled == TRUE ) && (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type == Off)){
-			DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
-		}
-		/* set the Gate State for each channel */
-		if (Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ){
-			if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1){
-				struct slew Slew;
-				Slew.i2c_handle = Europi.tracks[track].channels[GATE_OUT].i2c_handle;
-				Slew.i2c_address = Europi.tracks[track].channels[GATE_OUT].i2c_address;
-				Slew.i2c_channel =  Europi.tracks[track].channels[GATE_OUT].i2c_channel;
-				Slew.i2c_device = Europi.tracks[track].channels[GATE_OUT].i2c_device;
-				Slew.retrigger_count = Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].retrigger;
-				Slew.slew_length = 10000;			/* 10 MS Pulse */
-				Slew.gate_type = Gate;
-				struct slew *pSlew = malloc(sizeof(struct slew));
-				memcpy(pSlew, &Slew, sizeof(struct slew));
-				if(pthread_create(&slewThreadId, &detached_attr, &TriggerThread, pSlew)){
-					log_msg("Trigger thread creation error\n");
+			
+			/* set the CV for each channel, BUT ONLY if slew is OFF */
+			if ((Europi.tracks[track].channels[CV_OUT].enabled == TRUE ) && (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type == Off)){
+				DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
+			}
+			/* set the Gate State for each channel */
+			if (Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ){
+				if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1){
+					struct gate sGate;
+					sGate.i2c_handle = Europi.tracks[track].channels[GATE_OUT].i2c_handle;
+					sGate.i2c_address = Europi.tracks[track].channels[GATE_OUT].i2c_address;
+					sGate.i2c_channel =  Europi.tracks[track].channels[GATE_OUT].i2c_channel;
+					sGate.i2c_device = Europi.tracks[track].channels[GATE_OUT].i2c_device;
+					sGate.retrigger_count = Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].retrigger;
+					sGate.gate_length = 10000;			/* 10 MS Pulse */
+					sGate.gate_type = Gate;
+					struct gate *pGate = malloc(sizeof(struct gate));
+					memcpy(pGate, &sGate, sizeof(struct gate));
+					if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
+						log_msg("Gate thread creation error\n");
+					}
 				}
-				
-	//		GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value);
 			}
-		}
-		/* Is there a Slew set on this step */
-		if (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type != Off ){
-			// launch a thread to handle the slew for this Channel / Step
-			// Note that this is created as a Detached, rather than Joinable
-			// thread, because otherwise the memory consumed by the thread
-			// won't be recovered when the thread exits, leading to memory
-			// leaks
-			struct slew Slew;
-			Slew.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
-			Slew.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;
-			Slew.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
-			Slew.start_value = Europi.tracks[track].channels[CV_OUT].steps[previous_step].scaled_value;
-			Slew.end_value = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value;
-			Slew.slew_length = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_length;
-			Slew.slew_type = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type;
-			Slew.slew_shape = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_shape;
-			struct slew *pSlew = malloc(sizeof(struct slew));
-			memcpy(pSlew, &Slew, sizeof(struct slew));
-			//pthread_attr_t attr;
-			//int rc = pthread_attr_init(&attr);
-			//rc = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-			if(pthread_create(&slewThreadId, &detached_attr, &SlewThread, pSlew)){
-				log_msg("Slew thread creation error\n");
+			/* Is there a Slew set on this step */
+			switch (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type){
+				// launch a thread to handle the slew for this Channel / Step
+				// Note that this is created as a Detached, rather than Joinable
+				// thread, because otherwise the memory consumed by the thread
+				// won't be recovered when the thread exits, leading to memory
+				// leaks
+				struct slew sSlew;
+				struct ad sAD;
+				struct adsr sADSR;
+				
+				case Linear:
+				case Logarithmic:
+					sSlew.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
+					sSlew.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;
+					sSlew.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
+					sSlew.start_value = Europi.tracks[track].channels[CV_OUT].steps[previous_step].scaled_value;
+					sSlew.end_value = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value;
+					sSlew.slew_length = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_length;
+					sSlew.slew_type = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type;
+					sSlew.slew_shape = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_shape;
+					struct slew *pSlew = malloc(sizeof(struct slew));
+					memcpy(pSlew, &sSlew, sizeof(struct slew));
+					if(pthread_create(&ThreadId, &detached_attr, &SlewThread, pSlew)){
+						log_msg("Slew thread creation error\n");
+					}
+				break;
+				case AD:
+					// Attack - Decay ramp
+					sAD.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
+					sAD.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;
+					sAD.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
+					sAD.a_start_value = 0;	
+					sAD.a_end_value = 30000;	//5v	
+					sAD.a_length = 10000;		
+					sAD.d_end_value = 0;	
+					sAD.d_length = 100000;
+					sAD.shot_type = Repeat;
+					struct ad *pAD = malloc(sizeof(struct ad));
+					memcpy(pAD, &sAD, sizeof(struct ad));
+					if(pthread_create(&ThreadId, &detached_attr, &AdThread, pAD)){
+						log_msg("Attack-Decay thread creation error\n");
+					}
+				break;
+				case ADSR:
+					// Full ADSR ramp profile
+					
+				break;
 			}
 		}
 	}
@@ -411,79 +275,68 @@ void next_step(void)
 	if (step_one == TRUE) step_one = FALSE;
 }
 
-/* Function called to advance the sequence on to the next step */
-void next_step_old(void)
+/*
+ * Attack-Decay thread.
+ * Simple AD ramp, which can be set to OneShot or Repeat
+ */
+static void *AdThread(void *arg)
 {
-	/* Note the time and length of the previous step
-	 * this gives us a running approximation of how
-	 * fast the sequence is running, and can be used to 
-	 * prevent slews overrunning too badly, time triggers
-	 * etc.
-	 */
-	uint32_t current_tick = gpioTick();
-	step_ticks = current_tick - step_tick;
-	log_msg("Step Ticks: %d\n",step_ticks);
-	step_tick = current_tick;
-	//log_msg("Next Step\n");
-	int previous_step, channel, track;
-	/* look for something to do */
-	for (track = 0;track < MAX_TRACKS; track++){
-		/* Each Track has its own end point */
-		previous_step = Europi.tracks[track].current_step;
-		if (++Europi.tracks[track].current_step >= Europi.tracks[track].last_step || step_one == TRUE){
-			Europi.tracks[track].current_step = 0;
-			/* IF we've got Europi hardware, trigger the Step 1 pulse as Track 0 passes through Step 0 */
-			if ((is_europi == TRUE) && (track == 0)){
-				/* Track 0 Channel 1 will have the GPIO Handle for the PCF8574 channel 3 is Step 1 Out*/
-				GATESingleOutput(Europi.tracks[0].channels[GATE_OUT].i2c_handle,STEP1_OUT,DEV_PCF8574,HIGH);
-				step_one_state = HIGH;
-			}
-		}
-		
-		/* set the CV for each channel, BUT ONLY if slew is OFF */
-		if ((Europi.tracks[track].channels[CV_OUT].enabled == TRUE ) && (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type == Off)){
-			DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
-		}
-		/* set the Gate State for each channel */
-		if (Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ){
-			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value);
-		}
-		/* Is there a Slew set on this step */
-		if (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type != Off ){
-			// launch a thread to handle the slew for this Channel / Step
-			// Note that this is created as a Detached, rather than Joinable
-			// thread, because otherwise the memory consumed by the thread
-			// won't be recovered when the thread exits, leading to memory
-			// leaks
-			struct slew Slew;
-			Slew.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
-			Slew.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;
-			Slew.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
-			Slew.start_value = Europi.tracks[track].channels[CV_OUT].steps[previous_step].scaled_value;
-			Slew.end_value = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value;
-			Slew.slew_length = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_length;
-			Slew.slew_type = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type;
-			Slew.slew_shape = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_shape;
-			struct slew *pSlew = malloc(sizeof(struct slew));
-			memcpy(pSlew, &Slew, sizeof(struct slew));
-			//pthread_attr_t attr;
-			//int rc = pthread_attr_init(&attr);
-			//rc = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-			if(pthread_create(&slewThreadId, &detached_attr, &SlewThread, pSlew)){
-				log_msg("Slew thread creation error\n");
-			}
+	struct ad *pAD = (struct ad *)arg;
+	uint16_t this_value = pAD->a_start_value;
+	uint32_t start_tick = gpioTick();
+	int step_size;
+	// Set Track Busy flag
+	Europi.tracks[2].track_busy = TRUE;
+	// A-ramp
+	if (pAD->a_end_value > pAD->a_start_value) {
+		// Glide UP
+		step_size = (pAD->a_end_value - pAD->a_start_value) / (pAD->a_length / slew_interval);
+		if (step_size == 0) step_size = 1;
+		//log_msg("Step size up: %d\n",step_size);
+		while ((this_value <= pAD->a_end_value) && (this_value < (60000 - step_size))){
+			DACSingleChannelWrite(pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, this_value);
+			this_value += step_size;
+			usleep(slew_interval / 2);		
 		}
 	}
-	/* anything that needed resetting back to step 1 will have done so */
-	if (step_one == TRUE) step_one = FALSE;
-
-	/* turn off previous step and turn on current step !!! This makes no sense. Needs re-writing for new UI !!!*/
-	draw_button_number(previous_step, HEX2565(BTN_BACK_CLR));
-	draw_button_number(Europi.tracks[track].current_step, HEX2565(BTN_STEP_CLR));
-	/* if current or previous step is selected, then re-select it */
-	if ((previous_step == selected_step) || (Europi.tracks[track].current_step == selected_step)){
-		select_button(selected_step, HEX2565(BTN_SELECT_CLR));
+	else if (pAD->a_end_value < pAD->a_start_value){
+		// Glide Down
+		step_size = (pAD->a_start_value - pAD->a_end_value) / (pAD->a_length / slew_interval);
+		if (step_size == 0) step_size = 1;		
+		//log_msg("Step size Down: %d\n",step_size);
+		while ((this_value >= pAD->a_end_value) && (this_value >= step_size)){
+			DACSingleChannelWrite(pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, this_value);
+			this_value -= step_size;
+			usleep(slew_interval / 2);
+		} 
+	}
+	// D-ramp ramps from a_end_value to d_end_value
+	if (pAD->d_end_value > pAD->a_end_value) {
+		// Glide UP
+		step_size = (pAD->d_end_value - pAD->a_end_value) / (pAD->d_length / slew_interval);
+		if (step_size == 0) step_size = 1;
+		//log_msg("Step size up: %d\n",step_size);
+		while ((this_value <= pAD->d_end_value) && (this_value < (60000 - step_size))){
+			DACSingleChannelWrite(pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, this_value);
+			this_value += step_size;
+			usleep(slew_interval / 2);		
 		}
+	}
+	else if (pAD->d_end_value < pAD->a_end_value){
+		// Glide Down
+		step_size = (pAD->a_end_value - pAD->d_end_value) / (pAD->d_length / slew_interval);
+		if (step_size == 0) step_size = 1;		
+		//log_msg("Step size Down: %d\n",step_size);
+		while ((this_value >= pAD->d_end_value) && (this_value >= step_size)){
+			DACSingleChannelWrite(pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, this_value);
+			this_value -= step_size;
+			usleep(slew_interval / 2);
+		} 
+	}
+	// Clear Track Busy flag
+	Europi.tracks[2].track_busy = FALSE;
+	free(pAD);
+	return(0);
 }
 
 /*
@@ -538,48 +391,48 @@ static void *SlewThread(void *arg)
 }
 
 /*
- * Trigger Thread - launched for each Track / Step that
- * has a Trigger. Uses Slew_length to determine the
+ * Gate Thread - launched for each Track / Step that
+ * has a Gate/Trigger. Uses gate_length to determine the
  * length of the pulse. The function lives just to perform 
  * the trigger, then ends itself
  */
-static void *TriggerThread(void *arg)
+static void *GateThread(void *arg)
 {
-	struct slew *pSlew = (struct slew *)arg;
+	struct gate *pGate = (struct gate *)arg;
 	uint32_t start_tick = gpioTick();
-	if(pSlew->gate_type == Trigger){
+	if(pGate->gate_type == Trigger){
 		/* Gate On */
-		GATESingleOutput(pSlew->i2c_handle, pSlew->i2c_channel,pSlew->i2c_device,1);
-		usleep(pSlew->slew_length);
+		GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,1);
+		usleep(pGate->gate_length);
 		/* Gate Off */
-		GATESingleOutput(pSlew->i2c_handle, pSlew->i2c_channel,pSlew->i2c_device,0);
+		GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,0);
 	}
-	else if(pSlew->gate_type == Gate){
+	else if(pGate->gate_type == Gate){
 		/* Gate On */
-		GATESingleOutput(pSlew->i2c_handle, pSlew->i2c_channel,pSlew->i2c_device,1);
-		if (pSlew->retrigger_count == 1){
+		GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,1);
+		if (pGate->retrigger_count == 1){
 			/* Wait until approximately the end of the step */
 			usleep((step_ticks * 95)/100);
 			/* Gate Off */
-			GATESingleOutput(pSlew->i2c_handle, pSlew->i2c_channel,pSlew->i2c_device,0);
+			GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,0);
 		}
-		else if (pSlew->retrigger_count > 1){
+		else if (pGate->retrigger_count > 1){
 			/* this step is to be re-triggered, so work out the sleep length between triggers 
 			 * Work on 95% of the the total step time, as this gives a bit of leeway for the
 			 * function calling overhead
 			 */
-			int sleep_time = (((step_ticks * 95)/100) / pSlew->retrigger_count);
+			int sleep_time = (((step_ticks * 95)/100) / pGate->retrigger_count);
 			int i;
-			for (i = 0; i < pSlew->retrigger_count; i++){
+			for (i = 0; i < pGate->retrigger_count; i++){
 				/* Gate On */
-				GATESingleOutput(pSlew->i2c_handle, pSlew->i2c_channel,pSlew->i2c_device,1);
+				GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,1);
 				usleep(sleep_time);
 				/* Gate Off */
-				GATESingleOutput(pSlew->i2c_handle, pSlew->i2c_channel,pSlew->i2c_device,0);
+				GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,0);
 			}
 		}
 	}
-    free(pSlew);
+    free(pGate);
 	return(0);
 }
 
