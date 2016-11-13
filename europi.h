@@ -252,6 +252,7 @@ void put_char(char *, int x, int y, int c, unsigned short fgc, unsigned short bg
  */
  
 struct slew {
+	int track;				/* which track spawned the thread */
 	int i2c_handle;			/* Handle to the i2c device that outputs this track */
 	int i2c_address;		/* Address of this device on the i2c Bus - address need to match the physical A3-A0 pins */
 	int i2c_channel;		/* Individual channel (on multi-channel i2c devices) */
@@ -264,6 +265,7 @@ struct slew {
 };
 
 struct gate {
+	int track;				/* which track spawned the thread */
 	int i2c_handle;			/* Handle to the i2c device that outputs this track */
 	int i2c_address;		/* Address of this device on the i2c Bus - address need to match the physical A3-A0 pins */
 	int i2c_channel;		/* Individual channel (on multi-channel i2c devices) */
@@ -274,6 +276,7 @@ struct gate {
 };
 
 struct adsr {
+	int track;				/* which track spawned the thread */
 	int i2c_handle;			/* Handle to the i2c device that outputs this track */
 	int i2c_address;		/* Address of this device on the i2c Bus - address need to match the physical A3-A0 pins */
 	int i2c_channel;		/* Individual channel (on multi-channel i2c devices) */
@@ -291,6 +294,7 @@ struct adsr {
 };
 
 struct ad {
+	int track;				/* which track spawned the thread */
 	int i2c_handle;			/* Handle to the i2c device that outputs this track */
 	int i2c_address;		/* Address of this device on the i2c Bus - address need to match the physical A3-A0 pins */
 	int i2c_channel;		/* Individual channel (on multi-channel i2c devices) */

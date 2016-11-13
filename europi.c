@@ -79,7 +79,9 @@ int encoder_vel;
 enum encoder_focus_t encoder_focus;
 uint32_t encoder_tick;
 pthread_attr_t detached_attr;		/* Single detached thread attribute used by any /all detached threads */
-
+pthread_mutex_t mcp23008_lock;
+pthread_mutex_t pcf8574_lock;
+uint8_t mcp23008_state[16];
 
 /* This is the main structure that holds info about the running sequence */
 struct europi Europi; 

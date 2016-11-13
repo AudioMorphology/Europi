@@ -94,9 +94,11 @@ extern uint32_t encoder_tick;
 extern enum encoder_focus_t encoder_focus;
 extern struct europi Europi;
 extern pthread_attr_t detached_attr;		
+extern pthread_mutex_t mcp23008_lock;
+extern pthread_mutex_t pcf8574_lock;
+extern uint8_t mcp23008_state[16];
 extern int test_v;
 pthread_t ThreadId; 		// Pointer to detatched Thread Ids (re-used by each/every detatched thread)
-
 
 /* Internal Clock
  * 
@@ -172,6 +174,7 @@ void next_step(void)
 	step_tick = current_tick;
 	int previous_step, channel, track;
 	/* look for something to do */
+	//for (track = 0;track < MAX_TRACKS; track++){
 	for (track = 0;track < MAX_TRACKS; track++){
 		/* if this track is busy doing something else, then it won't advance to the next step */
 		if (Europi.tracks[track].track_busy == FALSE){
@@ -183,12 +186,14 @@ void next_step(void)
 				if ((is_europi == TRUE) && (track == 0)){
 					/* Track 0 Channel 1 will have the GPIO Handle for the PCF8574 channel 3 is Step 1 Out*/
 					struct gate sGate;
+					sGate.track = track;
 					sGate.i2c_handle = Europi.tracks[0].channels[GATE_OUT].i2c_handle;
 					sGate.i2c_address = Europi.tracks[0].channels[GATE_OUT].i2c_address;
 					sGate.i2c_channel = STEP1_OUT;
 					sGate.i2c_device = DEV_PCF8574;
 					sGate.gate_length = 10000;			/* 10 MS Pulse */
 					sGate.gate_type = Trigger;
+					sGate.retrigger_count = 1;
 					struct gate *pGate = malloc(sizeof(struct gate));
 					memcpy(pGate, &sGate, sizeof(struct gate));
 					if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
@@ -206,6 +211,7 @@ void next_step(void)
 			if (Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ){
 				if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1){
 					struct gate sGate;
+					sGate.track = track;
 					sGate.i2c_handle = Europi.tracks[track].channels[GATE_OUT].i2c_handle;
 					sGate.i2c_address = Europi.tracks[track].channels[GATE_OUT].i2c_address;
 					sGate.i2c_channel =  Europi.tracks[track].channels[GATE_OUT].i2c_channel;
@@ -220,7 +226,7 @@ void next_step(void)
 					}
 				}
 			}
-			/* Is there a Slew set on this step */
+			/* Is there a Slew, AD, ADSR set on this step */
 			switch (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type){
 				// launch a thread to handle the slew for this Channel / Step
 				// Note that this is created as a Detached, rather than Joinable
@@ -233,6 +239,7 @@ void next_step(void)
 				
 				case Linear:
 				case Logarithmic:
+					sAD.track = track;
 					sSlew.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
 					sSlew.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;
 					sSlew.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
@@ -249,14 +256,15 @@ void next_step(void)
 				break;
 				case AD:
 					// Attack - Decay ramp
+					sAD.track = track;
 					sAD.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
 					sAD.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;
 					sAD.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
 					sAD.a_start_value = 0;	
 					sAD.a_end_value = 30000;	//5v	
-					sAD.a_length = 10000;		
+					sAD.a_length = 000;		
 					sAD.d_end_value = 0;	
-					sAD.d_length = 100000;
+					sAD.d_length = 20000;
 					sAD.shot_type = Repeat;
 					struct ad *pAD = malloc(sizeof(struct ad));
 					memcpy(pAD, &sAD, sizeof(struct ad));
@@ -282,59 +290,55 @@ void next_step(void)
 static void *AdThread(void *arg)
 {
 	struct ad *pAD = (struct ad *)arg;
-	uint16_t this_value = pAD->a_start_value;
+	uint16_t this_value;
 	uint32_t start_tick = gpioTick();
 	int step_size;
-	// Set Track Busy flag
-	Europi.tracks[2].track_busy = TRUE;
-	// A-ramp
-	if (pAD->a_end_value > pAD->a_start_value) {
-		// Glide UP
-		step_size = (pAD->a_end_value - pAD->a_start_value) / (pAD->a_length / slew_interval);
-		if (step_size == 0) step_size = 1;
-		//log_msg("Step size up: %d\n",step_size);
-		while ((this_value <= pAD->a_end_value) && (this_value < (60000 - step_size))){
-			DACSingleChannelWrite(pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, this_value);
-			this_value += step_size;
-			usleep(slew_interval / 2);		
+	int num_steps;
+	int i;
+	// don't bother if it's anything other than a 'normal' AD profile
+	if((pAD->a_end_value > pAD->a_start_value) && (pAD->d_end_value < pAD->a_end_value)){
+		// Set Track Busy flag
+		Europi.tracks[pAD->track].track_busy = TRUE;
+		// A-ramp
+		this_value = pAD->a_start_value;
+		DACSingleChannelWrite(pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, this_value);
+		if(pAD->a_length >= slew_interval){
+			step_size = (pAD->a_end_value - pAD->a_start_value) / (pAD->a_length / slew_interval);
+			num_steps = (pAD->a_end_value - pAD->a_start_value) / step_size;
+			if (step_size == 0) {step_size = 1; num_steps = (pAD->a_end_value - pAD->a_start_value);}
+			for(i = 0;i < num_steps; i++){
+				usleep(slew_interval / 2);
+				// Rail clamp
+				if((this_value += step_size) <= 60000){
+					DACSingleChannelWrite(pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, this_value);
+				}
+				else {
+					DACSingleChannelWrite(pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, 60000);
+				}
+			}
 		}
-	}
-	else if (pAD->a_end_value < pAD->a_start_value){
-		// Glide Down
-		step_size = (pAD->a_start_value - pAD->a_end_value) / (pAD->a_length / slew_interval);
-		if (step_size == 0) step_size = 1;		
-		//log_msg("Step size Down: %d\n",step_size);
-		while ((this_value >= pAD->a_end_value) && (this_value >= step_size)){
-			DACSingleChannelWrite(pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, this_value);
-			this_value -= step_size;
-			usleep(slew_interval / 2);
-		} 
-	}
-	// D-ramp ramps from a_end_value to d_end_value
-	if (pAD->d_end_value > pAD->a_end_value) {
-		// Glide UP
-		step_size = (pAD->d_end_value - pAD->a_end_value) / (pAD->d_length / slew_interval);
-		if (step_size == 0) step_size = 1;
-		//log_msg("Step size up: %d\n",step_size);
-		while ((this_value <= pAD->d_end_value) && (this_value < (60000 - step_size))){
-			DACSingleChannelWrite(pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, this_value);
-			this_value += step_size;
-			usleep(slew_interval / 2);		
+		// D-ramp
+		this_value = pAD->a_end_value;
+		DACSingleChannelWrite(pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, this_value);
+		if(pAD->d_length >= slew_interval){
+			step_size = (pAD->a_end_value - pAD->d_end_value) / (pAD->d_length / slew_interval);
+			num_steps = (pAD->a_end_value - pAD->d_end_value) / step_size;
+			if (step_size == 0) {step_size = 1; num_steps = (pAD->a_end_value - pAD->d_end_value);}
+			for(i = 0;i < num_steps; i++){
+				usleep(slew_interval / 2);
+				// Rail clamp
+				if((this_value -= step_size) >= 0){
+					DACSingleChannelWrite(pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, this_value);
+				}
+				else {
+					DACSingleChannelWrite(pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, 0);
+				}
+			}
 		}
-	}
-	else if (pAD->d_end_value < pAD->a_end_value){
-		// Glide Down
-		step_size = (pAD->a_end_value - pAD->d_end_value) / (pAD->d_length / slew_interval);
-		if (step_size == 0) step_size = 1;		
-		//log_msg("Step size Down: %d\n",step_size);
-		while ((this_value >= pAD->d_end_value) && (this_value >= step_size)){
-			DACSingleChannelWrite(pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, this_value);
-			this_value -= step_size;
-			usleep(slew_interval / 2);
-		} 
-	}
-	// Clear Track Busy flag
-	Europi.tracks[2].track_busy = FALSE;
+		DACSingleChannelWrite(pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, pAD->d_end_value);
+		// Clear Track Busy flag
+		Europi.tracks[2].track_busy = FALSE;
+	}	
 	free(pAD);
 	return(0);
 }
@@ -412,7 +416,7 @@ static void *GateThread(void *arg)
 		GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,1);
 		if (pGate->retrigger_count == 1){
 			/* Wait until approximately the end of the step */
-			usleep((step_ticks * 95)/100);
+			usleep((step_ticks * 80)/100);
 			/* Gate Off */
 			GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,0);
 		}
@@ -421,7 +425,7 @@ static void *GateThread(void *arg)
 			 * Work on 95% of the the total step time, as this gives a bit of leeway for the
 			 * function calling overhead
 			 */
-			int sleep_time = (((step_ticks * 95)/100) / pGate->retrigger_count);
+			int sleep_time = (((step_ticks * 80)/100) / pGate->retrigger_count);
 			int i;
 			for (i = 0; i < pGate->retrigger_count; i++){
 				/* Gate On */
@@ -637,7 +641,13 @@ void button_touched(int x, int y){
 	 // Initialise the Deatched pThread attribute
 	int rc = pthread_attr_init(&detached_attr);
 	rc = pthread_attr_setdetachstate(&detached_attr, PTHREAD_CREATE_DETACHED);
-
+	// establish a Mutex lock to protect the MCP23008
+	if (pthread_mutex_init(&mcp23008_lock, NULL) != 0){
+        log_msg("MCP23008 mutex init failed\n");
+    }
+	if (pthread_mutex_init(&pcf8574_lock, NULL) != 0){
+        log_msg("PCF8574 mutex init failed\n");
+    }
 	 // Initialise the Europi structure
 	int channel;
 	for(channel=0;channel < MAX_CHANNELS;channel++){
@@ -819,6 +829,9 @@ int shutdown(void)
 		log_msg("Error re-setting variable information.");
 	}
 	close(fbfd);
+	// destroy the Mutex locks for the mcp23008, pcf8574
+	pthread_mutex_destroy(&mcp23008_lock);
+	pthread_mutex_destroy(&pcf8574_lock);
 	return(0);
  }
 
@@ -1141,12 +1154,29 @@ void GATEMultiOutput(unsigned handle, uint8_t value)
  * Europi, and the MCP23008 used on the Minions, and the MCP23008
  * will drive an LED from its High output, but the PCF8574 will
  * only pull it low!
+ * A Mutex protects the read-update-write cycle for the MCP23008
+ * as race conditions can exist due to the fact that multiple
+ * threads can be attempting the same opersation at the same time
  */ 
 void GATESingleOutput(unsigned handle, uint8_t channel,int Device,int Value)
 {
 	//log_msg("handle: %d, channel: %d, Device: %d, Value: %d\n",handle,channel,Device,Value);
 	uint8_t curr_val;
 	if(Device == DEV_MCP23008){
+		if (Value > 0){
+			// Set corresponding bit high
+			mcp23008_state[handle] |= (0x01 << channel);
+			mcp23008_state[handle] |= (0x01 << (channel + 4));
+		}
+		else {
+			// Set corresponding bit low
+			mcp23008_state[handle] &= ~(0x01 << channel);
+			mcp23008_state[handle] &= ~(0x01 << (channel + 4));
+		}
+		i2cWriteByteData(handle, 0x09,mcp23008_state[handle]);
+		
+		/*
+		pthread_mutex_lock(&mcp23008_lock);
 		curr_val = i2cReadByteData(handle, 0x09);
 		if (Value > 0){
 			// Set corresponding bit high
@@ -1158,7 +1188,9 @@ void GATESingleOutput(unsigned handle, uint8_t channel,int Device,int Value)
 			curr_val &= ~(0x01 << channel);
 			curr_val &= ~(0x01 << (channel + 4));
 		}
-		i2cWriteByteData(handle, 0x09,curr_val);	
+		i2cWriteByteData(handle, 0x09,curr_val);
+		pthread_mutex_unlock(&mcp23008_lock);
+		*/
 	}
 	else if (Device == DEV_PCF8574){
 		/* The PCF8574 will only turn an LED on
@@ -1170,6 +1202,7 @@ void GATESingleOutput(unsigned handle, uint8_t channel,int Device,int Value)
 		 * non-latching. Therefore we have to keep
 		 * the current state in a global variable
 		 */
+		pthread_mutex_lock(&pcf8574_lock);
 		if (Value > 0){
 			// Set corresponding bit high
 			PCF8574_state |= (0x01 << channel);
@@ -1183,6 +1216,7 @@ void GATESingleOutput(unsigned handle, uint8_t channel,int Device,int Value)
 			PCF8574_state |= (0x01 << (channel+4));
 		}
 		i2cWriteByte(handle,PCF8574_state);
+		pthread_mutex_unlock(&pcf8574_lock);
 	}
 }
 /*
