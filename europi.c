@@ -34,6 +34,7 @@
 #include <pigpio.h>
 
 #include "europi.h"
+#include "../raylib/release/rpi/raylib.h"
 
 unsigned hw_version;			/* Type 1: 2,3 Type 2: 4,5,6 & 15 Type 3: 16 or Greater */
 struct fb_var_screeninfo vinfo;
@@ -82,6 +83,8 @@ pthread_attr_t detached_attr;		/* Single detached thread attribute used by any /
 pthread_mutex_t mcp23008_lock;
 pthread_mutex_t pcf8574_lock;
 uint8_t mcp23008_state[16];
+/* Raylib-related stuff */
+SpriteFont fonts[1];
 
 /* This is the main structure that holds info about the running sequence */
 struct europi Europi; 
@@ -111,9 +114,9 @@ int main(int argc, char* argv[])
 	/* things to do when prog first starts */
 	startup();
 	/* draw the main front screen */
-	paint_main();
+	//paint_main();
 	/* scribble some text */
-	put_string(fbp, 20, 215, "Menu       ", HEX2565(0x000000), HEX2565(0xFFFFFF));
+	//put_string(fbp, 20, 215, "Menu       ", HEX2565(0x000000), HEX2565(0xFFFFFF));
 	/* Read and set the states of the run/stop and int/ext switches */
 	log_msg("Run/stop: %d, Int/ext: %d\n",gpioRead(RUNSTOP_IN),gpioRead(INTEXT_IN));
 	run_stop = gpioRead(RUNSTOP_IN);
@@ -122,11 +125,50 @@ int main(int argc, char* argv[])
 	//run_stop = RUN; 
 	//clock_source = INT_CLK;
 
+    Vector2 ballPosition = { -100.0f, -100.0f };
+    Color ballColor = DARKBLUE;
+
 while (prog_running == 1){
+        // Update
+        //----------------------------------------------------------------------------------
+        ballPosition = GetMousePosition();
+        
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) ballColor = MAROON;
+        else if (IsMouseButtonPressed(MOUSE_MIDDLE_BUTTON)) ballColor = LIME;
+        else if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) ballColor = DARKBLUE;
+        //----------------------------------------------------------------------------------
+        // Draw 
+        //----------------------------------------------------------------------------------
+        BeginDrawing();
+
+            ClearBackground(RAYWHITE);
+			int track;
+			int step;
+			for(track=0;track<24;track++){
+				for(step=0;step<32;step++){
+					if(step == Europi.tracks[track].last_step){
+						// Paint last step
+						DrawRectangle(step * 10, track * 10, 9, 9, BLACK); 
+					}
+					else if(step == Europi.tracks[track].current_step){
+						// Paint current step
+						DrawRectangle(step * 10, track * 10, 9, 9, LIME); 
+						
+					}
+					else {
+						// paint blank step
+						DrawRectangle(step * 10, track * 10, 9, 9, MAROON); 
+					}
+				}
+			}
+
+        EndDrawing(); 
+        //----------------------------------------------------------------------------------
+	
 	/* check for touchscreen input */
 	if (touched == 1){
 	int x;
-	touched = 0;
+	touched = 0; 
 	getTouchSample(&rawX, &rawY, &rawPressure); 
 	Xsamples[sample] = rawX;
 	Ysamples[sample] = rawY;
@@ -161,6 +203,7 @@ while (prog_running == 1){
 	}
     usleep(100);
 }
+
 	shutdown();
 	return 0;
   

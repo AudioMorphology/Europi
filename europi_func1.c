@@ -40,6 +40,7 @@
 #include "touch.h"
 #include "touch.c"
 #include "quantizer_scales.h"
+#include "../raylib/release/rpi/raylib.h"
 
 //extern struct europi;
 extern struct fb_var_screeninfo vinfo;
@@ -99,6 +100,7 @@ extern pthread_mutex_t pcf8574_lock;
 extern uint8_t mcp23008_state[16];
 extern int test_v;
 pthread_t ThreadId; 		// Pointer to detatched Thread Ids (re-used by each/every detatched thread)
+extern SpriteFont fonts[];
 
 /* Internal Clock
  * 
@@ -718,7 +720,47 @@ void button_touched(int x, int y){
 
 	//initialise the sequence for testing purposes
 	init_sequence();
+	
+	/* Raylib Initiaslisation */
+	/* force main screen resolution to same as TFT */
+	fbfd = open("/dev/fb0", O_RDWR);
+	if (!fbfd) {
+		log_msg("Error: cannot open framebuffer device.");
+	}
+	unsigned int screensize = 0;
+	// Get current screen metrics
+	if (ioctl(fbfd, FBIOGET_VSCREENINFO, &vinfo)) {
+		log_msg("Error reading variable information.");
+	}
+	// Store this for when the prog closes (copy vinfo to vinfo_orig)
+	// because we'll need to re-instate all the existing parameters
+	memcpy(&orig_vinfo, &vinfo, sizeof(struct fb_var_screeninfo));
+	if (ioctl(fbfd, FBIOGET_VSCREENINFO, &orig_vinfo)) {
+		log_msg("Error reading variable information.");
+	}
+	// Change variable info - force 16 bit and resolution
+	//vinfo.bits_per_pixel = 16;
+	vinfo.xres = X_MAX;
+	vinfo.yres = Y_MAX;
+	vinfo.xres_virtual = vinfo.xres;
+	vinfo.yres_virtual = vinfo.yres;
+  
+	if (ioctl(fbfd, FBIOPUT_VSCREENINFO, &vinfo)) {
+		log_msg("Error setting variable information.");
+	}
+  
+	// Get fixed screen information
+	if (ioctl(fbfd, FBIOGET_FSCREENINFO, &finfo)) {
+		log_msg("Error reading fixed information.");
+	}
+	
+	InitWindow(X_MAX, Y_MAX, "Europi by Audio Morpholgy");
+	ToggleFullscreen();
+	DisableCursor();
+	fonts[0] = LoadSpriteFont("resources/fonts/mecha.rbmf");
 
+
+/*
 	// Attempt to open the Framebuffer
 	// for reading and writing
 	fbfd = open("/dev/fb1", O_RDWR);
@@ -769,7 +811,10 @@ void button_touched(int x, int y){
     log_msg("Failed to mmap.");
 	return -1;
   }
-  // Open the touchscreen
+   
+*/
+
+	// Open the touchscreen
   	if (openTouchScreen() == 1)
 		log_msg("error opening touch screen"); 
 	getTouchScreenDetails(&screenXmin,&screenXmax,&screenYmin,&screenYmax);
@@ -811,24 +856,38 @@ int shutdown(void)
 			//GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x00);
 		}
 	}
-	 /* Clear the screen to black */
-	fill_rect_RGB565(fbp, 0, 0, X_MAX - 1, Y_MAX - 1, HEX2565(0x000000));
-	/* put up our splash screen (why not!) */
-	splash_screen();
-	/* unload the PIGPIO library */
-	gpioTerminate();
-	unsigned int screensize = vinfo.xres * vinfo.yres * vinfo.bits_per_pixel / 8;
-	if (kbfd >= 0) {
-		ioctl(kbfd, KDSETMODE, KD_TEXT);
-	}
-	else {
-		log_msg("Could not reset keyboard mode.");
-	}
-	munmap(fbp, screensize);
-	if (ioctl(fbfd, FBIOPUT_VSCREENINFO, &orig_vinfo)) {
-		log_msg("Error re-setting variable information.");
-	}
-	close(fbfd);
+
+/* Raylib de-initialisation */
+int i;
+for(i = 0; i < 1; i++){		// NOTE!! Need to change as we add fonts
+	UnloadSpriteFont(fonts[i]);
+}
+CloseWindow();        			// Close window and OpenGL context
+// Set screen resolution back to Original values
+if (ioctl(fbfd, FBIOPUT_VSCREENINFO, &orig_vinfo)) {
+	log_msg("Error re-setting variable information.");
+}
+close(fbfd);
+	
+	
+//	 /* Clear the screen to black */
+//	fill_rect_RGB565(fbp, 0, 0, X_MAX - 1, Y_MAX - 1, HEX2565(0x000000));
+//	/* put up our splash screen (why not!) */
+//	splash_screen();
+//	/* unload the PIGPIO library */
+//	gpioTerminate();
+//	unsigned int screensize = vinfo.xres * vinfo.yres * vinfo.bits_per_pixel / 8;
+//	if (kbfd >= 0) {
+//		ioctl(kbfd, KDSETMODE, KD_TEXT);
+//	}
+//	else {
+//		log_msg("Could not reset keyboard mode.");
+//	}
+//	munmap(fbp, screensize);
+//	if (ioctl(fbfd, FBIOPUT_VSCREENINFO, &orig_vinfo)) {
+//		log_msg("Error re-setting variable information.");
+//	}
+//	close(fbfd);
 	// destroy the Mutex locks for the mcp23008, pcf8574
 	pthread_mutex_destroy(&mcp23008_lock);
 	pthread_mutex_destroy(&pcf8574_lock);

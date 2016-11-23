@@ -1,11 +1,20 @@
-# This version of the makefile seems to correctly 
-# include header file dependencies, and will re-build
+# This version of the makefile seems correctly includes
+# header file dependencies, and will re-build
 # .o files if any of the included .h files change
+# It also assumes that raylib has been cloned to a 
+# directory at the same level as the Europi directory
+# and that raylib has been compiled with using the 
+# following command from within the ../raylib/src directory:
+#    make PLATFORM=PLATFORM_RPI
+# this builds ../raylib/release/rpi/libraylib.a
 OBJS := europi.o europi_framebuffer_utils.o splash.o europi_func1.o europi_func2.o
+INCLUDES = -I. -I../raylib/src -I../raylib/src/external -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads
+LIBS = -lpigpio -lrt -lraylib -lGLESv2 -lEGL -lpthread -lrt -lm -lbcm_host -lopenal
+LFLAGS = -L. -L../raylib/src -L../raylib/release/rpi -L/opt/vc/lib
 
 # link
 europi: $(OBJS)
-	gcc $(OBJS) -Wall -Wno-trigraphs -o europi -lpigpio -lrt -lpthread 
+	gcc $(OBJS) $(INCLUDES) $(LFLAGS) $(LIBS) -Wall -Wno-trigraphs -o europi 
 
 # pull in dependency info for *existing* .o files
 -include $(OBJS:.o=.d)
