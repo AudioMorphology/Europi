@@ -1,0 +1,90 @@
+Europi Install & Build instructions
+
+Download, compile and install the PIGPIO library\	
+
+edit /boot/config.txt and take the comment off the following line:
+#dtparam=spi=on
+
+Add the ads7846 touchscreen overlay:
+ - Towards the end of /boot/config.txt add the following line:
+ dtoverlay=ads7846,penirq=17,speed=1600000,xohms=100
+
+The following line loads the fbtft driver manually, though note that later on in this doc
+there is an explanation as to how to load the fbtft driver at boot time
+
+sudo modprobe fbtft_device custom name=fb_iti9340 buswidth=8 speed=16000000 bgr=1 gpios=reset:27,dc:22 rotate=270
+
+
+To create the Front Panel image:
+
+This is rendered from a .pov and .ini by POVRAY (Ray Tracing Program). It is set to output a .PNG file
+
+To create the .c file:
+
+Open the .PNG created by POVRAY using GIMP.
+
+- File->Export...
+- Select .c source Code (*.c) from the drop-down list
+- Call it front_panel.c
+- Change the Prefixed name to front_panel
+- Comment doesn't matter (it's not included anywhere)
+- make sure all the checkboxes are UN-checked, and Opacity is set to 100%
+
+Click on [Export]
+
+
+The following two changes mean that you don't have to run the sudo modprobe line each time the pi boots:
+
+>sudo nano /etc/modules-load.d/modules.conf
+
+add the following 2 lines:
+
+spi-bcm2835
+fbtft_device
+
+>sudo nano /etc/modprobe.d/fbtft.conf   (ie create this file, as it probably doesn't already exist)
+
+add the following line:
+
+options fbtft_device custom name=fb_ili9340 buswidth=8 speed=16000000 bgr=1 gpios=reset:27,dc:22 rotate=270
+
+Note that the argument bgr=1 is only necessary to fix the situation where Red and Blue colours are swapped, which
+it the case with the SpotPear TFT Screens.
+
+To get europi to run automatically at startup, do the following: 
+
+>sudo crontab -e
+
+If it gives you a choice of editor, choose whichever you want (I use nano). Once you have made a choice, it'll open in that editor from then onwards
+
+
+Add the following to the bottom of the crontab file:
+
+@reboot /usr/bin/sudo /home/pi/projects/Europi/europi
+
+SET The Touchscreen Device:
+Depending on how many devices are connected to the SPI bus, the Touchscreen may appear as
+device1, 2,  3 etc., to view the input devices:
+>cat /proc/bus/input/devices
+
+Mine looks like this:
+I: Bus=0000 Vendor=0000 Product=0000 Version=0000
+N: Name="ADS7846 Touchscreen"
+P: Phys=spi0.1/input0
+S: Sysfs=/devices/platform/soc/3f204000.spi/spi_master/spi0/spi0.1/input/input3
+U: Uniq=
+H: Handlers=mouse1 event3 
+B: PROP=0
+B: EV=b
+B: KEY=400 0 0 0 0 0 0 0 0 0 0
+B: ABS=1000003
+
+That H: line shows that it is being handled by event3
+
+
+Fri 24th June: I was adding stuff to get me to the stsage where I could use IOCTL to read touch events
+I got the prog to compile OK, but it crashes with a SIGINT 11 (basically a memory violation) as it 
+tries to query the device capabilities.
+
+Sat 25th Jun: I removed all the touchscreen code I'd added, and decided instead to just try linking 
+in the example C code from Mark Williams

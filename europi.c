@@ -38,12 +38,10 @@
 
 unsigned hw_version;			/* Type 1: 2,3 Type 2: 4,5,6 & 15 Type 3: 16 or Greater */
 struct fb_var_screeninfo vinfo;
-struct fb_var_screeninfo fb1_vinfo;
 struct fb_fix_screeninfo finfo;
 struct fb_var_screeninfo orig_vinfo;
 char *fbp = 0;
 int fbfd = 0;
-int fbfd1 = 0;
 int kbfd = 0;
 int is_europi = FALSE;	/* whether we are running on Europi hardware - set to True in hardware_init() */
 int print_messages = TRUE; /* controls whether log_msg outputs to std_err or not */
@@ -55,11 +53,9 @@ int clock_source = INT_CLK;	/* INT_CLK = Internal, EXT_CLK = External Clock Sour
 int clock_freq=192;		/* speed of the main internal clock in Hz */
 uint8_t PCF8574_state=0xF0; /* current state of the PCF8574 Ports on the Europi */
 int led_on = 0;
-//int current_step = 0;
 int step_one = TRUE;	/* used for resetting the sequence to start from the first step */
 int step_one_state = LOW; /*records whether the Step 1 pulse needs to be turned off */
 int selected_step = -1;	/* records the step that is currently selected. -1=Nothing selected */
-//int last_step = 32;		/* last step in the sequence - can be changed to shorten the loop point */
 uint32_t step_tick = 0;	/* used to record the start point of each step in ticks */
 uint32_t step_ticks = 250000;	/* Records the length of each step in ticks (used to limit slew length) Init value of 250000 is so it doesn't go nuts */
 uint32_t slew_interval = 1000; /* number of microseconds between each sucessive level change during a slew */
@@ -85,27 +81,14 @@ pthread_attr_t detached_attr;		/* Single detached thread attribute used by any /
 pthread_mutex_t mcp23008_lock;
 pthread_mutex_t pcf8574_lock;
 uint8_t mcp23008_state[16];
+char *kbfds = "/dev/tty";
+
 /* Raylib-related stuff */
 SpriteFont font1;
 
 /* This is the main structure that holds info about the running sequence */
 struct europi Europi; 
 
-int test_v = 2000;
-
-/* sequence array:
- * Holds details of our Sequence [CHNL][STEP][PARAMETER]
- * [CHNL] = Channel 0-5
- * [STEP] = Sequence step 0-31
- * where the parameters are as follows:
- * [0] = cv value
- * [1] = gate (0=off, 1=gate, 2=trigger)
- * [2] = active (1 = step Active, 0 = step inactive)
- */
-unsigned int sequence[6][32][3];	
-unsigned int button_grid[32][1][1];	/* X & Y coordinates of Top Left of each button in the grid */
-
-char *kbfds = "/dev/tty";
 
 
 // application entry point
@@ -117,8 +100,6 @@ int main(int argc, char* argv[])
 	startup();
 	/* draw the main front screen */
 	//paint_main();
-	/* scribble some text */
-	//put_string(fbp, 20, 215, "Menu       ", HEX2565(0x000000), HEX2565(0xFFFFFF));
 	/* Read and set the states of the run/stop and int/ext switches */
 	log_msg("Run/stop: %d, Int/ext: %d\n",gpioRead(RUNSTOP_IN),gpioRead(INTEXT_IN));
 	run_stop = gpioRead(RUNSTOP_IN);
@@ -126,9 +107,6 @@ int main(int argc, char* argv[])
 	//Temp for testing
 	//run_stop = RUN; 
 	//clock_source = INT_CLK;
-			Vector2 txtPosition;
-		int track = 1;
-		char track_no[2];
 //		sprintf(track_no,"%s","1");
 //        BeginDrawing();
 //				ClearBackground(RAYWHITE);
@@ -147,27 +125,43 @@ while (prog_running == 1){
             ClearBackground(RAYWHITE);
 			int track;
 			int step;
-			char track_no[2];
-			Vector2 txtPosition;
+			char track_no[20];
+			int txt_len;
 			for(track=0;track<24;track++){
 				// Track Number
-				//sprintf(track_no,"%s",track);
-				//txtPosition.x = 0;
-				//txtPosition.y = track * 10;
-				//DrawTextEx(font1,track_no,txtPosition,font1.size,-3,DARKGRAY);
+				sprintf(track_no,"%d",track+1);
+				txt_len = MeasureText(track_no,10);
+				DrawText(track_no,12-txt_len,track * 10,10,DARKGRAY);
 				for(step=0;step<32;step++){
 					if(step == Europi.tracks[track].last_step){
 						// Paint last step
-						DrawRectangle(10 + (step * 9), track * 10, 8, 9, BLACK); 
+						DrawRectangle(15 + (step * 9), track * 10, 8, 9, BLACK); 
 					}
 					else if(step == Europi.tracks[track].current_step){
 						// Paint current step
-						DrawRectangle(10 + (step * 9), track * 10, 8, 9, LIME); 
-						
+						DrawRectangle(15 + (step * 9), track * 10, 8, 9, LIME); 
+						// Gate state for current step
+						if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1){
+							if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].retrigger > 0) {
+								DrawRectangle(15 + (32 * 9), track * 10, 8, 9, BLACK);	
+							}
+							else {
+								DrawRectangle(15 + (32 * 9), track * 10, 8, 9, VIOLET);	
+							}	
+						}
+						else {
+							DrawRectangle(15 + (32 * 9), track * 10, 8, 9, WHITE);	
+						}
 					}
 					else {
 						// paint blank step
-						DrawRectangle(10 + (step * 9), track * 10, 8, 9, MAROON); 
+						DrawRectangle(15 + (step * 9), track * 10, 8, 9, MAROON); 
+					}
+					if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1){
+						//DrawRectangle(15 + (32 * 9), track * 10, 8, 9, RED);	
+					}
+					else {
+						//DrawRectangle(15 + (32 * 9), track * 10, 8, 9, WHITE);	
 					}
 				}
 			}

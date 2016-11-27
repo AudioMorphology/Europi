@@ -44,13 +44,11 @@
 
 //extern struct europi;
 extern struct fb_var_screeninfo vinfo;
-extern struct fb_var_screeninfo fb1_vinfo;
 extern struct fb_fix_screeninfo finfo;
 extern struct fb_var_screeninfo orig_vinfo;
 
 extern unsigned hw_version;
 extern int fbfd;
-extern int fbfd1;
 extern char *fbp;
 extern char *kbfds;
 extern int kbfd;
@@ -757,66 +755,11 @@ void button_touched(int x, int y){
 		log_msg("Error reading fixed information.");
 	}
 	
+	//Raylib Initialisation
 	InitWindow(X_MAX, Y_MAX, "Europi by Audio Morpholgy");
 	ToggleFullscreen();
 	DisableCursor();
 	font1 = LoadSpriteFont("resources/fonts/mecha.rbmf");
-
-
-
-	// Attempt to open the TFT Framebuffer
-	// for reading and writing
-	fbfd1 = open("/dev/fb1", O_RDWR);
-	if (!fbfd1) {
-		log_msg("Error: cannot open TFT framebuffer device.");
-		return(1);
-	}
-//	unsigned int screensize = 0;
-	// Get current screen metrics
-	if (ioctl(fbfd1, FBIOGET_VSCREENINFO, &fb1_vinfo)) {
-		log_msg("Error reading variable information.");
-	}
-	// printf("Original %dx%d, %dbpp\n", vinfo.xres, vinfo.yres, vinfo.bits_per_pixel );
-	// Store this for when the prog closes (copy vinfo to vinfo_orig)
-	// because we'll need to re-instate all the existing parameters
-//	memcpy(&orig_vinfo, &vinfo, sizeof(struct fb_var_screeninfo));
-//  if (ioctl(fbfd, FBIOGET_VSCREENINFO, &orig_vinfo)) {
-//    log_msg("Error reading variable information.");
-//  }
-  // Change variable info - force 16 bit and resolution
-  fb1_vinfo.bits_per_pixel = 16;
-  fb1_vinfo.xres = X_MAX;
-  fb1_vinfo.yres = Y_MAX;
-  //vinfo.xres_virtual = vinfo.xres;
-  //vinfo.yres_virtual = vinfo.yres;
-  
-  if (ioctl(fbfd1, FBIOPUT_VSCREENINFO, &fb1_vinfo)) {
-    log_msg("Error setting TFT variable information.");
-  }
-  
-  /*
-  // Get fixed screen information
-  if (ioctl(fbfd, FBIOGET_FSCREENINFO, &finfo)) {
-    log_msg("Error reading fixed information.");
-  }
-
-  // map fb to user mem 
-  screensize = vinfo.xres * vinfo.yres * vinfo.bits_per_pixel / 8;
-  xres = vinfo.xres;
-  yres = vinfo.yres;
-  fbp = (char*)mmap(0, 
-        screensize, 
-        PROT_READ | PROT_WRITE, 
-        MAP_SHARED, 
-        fbfd, 
-        0);
-
-  if ((int)fbp == -1) {
-    log_msg("Failed to mmap.");
-	return -1;
-  }
-   
-*/
 
 	// Open the touchscreen
   	if (openTouchScreen() == 1)
