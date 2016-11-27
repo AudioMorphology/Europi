@@ -44,11 +44,13 @@
 
 //extern struct europi;
 extern struct fb_var_screeninfo vinfo;
+extern struct fb_var_screeninfo fb1_vinfo;
 extern struct fb_fix_screeninfo finfo;
 extern struct fb_var_screeninfo orig_vinfo;
 
 extern unsigned hw_version;
 extern int fbfd;
+extern int fbfd1;
 extern char *fbp;
 extern char *kbfds;
 extern int kbfd;
@@ -100,7 +102,7 @@ extern pthread_mutex_t pcf8574_lock;
 extern uint8_t mcp23008_state[16];
 extern int test_v;
 pthread_t ThreadId; 		// Pointer to detatched Thread Ids (re-used by each/every detatched thread)
-extern SpriteFont fonts[];
+extern SpriteFont font1;
 
 /* Internal Clock
  * 
@@ -738,12 +740,13 @@ void button_touched(int x, int y){
 	if (ioctl(fbfd, FBIOGET_VSCREENINFO, &orig_vinfo)) {
 		log_msg("Error reading variable information.");
 	}
+
 	// Change variable info - force 16 bit and resolution
 	//vinfo.bits_per_pixel = 16;
 	vinfo.xres = X_MAX;
 	vinfo.yres = Y_MAX;
-	vinfo.xres_virtual = vinfo.xres;
-	vinfo.yres_virtual = vinfo.yres;
+//	vinfo.xres_virtual = vinfo.xres;
+//	vinfo.yres_virtual = vinfo.yres;
   
 	if (ioctl(fbfd, FBIOPUT_VSCREENINFO, &vinfo)) {
 		log_msg("Error setting variable information.");
@@ -757,40 +760,41 @@ void button_touched(int x, int y){
 	InitWindow(X_MAX, Y_MAX, "Europi by Audio Morpholgy");
 	ToggleFullscreen();
 	DisableCursor();
-	fonts[0] = LoadSpriteFont("resources/fonts/mecha.rbmf");
+	font1 = LoadSpriteFont("resources/fonts/mecha.rbmf");
 
 
-/*
-	// Attempt to open the Framebuffer
+
+	// Attempt to open the TFT Framebuffer
 	// for reading and writing
-	fbfd = open("/dev/fb1", O_RDWR);
-	if (!fbfd) {
-		log_msg("Error: cannot open framebuffer device.");
+	fbfd1 = open("/dev/fb1", O_RDWR);
+	if (!fbfd1) {
+		log_msg("Error: cannot open TFT framebuffer device.");
 		return(1);
 	}
-	unsigned int screensize = 0;
+//	unsigned int screensize = 0;
 	// Get current screen metrics
-	if (ioctl(fbfd, FBIOGET_VSCREENINFO, &vinfo)) {
+	if (ioctl(fbfd1, FBIOGET_VSCREENINFO, &fb1_vinfo)) {
 		log_msg("Error reading variable information.");
 	}
 	// printf("Original %dx%d, %dbpp\n", vinfo.xres, vinfo.yres, vinfo.bits_per_pixel );
 	// Store this for when the prog closes (copy vinfo to vinfo_orig)
 	// because we'll need to re-instate all the existing parameters
-	memcpy(&orig_vinfo, &vinfo, sizeof(struct fb_var_screeninfo));
-  if (ioctl(fbfd, FBIOGET_VSCREENINFO, &orig_vinfo)) {
-    log_msg("Error reading variable information.");
-  }
+//	memcpy(&orig_vinfo, &vinfo, sizeof(struct fb_var_screeninfo));
+//  if (ioctl(fbfd, FBIOGET_VSCREENINFO, &orig_vinfo)) {
+//    log_msg("Error reading variable information.");
+//  }
   // Change variable info - force 16 bit and resolution
-  vinfo.bits_per_pixel = 16;
-  vinfo.xres = X_MAX;
-  vinfo.yres = Y_MAX;
-  vinfo.xres_virtual = vinfo.xres;
-  vinfo.yres_virtual = vinfo.yres;
+  fb1_vinfo.bits_per_pixel = 16;
+  fb1_vinfo.xres = X_MAX;
+  fb1_vinfo.yres = Y_MAX;
+  //vinfo.xres_virtual = vinfo.xres;
+  //vinfo.yres_virtual = vinfo.yres;
   
-  if (ioctl(fbfd, FBIOPUT_VSCREENINFO, &vinfo)) {
-    log_msg("Error setting variable information.");
+  if (ioctl(fbfd1, FBIOPUT_VSCREENINFO, &fb1_vinfo)) {
+    log_msg("Error setting TFT variable information.");
   }
   
+  /*
   // Get fixed screen information
   if (ioctl(fbfd, FBIOGET_FSCREENINFO, &finfo)) {
     log_msg("Error reading fixed information.");
@@ -844,8 +848,10 @@ void button_touched(int x, int y){
 /* Things to do as the prog closess */
 int shutdown(void)
  {
-	 int track;
-	 /* clear down all CV / Gate outputs */
+	int track;
+	/* Slight pause to give some threads time to exist */
+	sleep(1);
+	/* clear down all CV / Gate outputs */
 	for (track = 0;track < MAX_TRACKS; track++){
 		/* set the CV for each channel to the Zero level*/
 		if (Europi.tracks[track].channels[0].enabled == TRUE ){
@@ -853,21 +859,19 @@ int shutdown(void)
 		}
 		/* set the Gate State for each channel to OFF*/
 		if (Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ){
-			//GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x00);
+			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x00);
 		}
 	}
 
-/* Raylib de-initialisation */
-int i;
-for(i = 0; i < 1; i++){		// NOTE!! Need to change as we add fonts
-	UnloadSpriteFont(fonts[i]);
-}
-CloseWindow();        			// Close window and OpenGL context
-// Set screen resolution back to Original values
-if (ioctl(fbfd, FBIOPUT_VSCREENINFO, &orig_vinfo)) {
-	log_msg("Error re-setting variable information.");
-}
-close(fbfd);
+	/* Raylib de-initialisation */
+	UnloadSpriteFont(font1);
+	ClearBackground(BLACK);
+	CloseWindow();        			// Close window and OpenGL context
+	// Set screen resolution back to Original values
+	if (ioctl(fbfd, FBIOPUT_VSCREENINFO, &orig_vinfo)) {
+		log_msg("Error re-setting variable information.");
+	}
+	close(fbfd);
 	
 	
 //	 /* Clear the screen to black */

@@ -38,10 +38,12 @@
 
 unsigned hw_version;			/* Type 1: 2,3 Type 2: 4,5,6 & 15 Type 3: 16 or Greater */
 struct fb_var_screeninfo vinfo;
+struct fb_var_screeninfo fb1_vinfo;
 struct fb_fix_screeninfo finfo;
 struct fb_var_screeninfo orig_vinfo;
 char *fbp = 0;
 int fbfd = 0;
+int fbfd1 = 0;
 int kbfd = 0;
 int is_europi = FALSE;	/* whether we are running on Europi hardware - set to True in hardware_init() */
 int print_messages = TRUE; /* controls whether log_msg outputs to std_err or not */
@@ -84,7 +86,7 @@ pthread_mutex_t mcp23008_lock;
 pthread_mutex_t pcf8574_lock;
 uint8_t mcp23008_state[16];
 /* Raylib-related stuff */
-SpriteFont fonts[1];
+SpriteFont font1;
 
 /* This is the main structure that holds info about the running sequence */
 struct europi Europi; 
@@ -124,18 +126,19 @@ int main(int argc, char* argv[])
 	//Temp for testing
 	//run_stop = RUN; 
 	//clock_source = INT_CLK;
-
-    Vector2 ballPosition = { -100.0f, -100.0f };
-    Color ballColor = DARKBLUE;
+			Vector2 txtPosition;
+		int track = 1;
+		char track_no[2];
+//		sprintf(track_no,"%s","1");
+//        BeginDrawing();
+//				ClearBackground(RAYWHITE);
+//				sprintf(track_no,"%s",track);
+//				txtPosition.x = 0;
+//				txtPosition.y = track * 10;
+//				DrawTextEx(fonts[0],track_no,txtPosition,fonts[0].size,-3,DARKGRAY);
+//        EndDrawing(); 
 
 while (prog_running == 1){
-        // Update
-        //----------------------------------------------------------------------------------
-        ballPosition = GetMousePosition();
-        
-        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) ballColor = MAROON;
-        else if (IsMouseButtonPressed(MOUSE_MIDDLE_BUTTON)) ballColor = LIME;
-        else if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) ballColor = DARKBLUE;
         //----------------------------------------------------------------------------------
         // Draw 
         //----------------------------------------------------------------------------------
@@ -144,20 +147,27 @@ while (prog_running == 1){
             ClearBackground(RAYWHITE);
 			int track;
 			int step;
+			char track_no[2];
+			Vector2 txtPosition;
 			for(track=0;track<24;track++){
+				// Track Number
+				//sprintf(track_no,"%s",track);
+				//txtPosition.x = 0;
+				//txtPosition.y = track * 10;
+				//DrawTextEx(font1,track_no,txtPosition,font1.size,-3,DARKGRAY);
 				for(step=0;step<32;step++){
 					if(step == Europi.tracks[track].last_step){
 						// Paint last step
-						DrawRectangle(step * 10, track * 10, 9, 9, BLACK); 
+						DrawRectangle(10 + (step * 9), track * 10, 8, 9, BLACK); 
 					}
 					else if(step == Europi.tracks[track].current_step){
 						// Paint current step
-						DrawRectangle(step * 10, track * 10, 9, 9, LIME); 
+						DrawRectangle(10 + (step * 9), track * 10, 8, 9, LIME); 
 						
 					}
 					else {
 						// paint blank step
-						DrawRectangle(step * 10, track * 10, 9, 9, MAROON); 
+						DrawRectangle(10 + (step * 9), track * 10, 8, 9, MAROON); 
 					}
 				}
 			}
