@@ -35,7 +35,6 @@
 #include <signal.h>
 
 #include "europi.h"
-#include "splash.c"
 #include "front_panel.c"
 #include "touch.h"
 #include "touch.c"
@@ -452,9 +451,6 @@ static void *GateThread(void *arg)
 int paint_main(void)
 {
 	int channel;
-	/* splash screen is a full 320x240 image, so will clear the screen */
-	splash_screen();
-	sleep(2);
 	paint_front_panel();
 	step_button_grid();
 	/* Set all the gate & level indicators to off */
@@ -464,25 +460,6 @@ int paint_main(void)
 	}
 }
 
-
-/*
- * splash_screen - reads the splash image in splash.c
- * and displays it on the screen pixel by pixel. There
- * are probably better ways of doing this, but it works.
- */
-void splash_screen(void)
-{
-	int i,j;
-	for(i=0; i<splash_img.height; i++) {
-    for(j=0; j<splash_img.width; j++) {
-	int r = splash_img.pixel_data[(i*splash_img.width + j)*3 + 0];
-	int g = splash_img.pixel_data[(i*splash_img.width + j)*3 + 1];
-	int b = splash_img.pixel_data[(i*splash_img.width + j)*3 + 2];
-	put_pixel_RGB565(fbp, j, i, RGB2565(r,g,b));
-	  
-    }
-  }
-}
 
 /*
  * Front Panel - reads the Front Panel image in splash.c
@@ -715,13 +692,7 @@ void button_touched(int x, int y){
 	encoder_tick = gpioTick();
 	encoder_focus = none;
 
-	/* Open all the hardware ports */
-	hardware_init();
-
-	//initialise the sequence for testing purposes
-	init_sequence();
-	
-	/* Raylib Initiaslisation */
+	/* Raylib Initialisation */
 	/* force main screen resolution to same as TFT */
 	fbfd = open("/dev/fb0", O_RDWR);
 	if (!fbfd) {
@@ -761,6 +732,13 @@ void button_touched(int x, int y){
 	DisableCursor();
 	font1 = LoadSpriteFont("resources/fonts/mecha.rbmf");
 
+	//Splash screen
+	Texture2D texture = LoadTexture("resources/images/splash_screen.png");
+	BeginDrawing();
+		ClearBackground(RAYWHITE);
+		DrawTexture(texture,0,0,WHITE);
+	EndDrawing();
+
 	// Open the touchscreen
   	if (openTouchScreen() == 1)
 		log_msg("error opening touch screen"); 
@@ -779,6 +757,12 @@ void button_touched(int x, int y){
     else {
         log_msg("Could not open kbfds.");
     }
+	
+	/* Open all the hardware ports */
+	hardware_init();
+
+	//initialise the sequence for testing purposes
+	init_sequence();
 	/* Start the internal sequencer clock */
 	run_stop = STOP;		/* master clock is running, but step generator is halted */
 	gpioHardwarePWM(MASTER_CLK,clock_freq,500000);

@@ -7,7 +7,7 @@
 # following command from within the ../raylib/src directory:
 #    make PLATFORM=PLATFORM_RPI
 # this builds ../raylib/release/rpi/libraylib.a
-OBJS := europi.o europi_framebuffer_utils.o splash.o europi_func1.o europi_func2.o
+OBJS := europi.o europi_framebuffer_utils.o europi_func1.o europi_func2.o
 INCLUDES = -I. -I../raylib/src -I../raylib/src/external -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads
 LIBS = -lpigpio -lrt -lraylib -lGLESv2 -lEGL -lpthread -lrt -lm -lbcm_host -lopenal
 LFLAGS = -L. -L../raylib/src -L../raylib/release/rpi -L/opt/vc/lib

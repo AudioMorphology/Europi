@@ -245,13 +245,28 @@ void put_char(char *, int x, int y, int c, unsigned short fgc, unsigned short bg
 #define DEV_RPI 2
 #define DEV_PCF8574 3
 
+/* Menu structures - Menus are defined using 
+ * Arrays of structures containing the
+ * Menu Tree & leaf element names, Functions
+ * to call etc.
+ */
+struct menuitem{
+	const char *name;				// Menu display text
+	void (*funcPtr)();				// Handler for this leaf node (Optionally NULL)
+	struct menu *child;				// Pointer to child submenu (Optionally NULL)
+};
+
+struct menu {
+	struct menu *parent;			// Pointer to Parent menu
+	struct menuitems **menuitem;	// Array of menu items, NULL terminated
+};
+
 /*
  * SLEW structure is instantiated and filled with
  * details about the slew for the current step - 
  * Start & End values, Type, Length etc
  */
- 
-struct slew {
+ struct slew {
 	int track;				/* which track spawned the thread */
 	int i2c_handle;			/* Handle to the i2c device that outputs this track */
 	int i2c_address;		/* Address of this device on the i2c Bus - address need to match the physical A3-A0 pins */

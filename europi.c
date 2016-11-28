@@ -86,6 +86,11 @@ char *kbfds = "/dev/tty";
 /* Raylib-related stuff */
 SpriteFont font1;
 
+/* declare and populate the menu structure */
+struct menu Menu[]={
+
+	};
+
 /* This is the main structure that holds info about the running sequence */
 struct europi Europi; 
 
@@ -107,14 +112,6 @@ int main(int argc, char* argv[])
 	//Temp for testing
 	//run_stop = RUN; 
 	//clock_source = INT_CLK;
-//		sprintf(track_no,"%s","1");
-//        BeginDrawing();
-//				ClearBackground(RAYWHITE);
-//				sprintf(track_no,"%s",track);
-//				txtPosition.x = 0;
-//				txtPosition.y = track * 10;
-//				DrawTextEx(fonts[0],track_no,txtPosition,fonts[0].size,-3,DARKGRAY);
-//        EndDrawing(); 
 
 while (prog_running == 1){
         //----------------------------------------------------------------------------------
@@ -156,12 +153,6 @@ while (prog_running == 1){
 					else {
 						// paint blank step
 						DrawRectangle(15 + (step * 9), track * 10, 8, 9, MAROON); 
-					}
-					if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1){
-						//DrawRectangle(15 + (32 * 9), track * 10, 8, 9, RED);	
-					}
-					else {
-						//DrawRectangle(15 + (32 * 9), track * 10, 8, 9, WHITE);	
 					}
 				}
 			}
