@@ -5,6 +5,14 @@ Download, compile and install the PIGPIO library\
 edit /boot/config.txt and take the comment off the following line:
 #dtparam=spi=on
 
+add the following line to prevent the undeer-voltage warning being displayed if
+the power voltage drops:
+avoid_warnings=1
+
+Note: If you change the 1 to a 2, then it will also prevent the Pi disabling Turbo mode
+if the power drops (normal behaviour). i thought this a bit risky, as it might cause the 
+pi to crash, hence why I stuck with the =1
+
 Add the ads7846 touchscreen overlay:
  - Towards the end of /boot/config.txt add the following line:
  dtoverlay=ads7846,penirq=17,speed=1600000,xohms=100
@@ -13,24 +21,6 @@ The following line loads the fbtft driver manually, though note that later on in
 there is an explanation as to how to load the fbtft driver at boot time
 
 sudo modprobe fbtft_device custom name=fb_iti9340 buswidth=8 speed=16000000 bgr=1 gpios=reset:27,dc:22 rotate=270
-
-
-To create the Front Panel image:
-
-This is rendered from a .pov and .ini by POVRAY (Ray Tracing Program). It is set to output a .PNG file
-
-To create the .c file:
-
-Open the .PNG created by POVRAY using GIMP.
-
-- File->Export...
-- Select .c source Code (*.c) from the drop-down list
-- Call it front_panel.c
-- Change the Prefixed name to front_panel
-- Comment doesn't matter (it's not included anywhere)
-- make sure all the checkboxes are UN-checked, and Opacity is set to 100%
-
-Click on [Export]
 
 
 The following two changes mean that you don't have to run the sudo modprobe line each time the pi boots:

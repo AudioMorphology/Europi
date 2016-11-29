@@ -93,6 +93,7 @@ extern int encoder_vel;
 extern uint32_t encoder_tick;
 extern enum encoder_focus_t encoder_focus;
 extern struct europi Europi;
+extern struct menuitem Menu[];
 extern pthread_attr_t detached_attr;		
 extern pthread_mutex_t mcp23008_lock;
 extern pthread_mutex_t pcf8574_lock;
@@ -100,6 +101,8 @@ extern uint8_t mcp23008_state[16];
 extern int test_v;
 pthread_t ThreadId; 		// Pointer to detatched Thread Ids (re-used by each/every detatched thread)
 extern SpriteFont font1;
+extern Texture2D Splash;
+extern int disp_menu;	
 
 /* Internal Clock
  * 
@@ -733,10 +736,10 @@ void button_touched(int x, int y){
 	font1 = LoadSpriteFont("resources/fonts/mecha.rbmf");
 
 	//Splash screen
-	Texture2D texture = LoadTexture("resources/images/splash_screen.png");
+	Splash = LoadTexture("resources/images/splash_screen.png");
 	BeginDrawing();
 		ClearBackground(RAYWHITE);
-		DrawTexture(texture,0,0,WHITE);
+		DrawTexture(Splash,0,0,WHITE);
 	EndDrawing();
 
 	// Open the touchscreen
@@ -776,8 +779,12 @@ void button_touched(int x, int y){
 int shutdown(void)
  {
 	int track;
+	// Splash screen
+	BeginDrawing();
+	DrawTexture(Splash,0,0,WHITE);
+	EndDrawing();
 	/* Slight pause to give some threads time to exist */
-	sleep(1);
+	sleep(2);
 	/* clear down all CV / Gate outputs */
 	for (track = 0;track < MAX_TRACKS; track++){
 		/* set the CV for each channel to the Zero level*/
@@ -792,21 +799,15 @@ int shutdown(void)
 
 	/* Raylib de-initialisation */
 	UnloadSpriteFont(font1);
-	ClearBackground(BLACK);
+	UnloadTexture(Splash);
 	CloseWindow();        			// Close window and OpenGL context
 	// Set screen resolution back to Original values
 	if (ioctl(fbfd, FBIOPUT_VSCREENINFO, &orig_vinfo)) {
 		log_msg("Error re-setting variable information.");
 	}
 	close(fbfd);
-	
-	
-//	 /* Clear the screen to black */
-//	fill_rect_RGB565(fbp, 0, 0, X_MAX - 1, Y_MAX - 1, HEX2565(0x000000));
-//	/* put up our splash screen (why not!) */
-//	splash_screen();
-//	/* unload the PIGPIO library */
-//	gpioTerminate();
+	/* unload the PIGPIO library */
+	gpioTerminate();
 //	unsigned int screensize = vinfo.xres * vinfo.yres * vinfo.bits_per_pixel / 8;
 //	if (kbfd >= 0) {
 //		ioctl(kbfd, KDSETMODE, KD_TEXT);
@@ -814,11 +815,6 @@ int shutdown(void)
 //	else {
 //		log_msg("Could not reset keyboard mode.");
 //	}
-//	munmap(fbp, screensize);
-//	if (ioctl(fbfd, FBIOPUT_VSCREENINFO, &orig_vinfo)) {
-//		log_msg("Error re-setting variable information.");
-//	}
-//	close(fbfd);
 	// destroy the Mutex locks for the mcp23008, pcf8574
 	pthread_mutex_destroy(&mcp23008_lock);
 	pthread_mutex_destroy(&pcf8574_lock);
@@ -922,6 +918,35 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 					vel = 1;
 		}
 		/* Call function based on current encoder focus */
+		if (disp_menu == 1){
+			// Menu is on display
+			if (dir == 1){
+				// Move to highlight the next menu item in the list
+				int i = 0;
+				while(Menu[i].name != NULL){
+					if(Menu[i].highlight == 1) {
+						Menu[i].highlight = 0;
+						if(Menu[i+1].name == NULL) Menu[0].highlight = 1; Menu[i+1].highlight = 1;
+						break;
+					}
+					i++;
+				}
+			}
+			else {
+				// Highlight previous item
+				int i=0;
+				while(Menu[i].name != NULL){
+					if(Menu[i].highlight == 1) {
+						Menu[i].highlight = 0;
+						if(i > 0) Menu[i-1].highlight = 1; 
+						//else need to find the last element in the array and highlight that
+						break;
+					}
+					i++;
+				}
+			}
+		}
+		
 		switch(encoder_focus){
 		case pitch_cv:
 			pitch_adjust(dir, vel);
@@ -956,7 +981,7 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 void encoder_button(int gpio, int level, uint32_t tick)
 {
 	if(level == 0){
-		switch(encoder_focus){
+/*		switch(encoder_focus){
 		case none:
 			encoder_focus = pitch_cv;
 			put_string(fbp, 20, 215, " Adj Pitch:", HEX2565(0x000000), HEX2565(0xFFFFFF));
@@ -985,7 +1010,7 @@ void encoder_button(int gpio, int level, uint32_t tick)
 			encoder_focus = none;
 			put_string(fbp, 20, 215, "Menu       ", HEX2565(0x000000), HEX2565(0xFFFFFF));
 		}
-		
+		*/
 	}
 }
 
@@ -1002,13 +1027,7 @@ void button_1(int gpio, int level, uint32_t tick)
 /* Button 2 pressed */
 void button_2(int gpio, int level, uint32_t tick)
 {
-	float bpm;
-	if (level == 1) {
-		clock_freq += 10;
-		gpioHardwarePWM(MASTER_CLK,clock_freq,500000);
-		bpm = ((((float)clock_freq)/48) * 60);
-		log_msg("BPM: %f\n",bpm);
-	}
+	if (level == 1) disp_menu ^= 1;
 }
 /* Button 3 pressed */
 void button_3(int gpio, int level, uint32_t tick)

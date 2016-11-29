@@ -75,6 +75,8 @@ int encoder_level_A;
 int encoder_level_B;
 int encoder_lastGpio;
 int encoder_vel;
+int disp_menu = 0;
+
 enum encoder_focus_t encoder_focus;
 uint32_t encoder_tick;
 pthread_attr_t detached_attr;		/* Single detached thread attribute used by any /all detached threads */
@@ -85,10 +87,15 @@ char *kbfds = "/dev/tty";
 
 /* Raylib-related stuff */
 SpriteFont font1;
+Texture2D Splash;	// Splash screen texture
 
 /* declare and populate the menu structure */
-struct menu Menu[]={
-
+struct menuitem Menu[]={
+	{"File",NULL,NULL,1},
+	{"Config",NULL,NULL,0},
+	{"Play",NULL,NULL,0},
+	{"A long menu",NULL,NULL,0},
+	{NULL,NULL,NULL,NULL}
 	};
 
 /* This is the main structure that holds info about the running sequence */
@@ -156,7 +163,21 @@ while (prog_running == 1){
 					}
 				}
 			}
-
+			// Draw the menu
+			if(disp_menu == 1){
+				int i = 0;
+				int x = 5;
+				Color menu_colour;
+				while(Menu[i].name != NULL){
+					txt_len = MeasureText(Menu[i].name,10);
+					//Draw a box a bit bigger than this
+					if (Menu[i].highlight == 1) menu_colour = BLUE; else menu_colour = BLACK;
+					DrawRectangle(x,0,txt_len+6,12,menu_colour);
+					DrawText(Menu[i].name,x+3,1,10,WHITE);
+					x+=txt_len+6+2;
+					i++;
+				}
+			}
         EndDrawing(); 
         //----------------------------------------------------------------------------------
 	

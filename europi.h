@@ -254,6 +254,7 @@ struct menuitem{
 	const char *name;				// Menu display text
 	void (*funcPtr)();				// Handler for this leaf node (Optionally NULL)
 	struct menu *child;				// Pointer to child submenu (Optionally NULL)
+	int highlight;					// whether to highlight this leaf
 };
 
 struct menu {
