@@ -89,14 +89,24 @@ char *kbfds = "/dev/tty";
 SpriteFont font1;
 Texture2D Splash;	// Splash screen texture
 
-/* declare and populate the menu structure */
-struct menuitem Menu[]={
-	{"File",NULL,NULL,1},
-	{"Config",NULL,NULL,0},
-	{"Play",NULL,NULL,0},
-	{"A long menu",NULL,NULL,0},
-	{NULL,NULL,NULL,NULL}
+/* declare and populate the menu structure */ 
+menu mnu_file_open = 	{0,0,"Open",NULL,NULL};
+menu mnu_file_save = 	{0,0,"Save",NULL,NULL};
+menu mnu_file_saveas = 	{0,0,"Save As",NULL,NULL};
+
+menu mnu_config_setzero = {0,0,"Set Zero",NULL,NULL};
+menu mnu_config_set10v = {0,0,"Set 10 Volt",NULL,NULL};
+
+menu sub_end = {0,0,NULL,NULL,NULL}; //set of NULLs to mark the end of a sub menu
+
+menu Menu[]={
+	{0,1,"File",NULL,{&mnu_file_open,&mnu_file_save,&mnu_file_saveas,&sub_end}},
+	{0,0,"Config",NULL,{&mnu_config_setzero,&mnu_config_set10v,&sub_end}},
+	{0,0,"Play",NULL,{&sub_end}},
+	{0,0,"A long menu",NULL,{&sub_end}},
+	{0,0,NULL,NULL,NULL}
 	};
+
 
 /* This is the main structure that holds info about the running sequence */
 struct europi Europi; 
@@ -174,6 +184,27 @@ while (prog_running == 1){
 					if (Menu[i].highlight == 1) menu_colour = BLUE; else menu_colour = BLACK;
 					DrawRectangle(x,0,txt_len+6,12,menu_colour);
 					DrawText(Menu[i].name,x+3,1,10,WHITE);
+					if(Menu[i].expanded == 1){
+						// Draw sub-menus
+						int j = 0;
+						int y = 12;
+						int sub_len = 0;
+						int tmp_len;
+						// Measure the length of the longest sub menu
+						while(Menu[i].child[j]->name != NULL){
+							tmp_len = MeasureText(Menu[i].child[j]->name,10);
+							if(tmp_len > sub_len) sub_len = tmp_len;
+							j++;
+						}
+						j = 0;
+						while(Menu[i].child[j]->name != NULL){
+							if (Menu[i].child[j]->highlight == 1) menu_colour = BLUE; else menu_colour = BLACK;
+							DrawRectangle(x,y,sub_len+6,12,menu_colour);
+							DrawText(Menu[i].child[j]->name,x+3,y+1,10,WHITE);
+							y+=12;
+							j++;
+						}
+					}
 					x+=txt_len+6+2;
 					i++;
 				}

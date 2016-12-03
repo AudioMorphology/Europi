@@ -74,7 +74,8 @@ enum encoder_focus_t {
 	slew_type,
 	gate_on_off,
 	repeat,
-	quantise
+	quantise,
+	menu_on
 };
 enum slew_t {
 	Off,
@@ -250,17 +251,14 @@ void put_char(char *, int x, int y, int c, unsigned short fgc, unsigned short bg
  * Menu Tree & leaf element names, Functions
  * to call etc.
  */
-struct menuitem{
+typedef struct MENU{
+	int expanded;					// Whether this node is expanded or not
+	int highlight;					// whether to highlight this leaf
 	const char *name;				// Menu display text
 	void (*funcPtr)();				// Handler for this leaf node (Optionally NULL)
-	struct menu *child;				// Pointer to child submenu (Optionally NULL)
-	int highlight;					// whether to highlight this leaf
-};
+	struct MENU *child[8];			// Pointer to child submenu (Optionally NULL)
+}menu;
 
-struct menu {
-	struct menu *parent;			// Pointer to Parent menu
-	struct menuitems **menuitem;	// Array of menu items, NULL terminated
-};
 
 /*
  * SLEW structure is instantiated and filled with

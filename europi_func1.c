@@ -93,7 +93,7 @@ extern int encoder_vel;
 extern uint32_t encoder_tick;
 extern enum encoder_focus_t encoder_focus;
 extern struct europi Europi;
-extern struct menuitem Menu[];
+extern struct MENU Menu[];
 extern pthread_attr_t detached_attr;		
 extern pthread_mutex_t mcp23008_lock;
 extern pthread_mutex_t pcf8574_lock;
@@ -918,15 +918,18 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 					vel = 1;
 		}
 		/* Call function based on current encoder focus */
-		if (disp_menu == 1){
+		switch(encoder_focus){
+		case none:
+			break;
+		case menu_on:
 			// Menu is on display
 			if (dir == 1){
 				// Move to highlight the next menu item in the list
 				int i = 0;
-				while(Menu[i].name != NULL){
+				while(Menu[i+1].name != NULL){
 					if(Menu[i].highlight == 1) {
 						Menu[i].highlight = 0;
-						if(Menu[i+1].name == NULL) Menu[0].highlight = 1; Menu[i+1].highlight = 1;
+						Menu[i+1].highlight = 1;
 						break;
 					}
 					i++;
@@ -934,28 +937,16 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 			}
 			else {
 				// Highlight previous item
-				int i=0;
+				int i = 0;
 				while(Menu[i].name != NULL){
-					if(Menu[i].highlight == 1) {
+					if((Menu[i].highlight == 1) && (i > 0)) {
 						Menu[i].highlight = 0;
-						if(i > 0) Menu[i-1].highlight = 1; 
-						//else need to find the last element in the array and highlight that
+						Menu[i-1].highlight = 1; 
 						break;
 					}
 					i++;
 				}
 			}
-		}
-		
-		switch(encoder_focus){
-		case pitch_cv:
-			pitch_adjust(dir, vel);
-		break;
-//		default: // do nothing 
-//		log_msg("Vel: %d, Dir: %d\n",vel,dir);
-		}
-		switch(encoder_focus){
-		case none:
 			break;
 		case pitch_cv:
 			pitch_adjust(dir, vel);
@@ -980,11 +971,22 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 /* Rotary encoder button pressed */
 void encoder_button(int gpio, int level, uint32_t tick)
 {
+	int i = 0;
 	if(level == 0){
-/*		switch(encoder_focus){
+		switch(encoder_focus){
 		case none:
 			encoder_focus = pitch_cv;
 			put_string(fbp, 20, 215, " Adj Pitch:", HEX2565(0x000000), HEX2565(0xFFFFFF));
+			break;
+		case menu_on:
+			//Expand / contract sub-menu
+			i = 0;
+			while(Menu[i].name != NULL){
+				if(Menu[i].highlight == 1){
+					Menu[i].expanded ^= 1;
+				}
+				i++;
+			}
 			break;
 		case pitch_cv:
 			encoder_focus = slew_type;
@@ -1010,7 +1012,6 @@ void encoder_button(int gpio, int level, uint32_t tick)
 			encoder_focus = none;
 			put_string(fbp, 20, 215, "Menu       ", HEX2565(0x000000), HEX2565(0xFFFFFF));
 		}
-		*/
 	}
 }
 
@@ -1028,6 +1029,7 @@ void button_1(int gpio, int level, uint32_t tick)
 void button_2(int gpio, int level, uint32_t tick)
 {
 	if (level == 1) disp_menu ^= 1;
+	if(disp_menu == 1) encoder_focus = menu_on;
 }
 /* Button 3 pressed */
 void button_3(int gpio, int level, uint32_t tick)
