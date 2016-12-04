@@ -927,10 +927,30 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 				// Move to highlight the next menu item in the list
 				int i = 0;
 				while(Menu[i+1].name != NULL){
-					if(Menu[i].highlight == 1) {
-						Menu[i].highlight = 0;
-						Menu[i+1].highlight = 1;
-						break;
+					if(Menu[i].expanded == 1){
+						// This menu branch expanded, 
+						// so iterate down it
+						int j = 0;
+						while(Menu[i].child[j+1]->name != NULL){
+							if(Menu[i].highlight == 1){
+								Menu[i].highlight = 0;
+								Menu[i].child[j]->highlight = 1;
+								break;
+							}
+							else if (Menu[i].child[j]->highlight == 1){
+								Menu[i].child[j]->highlight = 0;
+								Menu[i].child[j+1]->highlight = 1;
+								break;
+							}
+							j++;
+						}
+					}
+					else {
+						if(Menu[i].highlight == 1) {
+							Menu[i].highlight = 0;
+							Menu[i+1].highlight = 1;
+							break;
+						}
 					}
 					i++;
 				}
@@ -939,10 +959,30 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 				// Highlight previous item
 				int i = 0;
 				while(Menu[i].name != NULL){
-					if((Menu[i].highlight == 1) && (i > 0)) {
-						Menu[i].highlight = 0;
-						Menu[i-1].highlight = 1; 
-						break;
+					if(Menu[i].expanded == 1){
+						// This menu branch expanded, 
+						// so iterate up it
+						int j = 0;
+						while(Menu[i].child[j]->name != NULL){
+							if(Menu[i].child[j]->highlight == 1){
+								Menu[i].child[j]->highlight = 0;
+								if(j > 0) {
+									Menu[i].child[j-1]->highlight = 1;	
+								}
+								else {
+									Menu[i].highlight = 1;	
+								}
+								break;
+							}
+							j++;
+						}
+					}
+					else {
+						if((Menu[i].highlight == 1) && (i > 0)) {
+							Menu[i].highlight = 0;
+							Menu[i-1].highlight = 1; 
+							break;
+						}
 					}
 					i++;
 				}
@@ -979,11 +1019,20 @@ void encoder_button(int gpio, int level, uint32_t tick)
 			put_string(fbp, 20, 215, " Adj Pitch:", HEX2565(0x000000), HEX2565(0xFFFFFF));
 			break;
 		case menu_on:
-			//Expand / contract sub-menu
+			//Expand / contract sub-menu or execute callback
 			i = 0;
 			while(Menu[i].name != NULL){
-				if(Menu[i].highlight == 1){
+				if((Menu[i].highlight == 1) && (Menu[i].child[0]->name != NULL)){
 					Menu[i].expanded ^= 1;
+				}
+				else if ((Menu[i].expanded == 1) && (Menu[i].highlight == 0)){
+					int j = 0;
+					while(Menu[i].child[j]->name != NULL){
+						if((Menu[i].child[j]->highlight == 1) && (Menu[i].child[j]->funcPtr != NULL)) {
+							Menu[i].child[j]->funcPtr();
+						}
+						j++;
+					}
 				}
 				i++;
 			}

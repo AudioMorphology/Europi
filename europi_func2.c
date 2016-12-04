@@ -36,9 +36,47 @@
 
 #include "europi.h"
 
+extern int run_stop;
+extern int disp_menu;
 extern char *fbp;
 extern int selected_step;
 extern struct europi Europi;
+extern int prog_running;
+
+/*
+ * menu callback for setting Zero level on channels
+ */
+void config_setzero(void){
+	int track;
+	int runstop_save = run_stop;	// Save this, so we can revert to previous state when we're done
+	run_stop = STOP;
+	disp_menu = 0;
+	/* Slight pause to give some threads time to exist */
+	sleep(2);
+	/* clear down all Gate outputs */
+	for (track = 0;track < MAX_TRACKS; track++){
+		if (Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ){
+			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x00);
+		}
+	}
+
+}
+
+/* 
+ * Set the zero volt level for the passed Track
+ */
+void set_zero(int Track, long ZeroVal){
+	if(Europi.tracks[Track].channels[CV_OUT].enabled == TRUE){
+		Europi.tracks[Track].channels[CV_OUT].scale_zero = ZeroVal;
+	}
+}
+
+/*
+ * Trigger a controlled shutdown
+ */
+void file_quit(void){
+	prog_running = 0;
+}
 
 /*
  * adjust the pitch of the currently selected step / channel

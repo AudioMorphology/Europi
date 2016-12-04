@@ -140,6 +140,9 @@ static void *GateThread(void *arg);
 static void *AdThread(void *arg);
 
 /* Function Prototypes in europi_func2 */
+void config_setzero(void);
+void set_zero(int Track, long ZeroVal);
+void file_quit(void);
 void pitch_adjust(int dir, int vel);
 void gate_onoff(int dir, int vel);
 void step_repeat(int dir, int vel);

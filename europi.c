@@ -93,14 +93,16 @@ Texture2D Splash;	// Splash screen texture
 menu mnu_file_open = 	{0,0,"Open",NULL,NULL};
 menu mnu_file_save = 	{0,0,"Save",NULL,NULL};
 menu mnu_file_saveas = 	{0,0,"Save As",NULL,NULL};
+menu mnu_file_new = 	{0,0,"New",NULL,NULL};
+menu mnu_file_quit = 	{0,0,"Quit",&file_quit,NULL};
 
-menu mnu_config_setzero = {0,0,"Set Zero",NULL,NULL};
+menu mnu_config_setzero = {0,0,"Set Zero",&config_setzero,NULL};
 menu mnu_config_set10v = {0,0,"Set 10 Volt",NULL,NULL};
 
 menu sub_end = {0,0,NULL,NULL,NULL}; //set of NULLs to mark the end of a sub menu
 
 menu Menu[]={
-	{0,1,"File",NULL,{&mnu_file_open,&mnu_file_save,&mnu_file_saveas,&sub_end}},
+	{0,1,"File",NULL,{&mnu_file_open,&mnu_file_save,&mnu_file_saveas,&mnu_file_new,&mnu_file_quit,&sub_end}},
 	{0,0,"Config",NULL,{&mnu_config_setzero,&mnu_config_set10v,&sub_end}},
 	{0,0,"Play",NULL,{&sub_end}},
 	{0,0,"A long menu",NULL,{&sub_end}},
