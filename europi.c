@@ -112,7 +112,7 @@ menu Menu[]={
 
 /* This is the main structure that holds info about the running sequence */
 struct europi Europi; 
-
+struct screen_elements ScreenElements;
 
 
 // application entry point
@@ -137,48 +137,50 @@ while (prog_running == 1){
         // Draw 
         //----------------------------------------------------------------------------------
         BeginDrawing();
-
-            ClearBackground(RAYWHITE);
-			int track;
-			int step;
-			char track_no[20];
-			int txt_len;
-			for(track=0;track<24;track++){
-				// Track Number
-				sprintf(track_no,"%d",track+1);
-				txt_len = MeasureText(track_no,10);
-				DrawText(track_no,12-txt_len,track * 10,10,DARKGRAY);
-				for(step=0;step<32;step++){
-					if(step == Europi.tracks[track].last_step){
-						// Paint last step
-						DrawRectangle(15 + (step * 9), track * 10, 8, 9, BLACK); 
-					}
-					else if(step == Europi.tracks[track].current_step){
-						// Paint current step
-						DrawRectangle(15 + (step * 9), track * 10, 8, 9, LIME); 
-						// Gate state for current step
-						if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1){
-							if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].retrigger > 0) {
-								DrawRectangle(15 + (32 * 9), track * 10, 8, 9, BLACK);	
+			if(ScreenElements.GridView == 1){
+				ClearBackground(RAYWHITE);
+				int track;
+				int step;
+				char track_no[20];
+				int txt_len;
+				for(track=0;track<24;track++){
+					// Track Number
+					sprintf(track_no,"%d",track+1);
+					txt_len = MeasureText(track_no,10);
+					DrawText(track_no,12-txt_len,track * 10,10,DARKGRAY);
+					for(step=0;step<32;step++){
+						if(step == Europi.tracks[track].last_step){
+							// Paint last step
+							DrawRectangle(15 + (step * 9), track * 10, 8, 9, BLACK); 
+						}
+						else if(step == Europi.tracks[track].current_step){
+							// Paint current step
+							DrawRectangle(15 + (step * 9), track * 10, 8, 9, LIME); 
+							// Gate state for current step
+							if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1){
+								if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].retrigger > 0) {
+									DrawRectangle(15 + (32 * 9), track * 10, 8, 9, BLACK);	
+								}
+								else {
+									DrawRectangle(15 + (32 * 9), track * 10, 8, 9, VIOLET);	
+								}	
 							}
 							else {
-								DrawRectangle(15 + (32 * 9), track * 10, 8, 9, VIOLET);	
-							}	
+								DrawRectangle(15 + (32 * 9), track * 10, 8, 9, WHITE);	
+							}
 						}
 						else {
-							DrawRectangle(15 + (32 * 9), track * 10, 8, 9, WHITE);	
+							// paint blank step
+							DrawRectangle(15 + (step * 9), track * 10, 8, 9, MAROON); 
 						}
 					}
-					else {
-						// paint blank step
-						DrawRectangle(15 + (step * 9), track * 10, 8, 9, MAROON); 
-					}
 				}
-			}
+			}			
 			// Draw the menu
-			if(disp_menu == 1){
+			if(ScreenElements.MainMenu == 1){
 				int i = 0;
 				int x = 5;
+				int txt_len;
 				Color menu_colour;
 				while(Menu[i].name != NULL){
 					txt_len = MeasureText(Menu[i].name,10);
@@ -209,6 +211,18 @@ while (prog_running == 1){
 					}
 					x+=txt_len+6+2;
 					i++;
+				}
+			}
+			if(ScreenElements.SetZero == 1){
+				int track = 0;
+				char str[80];
+				for(track = 0; track < MAX_TRACKS; track++) {
+					if (Europi.tracks[track].selected == TRUE){
+						sprintf(str,"Track: [%02d] Value: [%05d]\0",track+1,Europi.tracks[track].channels[CV_OUT].scale_zero);
+						DrawRectangle(20, 30, 200, 20, BLACK);
+						DrawText(str,25,35,10,WHITE);
+						
+					}
 				}
 			}
         EndDrawing(); 

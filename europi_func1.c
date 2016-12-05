@@ -93,6 +93,7 @@ extern int encoder_vel;
 extern uint32_t encoder_tick;
 extern enum encoder_focus_t encoder_focus;
 extern struct europi Europi;
+extern struct screen_elements ScreenElements;
 extern struct MENU Menu[];
 extern pthread_attr_t detached_attr;		
 extern pthread_mutex_t mcp23008_lock;
@@ -620,6 +621,11 @@ void button_touched(int x, int y){
 }
  int startup(void)
  {
+	 // Initial state of the Screen Elements (Menus etc)
+	 ScreenElements.GridView = 1;
+	 ScreenElements.MainMenu = 0;
+	 ScreenElements.SetZero = 0;
+	 ScreenElements.SetTen = 0;
 	 // Initialise the Deatched pThread attribute
 	int rc = pthread_attr_init(&detached_attr);
 	rc = pthread_attr_setdetachstate(&detached_attr, PTHREAD_CREATE_DETACHED);
@@ -988,6 +994,74 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 				}
 			}
 			break;
+		case track_select:
+			if(dir == 1){
+				int track = 0;
+				while(track < MAX_TRACKS){
+					if(Europi.tracks[track].selected == TRUE){
+						// deselect this track
+						Europi.tracks[track].selected = FALSE;
+						GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x00);
+						// select the next enabled one
+						track++;
+						while(track < MAX_TRACKS){
+							if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE){
+								Europi.tracks[track].selected = TRUE;
+								GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
+								break;
+							}
+						}
+					}
+					track++;
+				}
+			}
+			else {
+				int track = MAX_TRACKS - 1;
+				while(track >= 0){
+					if(Europi.tracks[track].selected == TRUE){
+						// deselect this track
+						Europi.tracks[track].selected = FALSE;
+						GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x00);
+						// select the next enabled one
+						track--;
+						while(track >= 0){
+							if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE){
+								Europi.tracks[track].selected = TRUE;
+								GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
+								break;
+							}
+						}
+					}
+					track--;
+				}
+				
+			}
+			break;
+		case set_value:
+				if(dir == 1){
+					int track=0;
+					while(track < MAX_TRACKS){
+						if(Europi.tracks[track].selected == TRUE){
+							Europi.tracks[track].channels[CV_OUT].scale_zero += vel;
+							break;
+						}
+						track++;
+					}
+				}
+				else {
+					int track=0;
+					while(track < MAX_TRACKS){
+						if(Europi.tracks[track].selected == TRUE){
+							if(Europi.tracks[track].channels[CV_OUT].scale_zero >= vel){
+							Europi.tracks[track].channels[CV_OUT].scale_zero -= vel;
+							}
+							break;
+						}
+						track++;
+					}
+					
+				}
+			break;
 		case pitch_cv:
 			pitch_adjust(dir, vel);
 			break;
@@ -1037,6 +1111,12 @@ void encoder_button(int gpio, int level, uint32_t tick)
 				i++;
 			}
 			break;
+		case track_select:
+				encoder_focus = set_value;
+			break;
+		case set_value:
+				encoder_focus = track_select;
+			break;
 		case pitch_cv:
 			encoder_focus = slew_type;
 			put_string(fbp, 20, 215, "Slew Type:", HEX2565(0x000000), HEX2565(0xFFFFFF));
@@ -1077,8 +1157,13 @@ void button_1(int gpio, int level, uint32_t tick)
 /* Button 2 pressed */
 void button_2(int gpio, int level, uint32_t tick)
 {
-	if (level == 1) disp_menu ^= 1;
-	if(disp_menu == 1) encoder_focus = menu_on;
+	if (level == 1) ScreenElements.MainMenu ^= 1;
+	if(ScreenElements.MainMenu == 1){
+		encoder_focus = menu_on;
+		// Make sure other screen elements are OFF
+		ScreenElements.SetZero = 0;
+		ScreenElements.SetTen = 0;
+	}
 }
 /* Button 3 pressed */
 void button_3(int gpio, int level, uint32_t tick)
@@ -1295,6 +1380,7 @@ void hardware_init(void)
 	int pcf_handle;
 	/* Before we start, make sure all Tracks / Channels are disabled */
 	for (track = 0; track < MAX_TRACKS;track++){
+		Europi.tracks[track].selected = FALSE;
 		Europi.tracks[track].channels[0].enabled = FALSE;
 		Europi.tracks[track].channels[1].enabled = FALSE;
 	}
@@ -1331,7 +1417,6 @@ void hardware_init(void)
 		Europi.tracks[track].channels[0].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
 		Europi.tracks[track].channels[0].vc_type = VOCT;
 		/* Track 0 channel 1 = Gate Output */
-		Europi.tracks[track].channels[1].enabled = TRUE;
 		Europi.tracks[track].channels[1].type = CHNL_TYPE_GATE;
 		Europi.tracks[track].channels[1].i2c_handle = pcf_handle;			
 		Europi.tracks[track].channels[1].i2c_device = DEV_PCF8574;

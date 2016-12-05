@@ -41,7 +41,10 @@ extern int disp_menu;
 extern char *fbp;
 extern int selected_step;
 extern struct europi Europi;
+extern struct screen_elements ScreenElements;
 extern int prog_running;
+extern enum encoder_focus_t encoder_focus;
+
 
 /*
  * menu callback for setting Zero level on channels
@@ -50,7 +53,9 @@ void config_setzero(void){
 	int track;
 	int runstop_save = run_stop;	// Save this, so we can revert to previous state when we're done
 	run_stop = STOP;
-	disp_menu = 0;
+	ScreenElements.MainMenu = 0;
+	ScreenElements.SetZero = 1;
+	encoder_focus = track_select;
 	/* Slight pause to give some threads time to exist */
 	sleep(2);
 	/* clear down all Gate outputs */
@@ -59,7 +64,16 @@ void config_setzero(void){
 			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x00);
 		}
 	}
-
+	/* Select the first Track with an Enabled CV output */
+	track = 0;
+	while(track < MAX_TRACKS){
+		if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE) {
+			Europi.tracks[track].selected = TRUE;
+			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
+			break;
+		}
+		track++;
+	}
 }
 
 /* 

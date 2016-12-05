@@ -75,7 +75,9 @@ enum encoder_focus_t {
 	gate_on_off,
 	repeat,
 	quantise,
-	menu_on
+	menu_on,
+	track_select,
+	set_value
 };
 enum slew_t {
 	Off,
@@ -262,7 +264,17 @@ typedef struct MENU{
 	struct MENU *child[8];			// Pointer to child submenu (Optionally NULL)
 }menu;
 
-
+/* Screen element structures - track
+ * whether particular screen elements
+ * are visible or not
+ */
+ struct screen_elements{
+	 int GridView;
+	 int MainMenu;
+	 int SetZero;
+	 int SetTen;
+ };
+ 
 /*
  * SLEW structure is instantiated and filled with
  * details about the slew for the current step - 
@@ -370,6 +382,7 @@ struct channel {
  * together - a CV output plus its associated GATE output.
  */
 struct track{
+	int selected;			/* Track is selected for some sort of operation */
 	int track_busy;			/* If TRUE then this Track won't advance to the next step */
 	int current_step;		/* Tracks where this track is going next */
 	int last_step;			/* sets the end step for a particular track */
