@@ -77,7 +77,8 @@ enum encoder_focus_t {
 	quantise,
 	menu_on,
 	track_select,
-	set_value
+	set_zerolevel,
+	set_maxlevel
 };
 enum slew_t {
 	Off,
@@ -142,7 +143,9 @@ static void *GateThread(void *arg);
 static void *AdThread(void *arg);
 
 /* Function Prototypes in europi_func2 */
+void file_save(void);
 void config_setzero(void);
+void config_setten(void);
 void set_zero(int Track, long ZeroVal);
 void file_quit(void);
 void pitch_adjust(int dir, int vel);

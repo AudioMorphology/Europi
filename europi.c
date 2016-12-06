@@ -91,13 +91,13 @@ Texture2D Splash;	// Splash screen texture
 
 /* declare and populate the menu structure */ 
 menu mnu_file_open = 	{0,0,"Open",NULL,NULL};
-menu mnu_file_save = 	{0,0,"Save",NULL,NULL};
+menu mnu_file_save = 	{0,0,"Save",&file_save,NULL};
 menu mnu_file_saveas = 	{0,0,"Save As",NULL,NULL};
 menu mnu_file_new = 	{0,0,"New",NULL,NULL};
 menu mnu_file_quit = 	{0,0,"Quit",&file_quit,NULL};
 
 menu mnu_config_setzero = {0,0,"Set Zero",&config_setzero,NULL};
-menu mnu_config_set10v = {0,0,"Set 10 Volt",NULL,NULL};
+menu mnu_config_set10v = {0,0,"Set 10 Volt",&config_setten,NULL};
 
 menu sub_end = {0,0,NULL,NULL,NULL}; //set of NULLs to mark the end of a sub menu
 
@@ -218,8 +218,32 @@ while (prog_running == 1){
 				char str[80];
 				for(track = 0; track < MAX_TRACKS; track++) {
 					if (Europi.tracks[track].selected == TRUE){
-						sprintf(str,"Track: [%02d] Value: [%05d]\0",track+1,Europi.tracks[track].channels[CV_OUT].scale_zero);
-						DrawRectangle(20, 30, 200, 20, BLACK);
+						if(encoder_focus == track_select){
+							sprintf(str,"Track: [%02d] Value for Zero output: %05d\0",track+1,Europi.tracks[track].channels[CV_OUT].scale_zero);
+						}
+						else if (encoder_focus == set_zerolevel) {
+							sprintf(str,"Track: %02d Value for Zero output: [%05d]\0",track+1,Europi.tracks[track].channels[CV_OUT].scale_zero);
+						}
+						DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].scale_zero);
+						DrawRectangle(20, 30, 250, 20, BLACK);
+						DrawText(str,25,35,10,WHITE);
+						
+					}
+				}
+			}
+			if(ScreenElements.SetTen == 1){
+				int track = 0;
+				char str[80];
+				for(track = 0; track < MAX_TRACKS; track++) {
+					if (Europi.tracks[track].selected == TRUE){
+						if (encoder_focus == track_select) {
+							sprintf(str,"Track: [%02d] Value for 10v output: %05d\0",track+1,Europi.tracks[track].channels[CV_OUT].scale_max);
+						}
+						else if (encoder_focus == set_maxlevel) {
+							sprintf(str,"Track: %02d Value for 10v output: [%05d]\0",track+1,Europi.tracks[track].channels[CV_OUT].scale_max);
+						}
+						DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].scale_max);
+						DrawRectangle(20, 30, 250, 20, BLACK);
 						DrawText(str,25,35,10,WHITE);
 						
 					}

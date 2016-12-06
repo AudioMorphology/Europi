@@ -45,6 +45,19 @@ extern struct screen_elements ScreenElements;
 extern int prog_running;
 extern enum encoder_focus_t encoder_focus;
 
+/*
+ * menu callback for File->Save
+ */
+void file_save(void){
+	run_stop = STOP;
+	ScreenElements.MainMenu = 0;
+	
+	FILE * file = fopen("default.seq","wb");
+	if (file != NULL) {
+		fwrite(&Europi,sizeof(struct europi),1,file);
+		fclose(file);
+	}
+}
 
 /*
  * menu callback for setting Zero level on channels
@@ -55,6 +68,36 @@ void config_setzero(void){
 	run_stop = STOP;
 	ScreenElements.MainMenu = 0;
 	ScreenElements.SetZero = 1;
+	encoder_focus = track_select;
+	/* Slight pause to give some threads time to exist */
+	sleep(2);
+	/* clear down all Gate outputs */
+	for (track = 0;track < MAX_TRACKS; track++){
+		if (Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ){
+			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x00);
+		}
+	}
+	/* Select the first Track with an Enabled CV output */
+	track = 0;
+	while(track < MAX_TRACKS){
+		if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE) {
+			Europi.tracks[track].selected = TRUE;
+			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
+			break;
+		}
+		track++;
+	}
+}
+
+/*
+ * menu callback for setting 10v (MAX) level on channels
+ */
+void config_setten(void){
+	int track;
+	int runstop_save = run_stop;	// Save this, so we can revert to previous state when we're done
+	run_stop = STOP;
+	ScreenElements.MainMenu = 0;
+	ScreenElements.SetTen = 1;
 	encoder_focus = track_select;
 	/* Slight pause to give some threads time to exist */
 	sleep(2);
@@ -231,8 +274,29 @@ void step_repeat(int dir, int vel){
 	}
 }
 
-
 void init_sequence(void)
+{
+	FILE * file = fopen("default.seq","rb");
+	if (file != NULL) {
+		fread(&Europi, sizeof(struct europi), 1, file);
+		fclose(file);
+	}
+/*
+	// Temp: Quantize all tracks to semitone scale
+	int track;
+	for (track=0;track<MAX_TRACKS;track++){
+		quantize_track(track,1);
+	}
+	Europi.tracks[1].last_step = 8;
+	Europi.tracks[2].last_step = 16;
+	Europi.tracks[3].last_step = 24;
+	Europi.tracks[4].last_step = 4;
+	Europi.tracks[5].last_step = 16;
+	Europi.tracks[6].last_step = 9;
+*/	
+}
+
+void init_sequence_old1(void)
 {
 	int track,channel,step;
 	int raw;
@@ -625,9 +689,9 @@ void quantize_track(int track, int scale)
 	int quantized;
 	float output_scaling;
 	
-	output_scaling = (float)Europi.tracks[track].channels[0].scale_max / (float)60000;
+	output_scaling = ((float)Europi.tracks[track].channels[CV_OUT].scale_max - (float)Europi.tracks[track].channels[CV_OUT].scale_zero) / (float)60000;
 	for(step=0;step<MAX_STEPS;step++){
-		quantized = quantize(Europi.tracks[track].channels[0].steps[step].raw_value, scale);
-		Europi.tracks[track].channels[0].steps[step].scaled_value = (uint16_t)(output_scaling * quantized);
+		quantized = quantize(Europi.tracks[track].channels[CV_OUT].steps[step].raw_value, scale);
+		Europi.tracks[track].channels[CV_OUT].steps[step].scaled_value = (uint16_t)(output_scaling * quantized) + Europi.tracks[track].channels[CV_OUT].scale_zero;
 	}
 }

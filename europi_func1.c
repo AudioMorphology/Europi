@@ -997,52 +997,72 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 		case track_select:
 			if(dir == 1){
 				int track = 0;
+				int prev_selected;
+				int found_new = FALSE;
 				while(track < MAX_TRACKS){
 					if(Europi.tracks[track].selected == TRUE){
 						// deselect this track
+						prev_selected = track;
 						Europi.tracks[track].selected = FALSE;
 						GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x00);
 						// select the next enabled one
-						track++;
+						if(track < MAX_TRACKS - 1) track++;
 						while(track < MAX_TRACKS){
 							if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE){
 								Europi.tracks[track].selected = TRUE;
+								found_new = TRUE;
 								GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
 								break;
 							}
+							track++;
 						}
 					}
 					track++;
 				}
+				// Didn't find a new one to select, so re-select the previous one
+				if (found_new == FALSE){
+					Europi.tracks[prev_selected].selected = TRUE;
+				}
 			}
 			else {
 				int track = MAX_TRACKS - 1;
+				int prev_selected;
+				int found_new = FALSE;
 				while(track >= 0){
 					if(Europi.tracks[track].selected == TRUE){
 						// deselect this track
+						prev_selected = track;
 						Europi.tracks[track].selected = FALSE;
 						GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x00);
 						// select the next enabled one
-						track--;
+						if(track > 0) track--;
 						while(track >= 0){
 							if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE){
 								Europi.tracks[track].selected = TRUE;
+								found_new = TRUE;
 								GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
 								break;
 							}
+							track--;
 						}
 					}
 					track--;
 				}
-				
+				// Didn't find a new one to select, so re-select the previous one
+				if (found_new == FALSE){
+					Europi.tracks[prev_selected].selected = TRUE;
+				}
 			}
 			break;
-		case set_value:
+		case set_zerolevel:
 				if(dir == 1){
 					int track=0;
 					while(track < MAX_TRACKS){
 						if(Europi.tracks[track].selected == TRUE){
+							if(Europi.tracks[track].channels[CV_OUT].scale_zero <= 65535-vel){
 							Europi.tracks[track].channels[CV_OUT].scale_zero += vel;
+							DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].scale_zero);
+							}
 							break;
 						}
 						track++;
@@ -1054,6 +1074,36 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 						if(Europi.tracks[track].selected == TRUE){
 							if(Europi.tracks[track].channels[CV_OUT].scale_zero >= vel){
 							Europi.tracks[track].channels[CV_OUT].scale_zero -= vel;
+							DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].scale_zero);
+							}
+							break;
+						}
+						track++;
+					}
+					
+				}
+			break;
+		case set_maxlevel:
+				if(dir == 1){
+					int track=0;
+					while(track < MAX_TRACKS){
+						if(Europi.tracks[track].selected == TRUE){
+							if(Europi.tracks[track].channels[CV_OUT].scale_max <= 65535-vel){
+							Europi.tracks[track].channels[CV_OUT].scale_max += vel;
+							DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].scale_max);
+							}
+							break;
+						}
+						track++;
+					}
+				}
+				else {
+					int track=0;
+					while(track < MAX_TRACKS){
+						if(Europi.tracks[track].selected == TRUE){
+							if(Europi.tracks[track].channels[CV_OUT].scale_max >= vel){
+							Europi.tracks[track].channels[CV_OUT].scale_max -= vel;
+							DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].scale_max);
 							}
 							break;
 						}
@@ -1112,9 +1162,13 @@ void encoder_button(int gpio, int level, uint32_t tick)
 			}
 			break;
 		case track_select:
-				encoder_focus = set_value;
+				if(ScreenElements.SetZero == 1)	encoder_focus = set_zerolevel;
+				else if (ScreenElements.SetTen == 1) encoder_focus = set_maxlevel;
 			break;
-		case set_value:
+		case set_zerolevel:
+				encoder_focus = track_select;
+			break;
+		case set_maxlevel:
 				encoder_focus = track_select;
 			break;
 		case pitch_cv:
