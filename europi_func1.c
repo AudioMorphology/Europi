@@ -1112,6 +1112,33 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 					
 				}
 			break;
+		case set_loop:
+				if(dir == 1){
+					int track=0;
+					while(track < MAX_TRACKS){
+						if(Europi.tracks[track].selected == TRUE){
+							if(Europi.tracks[track].last_step < MAX_STEPS){
+								Europi.tracks[track].last_step++;
+							}
+							break;
+						}
+						track++;
+					}
+				}
+				else {
+					int track=0;
+					while(track < MAX_TRACKS){
+						if(Europi.tracks[track].selected == TRUE){
+							if(Europi.tracks[track].last_step > 1){
+								Europi.tracks[track].last_step--;
+							}
+							break;
+						}
+						track++;
+					}
+					
+				}
+			break;
 		case pitch_cv:
 			pitch_adjust(dir, vel);
 			break;
@@ -1164,11 +1191,15 @@ void encoder_button(int gpio, int level, uint32_t tick)
 		case track_select:
 				if(ScreenElements.SetZero == 1)	encoder_focus = set_zerolevel;
 				else if (ScreenElements.SetTen == 1) encoder_focus = set_maxlevel;
+				else if (ScreenElements.SetLoop == 1) encoder_focus = set_loop;
 			break;
 		case set_zerolevel:
 				encoder_focus = track_select;
 			break;
 		case set_maxlevel:
+				encoder_focus = track_select;
+			break;
+		case set_loop:
 				encoder_focus = track_select;
 			break;
 		case pitch_cv:
@@ -1217,6 +1248,9 @@ void button_2(int gpio, int level, uint32_t tick)
 		// Make sure other screen elements are OFF
 		ScreenElements.SetZero = 0;
 		ScreenElements.SetTen = 0;
+		ScreenElements.ScaleValue = 0;
+		ScreenElements.SetLoop = 0;
+
 	}
 }
 /* Button 3 pressed */

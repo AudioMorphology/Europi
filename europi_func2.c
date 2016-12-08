@@ -46,6 +46,80 @@ extern int prog_running;
 extern enum encoder_focus_t encoder_focus;
 
 /*
+ * menu callback for New Sequence 
+ */
+void seq_new(void){
+	int track;
+	int step;
+	for(track = 0;track < MAX_TRACKS;track++){
+		Europi.tracks[track].selected = FALSE;
+		Europi.tracks[track].track_busy = FALSE;
+		Europi.tracks[track].last_step = MAX_STEPS;
+		Europi.tracks[track].current_step = 0;
+		Europi.tracks[track].channels[CV_OUT].quantise = 1;	// default quantization = semitones	
+		Europi.tracks[track].channels[CV_OUT].transpose = 0;	
+		for(step = 0;step < MAX_STEPS;step++){
+			Europi.tracks[track].channels[CV_OUT].steps[step].raw_value = 0;
+			Europi.tracks[track].channels[CV_OUT].steps[step].scaled_value = scale_value(track,0);
+			Europi.tracks[track].channels[CV_OUT].steps[step].slew_type = Off;
+			Europi.tracks[track].channels[CV_OUT].steps[step].slew_length = 0;
+			Europi.tracks[track].channels[GATE_OUT].steps[step].retrigger = 1;
+			Europi.tracks[track].channels[GATE_OUT].steps[step].gate_value = 1;
+		}
+	}
+}
+/*
+ * menu callback for Sequence -> Set Loop Points
+ */
+void seq_setloop(void){
+	ScreenElements.MainMenu = 0;
+	ScreenElements.SetLoop = 1;
+	encoder_focus = track_select;
+	/* Select the first Track with an Enabled CV output */
+	int track = 0;
+	while(track < MAX_TRACKS){
+		if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE) {
+			Europi.tracks[track].selected = TRUE;
+			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
+			break;
+		}
+		track++;
+	}
+
+}
+
+/*
+ * menu callback for Test->Scale Value
+ */
+void test_scalevalue(void){
+	int track;
+	int runstop_save = run_stop;	// Save this, so we can revert to previous state when we're done
+	run_stop = STOP;
+	ScreenElements.MainMenu = 0;
+	ScreenElements.ScaleValue = 1;
+	encoder_focus = track_select;
+	/* Slight pause to give some threads time to exist */
+	sleep(2);
+	/* clear down all Gate outputs */
+	for (track = 0;track < MAX_TRACKS; track++){
+		if (Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ){
+			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x00);
+		}
+	}
+	/* Select the first Track with an Enabled CV output */
+	track = 0;
+	while(track < MAX_TRACKS){
+		if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE) {
+			Europi.tracks[track].selected = TRUE;
+			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
+			break;
+		}
+		track++;
+	}
+	
+}
+
+/*
  * menu callback for File->Save
  */
 void file_save(void){
@@ -293,7 +367,7 @@ void init_sequence(void)
 	Europi.tracks[4].last_step = 4;
 	Europi.tracks[5].last_step = 16;
 	Europi.tracks[6].last_step = 9;
-*/	
+	 * */	
 }
 
 void init_sequence_old1(void)
@@ -695,3 +769,17 @@ void quantize_track(int track, int scale)
 		Europi.tracks[track].channels[CV_OUT].steps[step].scaled_value = (uint16_t)(output_scaling * quantized) + Europi.tracks[track].channels[CV_OUT].scale_zero;
 	}
 }
+
+/*
+ * scale_value
+ * 
+ * Takes a raw value on a 0 to 60,000 scale (10 Octaves) and,
+ * given a Track number (and hence the values required to output
+ * 0 and 10 volts) returns a value for output
+ */
+uint16_t scale_value(int track,uint16_t raw_value)
+{
+	float output_scaling;
+	output_scaling = ((float)Europi.tracks[track].channels[CV_OUT].scale_max - (float)Europi.tracks[track].channels[CV_OUT].scale_zero) / (float)60000;
+	return (uint16_t)(output_scaling * raw_value) + Europi.tracks[track].channels[CV_OUT].scale_zero;
+} 

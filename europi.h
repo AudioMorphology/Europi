@@ -78,7 +78,8 @@ enum encoder_focus_t {
 	menu_on,
 	track_select,
 	set_zerolevel,
-	set_maxlevel
+	set_maxlevel,
+	set_loop
 };
 enum slew_t {
 	Off,
@@ -143,6 +144,9 @@ static void *GateThread(void *arg);
 static void *AdThread(void *arg);
 
 /* Function Prototypes in europi_func2 */
+void seq_new(void);
+void seq_setloop(void);
+void test_scalevalue(void);
 void file_save(void);
 void config_setzero(void);
 void config_setten(void);
@@ -153,6 +157,8 @@ void gate_onoff(int dir, int vel);
 void step_repeat(int dir, int vel);
 void init_sequence(void);
 void quantize_track(int track, int scale);
+uint16_t scale_value(int track,uint16_t raw_value);
+
  
 /* Function Prototypes for europi_framebuffer_utils */
 void put_pixel(char *, int x, int y, int c);
@@ -276,6 +282,8 @@ typedef struct MENU{
 	 int MainMenu;
 	 int SetZero;
 	 int SetTen;
+	 int ScaleValue;
+	 int SetLoop;
  };
  
 /*
