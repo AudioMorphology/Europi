@@ -38,7 +38,7 @@
 #include "front_panel.c"
 #include "touch.h"
 #include "touch.c"
-#include "quantizer_scales.h"
+//#include "quantizer_scales.h"
 #include "../raylib/release/rpi/raylib.h"
 
 //extern struct europi;
@@ -1054,6 +1054,46 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 				}
 			}
 			break;
+		case step_select:
+		{
+			int track = 0;
+			while (track < MAX_TRACKS){
+				if(Europi.tracks[track].selected == TRUE){
+					if (dir == 1) {
+						if (Europi.tracks[track].current_step < (Europi.tracks[track].last_step -1)) Europi.tracks[track].current_step++;
+					}
+					else {
+						if (Europi.tracks[track].current_step > 0) Europi.tracks[track].current_step--;
+					}
+					break;
+				}
+				track++;
+			}
+			/* Output the current value for this track / step, so we can hear what's going on */
+			//float output_scaling;
+			//uint16_t quantized;
+			//output_scaling = ((float)Europi.tracks[track].channels[CV_OUT].scale_max - (float)Europi.tracks[track].channels[CV_OUT].scale_zero) / (float)60000;
+			//quantized = quantize(Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value, Europi.tracks[track].channels[CV_OUT].quantise);
+			//Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value = (uint16_t)(output_scaling * quantized) + Europi.tracks[track].channels[CV_OUT].scale_zero;
+			DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
+			// And ping the Gate output
+			struct gate sGate;
+			sGate.track = track;
+			sGate.i2c_handle = Europi.tracks[track].channels[GATE_OUT].i2c_handle;
+			sGate.i2c_address = Europi.tracks[track].channels[GATE_OUT].i2c_address;
+			sGate.i2c_channel =  Europi.tracks[track].channels[GATE_OUT].i2c_channel;
+			sGate.i2c_device = Europi.tracks[track].channels[GATE_OUT].i2c_device;
+			sGate.retrigger_count = Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].retrigger;
+			sGate.gate_length = 10000;			/* 10 MS Pulse */
+			sGate.gate_type = Gate;
+			struct gate *pGate = malloc(sizeof(struct gate));
+			memcpy(pGate, &sGate, sizeof(struct gate));
+			if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
+				log_msg("Gate thread creation error\n");
+			}
+
+			break;
+		}
 		case set_zerolevel:
 				if(dir == 1){
 					int track=0;
@@ -1139,6 +1179,51 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 					
 				}
 			break;
+		case set_pitch:
+		{
+			int track = 0;
+			while (track < MAX_TRACKS){
+				if(Europi.tracks[track].selected == TRUE){
+					if (dir == 1) {
+						if (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value <= (60000 - (10*vel))) Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value += (10*vel);
+					}
+					else {
+						if (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value >= (10*vel)) Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value -= (10*vel);
+					}
+					// Quantise this and output it
+					float output_scaling;
+					uint16_t quantized;
+					output_scaling = ((float)Europi.tracks[track].channels[CV_OUT].scale_max - (float)Europi.tracks[track].channels[CV_OUT].scale_zero) / (float)60000;
+					quantized = quantize(Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value, Europi.tracks[track].channels[CV_OUT].quantise);
+					Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value = (uint16_t)(output_scaling * quantized) + Europi.tracks[track].channels[CV_OUT].scale_zero;
+					DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
+					break;
+				}
+				track++;
+			}
+			
+			break;
+		}
+		case set_quantise:
+		{
+			int track = 0;
+			while (track < MAX_TRACKS){
+				if(Europi.tracks[track].selected == TRUE){
+					if (dir == 1) {
+						if (Europi.tracks[track].channels[CV_OUT].quantise < 47) Europi.tracks[track].channels[CV_OUT].quantise++;
+					}
+					else {
+						if (Europi.tracks[track].channels[CV_OUT].quantise > 0) Europi.tracks[track].channels[CV_OUT].quantise--;
+					}
+					// Re-Quantise track
+					quantize_track(track,Europi.tracks[track].channels[CV_OUT].quantise);
+					break;
+				}
+				track++;
+			}
+			
+			break;
+		}
 		case pitch_cv:
 			pitch_adjust(dir, vel);
 			break;
@@ -1166,8 +1251,7 @@ void encoder_button(int gpio, int level, uint32_t tick)
 	if(level == 0){
 		switch(encoder_focus){
 		case none:
-			encoder_focus = pitch_cv;
-			put_string(fbp, 20, 215, " Adj Pitch:", HEX2565(0x000000), HEX2565(0xFFFFFF));
+
 			break;
 		case menu_on:
 			//Expand / contract sub-menu or execute callback
@@ -1192,6 +1276,14 @@ void encoder_button(int gpio, int level, uint32_t tick)
 				if(ScreenElements.SetZero == 1)	encoder_focus = set_zerolevel;
 				else if (ScreenElements.SetTen == 1) encoder_focus = set_maxlevel;
 				else if (ScreenElements.SetLoop == 1) encoder_focus = set_loop;
+				else if (ScreenElements.SetPitch == 1) encoder_focus = step_select;
+				else if (ScreenElements.SetQuantise == 1) encoder_focus = set_quantise;
+			break;
+		case step_select:
+				encoder_focus = set_pitch;
+			break;
+		case set_pitch:
+				encoder_focus = track_select;
 			break;
 		case set_zerolevel:
 				encoder_focus = track_select;
@@ -1200,6 +1292,9 @@ void encoder_button(int gpio, int level, uint32_t tick)
 				encoder_focus = track_select;
 			break;
 		case set_loop:
+				encoder_focus = track_select;
+			break;
+		case set_quantise:
 				encoder_focus = track_select;
 			break;
 		case pitch_cv:
@@ -1246,11 +1341,8 @@ void button_2(int gpio, int level, uint32_t tick)
 	if(ScreenElements.MainMenu == 1){
 		encoder_focus = menu_on;
 		// Make sure other screen elements are OFF
-		ScreenElements.SetZero = 0;
-		ScreenElements.SetTen = 0;
-		ScreenElements.ScaleValue = 0;
-		ScreenElements.SetLoop = 0;
-
+		clear_screen_elements();
+		ScreenElements.MainMenu = 1;
 	}
 }
 /* Button 3 pressed */

@@ -67,7 +67,7 @@
  * Values are based on 6000 discrete values per Octave
  */
 
-int lower_boundary[49][12] = {
+static int lower_boundary[49][12] = {
 {0},
 {0,250,750,1250,1750,2250,2750,3250,3750,4250,4750,5250},
 {0,500,1500,2250,3000,4000,5000},
@@ -119,7 +119,7 @@ int lower_boundary[49][12] = {
 {0,735,1700,2209,3455,4701},
 };
 
-int upper_boundary[49][12] = {
+static int upper_boundary[49][12] = {
 {6000},
 {250,750,1250,1750,2250,2750,3250,3750,4250,4750,5250,6000},
 {500,1500,2250,3000,4000,5000,6000},
@@ -171,7 +171,7 @@ int upper_boundary[49][12] = {
 {735,1700,2209,3455,4701,6000},
 };
 
-int scale_values[49][12] = {
+static int scale_values[49][12] = {
 //0: Off,
 { },
 //1: Semitones
@@ -274,7 +274,7 @@ int scale_values[49][12] = {
 
 
 // Number of Notes in each particular scale
-int scale_notes[49] = {
+static int scale_notes[49] = {
   // Off
   0,
   // Semitones
@@ -376,7 +376,7 @@ int scale_notes[49] = {
 };
 
 // Array of strings representing the name of each scale
-const char * scale_names[] = {
+static const char * scale_names[] = {
 "Off",
 "Semitones",
 "Ionian",

@@ -69,14 +69,32 @@ void seq_new(void){
 	}
 }
 /*
- * menu callback for Sequence -> Set Loop Points
+ * Set all screen elements OFF
+ * this is just a handy place to do it,
+ * rather than relying on the various
+ * menu functions to take care of it
  */
-void seq_setloop(void){
+void clear_screen_elements(void){
 	ScreenElements.MainMenu = 0;
-	ScreenElements.SetLoop = 1;
-	encoder_focus = track_select;
+	ScreenElements.SetZero = 0;
+	ScreenElements.SetTen = 0;
+	ScreenElements.ScaleValue = 0;
+	ScreenElements.SetLoop = 0;
+	ScreenElements.SetPitch = 0;
+	ScreenElements.SetQuantise = 0;
+}
+/*
+ * Select First Track
+ */
+void select_first_track(void){
 	/* Select the first Track with an Enabled CV output */
-	int track = 0;
+	int track;
+	/* make sure nothing else is selected */
+	for (track=0;track<MAX_TRACKS;track++){
+		Europi.tracks[track].selected = FALSE;
+	}
+	/* select the first enabled track */
+	track = 0;
 	while(track < MAX_TRACKS){
 		if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE) {
 			Europi.tracks[track].selected = TRUE;
@@ -85,7 +103,35 @@ void seq_setloop(void){
 		}
 		track++;
 	}
-
+}
+/* 
+ * menu callback to set/display track quantisation
+ */
+void seq_quantise(void){
+	clear_screen_elements();
+	ScreenElements.SetQuantise = 1;
+	encoder_focus = track_select;
+	select_first_track();
+}
+/*
+ * menu callback to set the pitch for each step 
+ */
+void seq_setpitch(void){
+	clear_screen_elements();
+	ScreenElements.SetPitch = 1;
+	encoder_focus = track_select;
+	run_stop = STOP;
+	select_first_track();
+}
+/*
+ * menu callback for Sequence -> Set Loop Points
+ */
+void seq_setloop(void){
+	int runstop_save = run_stop;
+	clear_screen_elements();
+	ScreenElements.SetLoop = 1;
+	encoder_focus = track_select;
+	select_first_track();
 }
 
 /*
@@ -95,7 +141,7 @@ void test_scalevalue(void){
 	int track;
 	int runstop_save = run_stop;	// Save this, so we can revert to previous state when we're done
 	run_stop = STOP;
-	ScreenElements.MainMenu = 0;
+	clear_screen_elements();
 	ScreenElements.ScaleValue = 1;
 	encoder_focus = track_select;
 	/* Slight pause to give some threads time to exist */
@@ -106,17 +152,7 @@ void test_scalevalue(void){
 			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x00);
 		}
 	}
-	/* Select the first Track with an Enabled CV output */
-	track = 0;
-	while(track < MAX_TRACKS){
-		if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE) {
-			Europi.tracks[track].selected = TRUE;
-			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
-			break;
-		}
-		track++;
-	}
-	
+	select_first_track();
 }
 
 /*
@@ -124,8 +160,7 @@ void test_scalevalue(void){
  */
 void file_save(void){
 	run_stop = STOP;
-	ScreenElements.MainMenu = 0;
-	
+	clear_screen_elements();
 	FILE * file = fopen("default.seq","wb");
 	if (file != NULL) {
 		fwrite(&Europi,sizeof(struct europi),1,file);
@@ -140,7 +175,7 @@ void config_setzero(void){
 	int track;
 	int runstop_save = run_stop;	// Save this, so we can revert to previous state when we're done
 	run_stop = STOP;
-	ScreenElements.MainMenu = 0;
+	clear_screen_elements();
 	ScreenElements.SetZero = 1;
 	encoder_focus = track_select;
 	/* Slight pause to give some threads time to exist */
@@ -151,16 +186,7 @@ void config_setzero(void){
 			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x00);
 		}
 	}
-	/* Select the first Track with an Enabled CV output */
-	track = 0;
-	while(track < MAX_TRACKS){
-		if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE) {
-			Europi.tracks[track].selected = TRUE;
-			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
-			break;
-		}
-		track++;
-	}
+	select_first_track();
 }
 
 /*
@@ -170,7 +196,7 @@ void config_setten(void){
 	int track;
 	int runstop_save = run_stop;	// Save this, so we can revert to previous state when we're done
 	run_stop = STOP;
-	ScreenElements.MainMenu = 0;
+	clear_screen_elements();
 	ScreenElements.SetTen = 1;
 	encoder_focus = track_select;
 	/* Slight pause to give some threads time to exist */
@@ -181,16 +207,7 @@ void config_setten(void){
 			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x00);
 		}
 	}
-	/* Select the first Track with an Enabled CV output */
-	track = 0;
-	while(track < MAX_TRACKS){
-		if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE) {
-			Europi.tracks[track].selected = TRUE;
-			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
-			break;
-		}
-		track++;
-	}
+	select_first_track();
 }
 
 /* 
@@ -355,19 +372,16 @@ void init_sequence(void)
 		fread(&Europi, sizeof(struct europi), 1, file);
 		fclose(file);
 	}
-/*
-	// Temp: Quantize all tracks to semitone scale
-	int track;
-	for (track=0;track<MAX_TRACKS;track++){
-		quantize_track(track,1);
+	int step;
+	for (step = 0; step < MAX_STEPS; step++){
+		Europi.tracks[0].channels[GATE_OUT].steps[step].gate_value = 1;
+		Europi.tracks[0].channels[GATE_OUT].steps[step].retrigger = 2;
 	}
-	Europi.tracks[1].last_step = 8;
-	Europi.tracks[2].last_step = 16;
-	Europi.tracks[3].last_step = 24;
-	Europi.tracks[4].last_step = 4;
-	Europi.tracks[5].last_step = 16;
-	Europi.tracks[6].last_step = 9;
-	 * */	
+	// Temp: Quantize all tracks to semitone scale
+	//int track;
+	//for (track=0;track<MAX_TRACKS;track++){
+	//	Europi.tracks[track].channels[CV_OUT].quantise = track;
+	//}
 }
 
 void init_sequence_old1(void)

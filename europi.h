@@ -26,6 +26,7 @@
 #define EUROPI_H
 
 #include <pigpio.h>
+#include "quantizer_scales.h"
 
 /* GPIO Port Assignments 		*/
 /* RPi Header pins in comments	*/
@@ -77,9 +78,12 @@ enum encoder_focus_t {
 	quantise,
 	menu_on,
 	track_select,
+	step_select,
 	set_zerolevel,
 	set_maxlevel,
-	set_loop
+	set_loop,
+	set_pitch,
+	set_quantise
 };
 enum slew_t {
 	Off,
@@ -144,7 +148,11 @@ static void *GateThread(void *arg);
 static void *AdThread(void *arg);
 
 /* Function Prototypes in europi_func2 */
+void select_first_track(void);
 void seq_new(void);
+void clear_screen_elements(void);
+void seq_quantise(void);
+void seq_setpitch(void);
 void seq_setloop(void);
 void test_scalevalue(void);
 void file_save(void);
@@ -284,6 +292,8 @@ typedef struct MENU{
 	 int SetTen;
 	 int ScaleValue;
 	 int SetLoop;
+	 int SetPitch;
+	 int SetQuantise;
  };
  
 /*
@@ -375,7 +385,7 @@ struct step {
 struct channel {
 	int enabled;			/* Whether this channel is in use or not */
 	int type;				/* Types include CV, GATE, TRIGGER */
-	int quantise;			/* whether this channel is quantised to a particular scale */
+	int quantise;			/* whether this channel is quantised to a particular scale 0=OFF*/
 	int i2c_handle;			/* Handle to the i2c device that outputs this track */
 	int i2c_device;			/* Type of i2c device DAC8754, MCP23008 etc */
 	int i2c_address;		/* Address of this device on the i2c Bus - address need to match the physical A3-A0 pins */

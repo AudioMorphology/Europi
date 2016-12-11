@@ -34,6 +34,7 @@
 #include <pigpio.h>
 
 #include "europi.h"
+//#include "quantizer_scales.h"
 #include "../raylib/release/rpi/raylib.h"
 
 unsigned hw_version;			/* Type 1: 2,3 Type 2: 4,5,6 & 15 Type 3: 16 or Greater */
@@ -98,7 +99,8 @@ menu mnu_file_quit = 	{0,0,"Quit",&file_quit,NULL};
 
 menu mnu_seq_new = 		{0,0,"New",&seq_new,NULL};
 menu mnu_seq_setloop =	{0,0,"Set Loop Points",&seq_setloop,NULL};
-menu mnu_seq_quantize = {0,0,"Set Quantization",NULL,NULL};
+menu mnu_seq_setpitch = {0,0,"Set pitch for step",&seq_setpitch,NULL};
+menu mnu_seq_quantise = {0,0,"Set Quantization",&seq_quantise,NULL};
 
 menu mnu_config_setzero = {0,0,"Set Zero",&config_setzero,NULL};
 menu mnu_config_set10v = {0,0,"Set 10 Volt",&config_setten,NULL};
@@ -109,7 +111,7 @@ menu sub_end = {0,0,NULL,NULL,NULL}; //set of NULLs to mark the end of a sub men
 
 menu Menu[]={
 	{0,1,"File",NULL,{&mnu_file_open,&mnu_file_save,&mnu_file_saveas,&mnu_file_new,&mnu_file_quit,&sub_end}},
-	{0,0,"Sequence",NULL,{&mnu_seq_new,&mnu_seq_setloop,&mnu_seq_quantize,&sub_end}},
+	{0,0,"Sequence",NULL,{&mnu_seq_new,&mnu_seq_setloop,&mnu_seq_setpitch,&mnu_seq_quantise,&sub_end}},
 	{0,0,"Config",NULL,{&mnu_config_setzero,&mnu_config_set10v,&sub_end}},
 	{0,0,"Test",NULL,{&mnu_test_scalevalue,&mnu_config_setzero,&sub_end}},
 	{0,0,"Play",NULL,{&sub_end}},
@@ -287,6 +289,41 @@ while (prog_running == 1){
 						}
 						else if (encoder_focus == set_loop) {
 							sprintf(str,"Track: %02d Loop Point: [%02d]\0",track+1,Europi.tracks[track].last_step);
+						}
+						DrawRectangle(20, 30, 250, 20, BLACK);
+						DrawText(str,25,35,10,WHITE);
+					}
+				}
+			}
+			if(ScreenElements.SetPitch == 1){
+				int track = 0;
+				char str[80];
+				for(track = 0; track < MAX_TRACKS; track++) {
+					if (Europi.tracks[track].selected == TRUE){
+						if(encoder_focus == track_select){
+							sprintf(str,"Track: [%02d] Step: %02d Pitch: %05d\0",track+1,Europi.tracks[track].current_step+1,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);
+						}
+						else if (encoder_focus == step_select) {
+							sprintf(str,"Track: %02d Step: [%02d] Pitch: %05d\0",track+1,Europi.tracks[track].current_step+1,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);
+						}
+						else if (encoder_focus == set_pitch){
+							sprintf(str,"Track: %02d Step: %02d Pitch: [%05d]\0",track+1,Europi.tracks[track].current_step+1,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);
+						}
+						DrawRectangle(20, 30, 250, 20, BLACK);
+						DrawText(str,25,35,10,WHITE);
+					}
+				}
+			}
+			if(ScreenElements.SetQuantise == 1){
+				int track = 0;
+				char str[80];
+				for(track = 0; track < MAX_TRACKS; track++) {
+					if (Europi.tracks[track].selected == TRUE){
+						if(encoder_focus == track_select){
+							sprintf(str,"Track: [%02d] Quantisation: %s\0",track+1,scale_names[Europi.tracks[track].channels[CV_OUT].quantise]);
+						}
+						else if (encoder_focus == set_quantise) {
+							sprintf(str,"Track: %02d Quantisation: [%s]\0",track+1,scale_names[Europi.tracks[track].channels[CV_OUT].quantise]);
 						}
 						DrawRectangle(20, 30, 250, 20, BLACK);
 						DrawText(str,25,35,10,WHITE);
