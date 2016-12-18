@@ -50,6 +50,8 @@ extern unsigned hw_version;
 extern int fbfd;
 extern char *fbp;
 extern char *kbfds;
+extern int debug;
+extern char debug_txt[];
 extern int kbfd;
 extern int prog_running;
 extern int run_stop;
@@ -839,7 +841,9 @@ void log_msg(const char* format, ...)
 	va_list args;
 	va_start(args, format);
 	vsnprintf(buf, sizeof(buf), format, args);
+	
 	fprintf(stderr, "%s", buf);
+	if(debug == TRUE) sprintf(debug_txt, "%s\0", buf);
 	va_end(args);
 	}
 }
@@ -1075,23 +1079,9 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 			//output_scaling = ((float)Europi.tracks[track].channels[CV_OUT].scale_max - (float)Europi.tracks[track].channels[CV_OUT].scale_zero) / (float)60000;
 			//quantized = quantize(Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value, Europi.tracks[track].channels[CV_OUT].quantise);
 			//Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value = (uint16_t)(output_scaling * quantized) + Europi.tracks[track].channels[CV_OUT].scale_zero;
-			DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
-			// And ping the Gate output
-			struct gate sGate;
-			sGate.track = track;
-			sGate.i2c_handle = Europi.tracks[track].channels[GATE_OUT].i2c_handle;
-			sGate.i2c_address = Europi.tracks[track].channels[GATE_OUT].i2c_address;
-			sGate.i2c_channel =  Europi.tracks[track].channels[GATE_OUT].i2c_channel;
-			sGate.i2c_device = Europi.tracks[track].channels[GATE_OUT].i2c_device;
-			sGate.retrigger_count = Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].retrigger;
-			sGate.gate_length = 10000;			/* 10 MS Pulse */
-			sGate.gate_type = Gate;
-			struct gate *pGate = malloc(sizeof(struct gate));
-			memcpy(pGate, &sGate, sizeof(struct gate));
-			if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
-				log_msg("Gate thread creation error\n");
-			}
-
+			DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);
+			// And turn the Gate output on
+			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
 			break;
 		}
 		case set_zerolevel:
@@ -1184,18 +1174,20 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 			int track = 0;
 			while (track < MAX_TRACKS){
 				if(Europi.tracks[track].selected == TRUE){
+					if(vel > 3) vel *= 10;
 					if (dir == 1) {
-						if (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value <= (60000 - (10*vel))) Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value += (10*vel);
+						if (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value <= (60000 - vel)) Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value += vel;
 					}
 					else {
-						if (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value >= (10*vel)) Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value -= (10*vel);
+						if (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value >= vel) Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value -= vel;
 					}
 					// Quantise this and output it
-					float output_scaling;
-					uint16_t quantized;
-					output_scaling = ((float)Europi.tracks[track].channels[CV_OUT].scale_max - (float)Europi.tracks[track].channels[CV_OUT].scale_zero) / (float)60000;
-					quantized = quantize(Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value, Europi.tracks[track].channels[CV_OUT].quantise);
-					Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value = (uint16_t)(output_scaling * quantized) + Europi.tracks[track].channels[CV_OUT].scale_zero;
+					//float output_scaling;
+					//uint16_t quantized;
+					//output_scaling = ((float)Europi.tracks[track].channels[CV_OUT].scale_max - (float)Europi.tracks[track].channels[CV_OUT].scale_zero) / (float)60000;
+					//quantized = quantize(Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value, Europi.tracks[track].channels[CV_OUT].quantise);
+					//Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value = (uint16_t)(output_scaling * quantized) + Europi.tracks[track].channels[CV_OUT].scale_zero;
+					Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value; //= (uint16_t)(output_scaling * quantized) + Europi.tracks[track].channels[CV_OUT].scale_zero;
 					DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
 					break;
 				}
@@ -1442,13 +1434,18 @@ int MinionFinder(unsigned address)
  */
 void DACSingleChannelWrite(unsigned handle, uint8_t address, uint8_t channel, uint16_t voltage){
 	uint16_t v_out;
+	uint16_t v_sav;
 	uint8_t ctrl_reg;
+	int retval;
 	//log_msg("%d, %d, %d, %d\n",handle,address,channel,voltage);
 	ctrl_reg = (((address & 0xC) << 4) | 0x10) | ((channel << 1) & 0x06);
 	//log_msg("handle: %0x, address: %0x, channel: %d, ctrl_reg: %02x, Voltage: %d\n",handle, address, channel,ctrl_reg,voltage);
 	//swap MSB & LSB because i2cWriteWordData sends LSB first, but the DAC expects MSB first
+	v_sav = voltage;
 	v_out = ((voltage >> 8) & 0x00FF) | ((voltage << 8) & 0xFF00);
-	i2cWriteWordData(handle,ctrl_reg,v_out);
+	//log_msg("hdle: %0x, addr: %0x, chan: %d, ctrl: %02x, Volt: %d Vshift: %0x\n",handle, address, channel,ctrl_reg,v_sav,v_out);
+	retval = i2cWriteWordData(handle,ctrl_reg,v_out);
+	//log_msg("Ret: %d\n",retval);
 }
 /* 
  * GATEMultiOutput
@@ -1561,8 +1558,8 @@ void hardware_init(void)
 	/* Before we start, make sure all Tracks / Channels are disabled */
 	for (track = 0; track < MAX_TRACKS;track++){
 		Europi.tracks[track].selected = FALSE;
-		Europi.tracks[track].channels[0].enabled = FALSE;
-		Europi.tracks[track].channels[1].enabled = FALSE;
+		Europi.tracks[track].channels[CV_OUT].enabled = FALSE;
+		Europi.tracks[track].channels[GATE_OUT].enabled = FALSE;
 	}
 	/* 
 	 * Specifically look for a PCF8574 on address 0x38
@@ -1584,43 +1581,44 @@ void hardware_init(void)
 			/* Gates off, LEDs off */
 			i2cWriteByte(pcf_handle, (unsigned)(0xF0));
 		}
-		Europi.tracks[track].channels[0].enabled = TRUE;
-		Europi.tracks[track].channels[0].type = CHNL_TYPE_CV;
-		Europi.tracks[track].channels[0].quantise = 0;			/* Quantization off by default */
-		Europi.tracks[track].channels[0].i2c_handle = handle;			
-		Europi.tracks[track].channels[0].i2c_device = DEV_DAC8574;
-		Europi.tracks[track].channels[0].i2c_address = 0x08;
-		Europi.tracks[track].channels[0].i2c_channel = 0;		
-		Europi.tracks[track].channels[0].scale_zero = 280;		/* Value required to generate zero volt output */
-		Europi.tracks[track].channels[0].scale_max = 63000;		/* Value required to generate maximum output voltage */
-		Europi.tracks[track].channels[0].transpose = 0;			/* fixed (transpose) voltage offset applied to this channel */
-		Europi.tracks[track].channels[0].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
-		Europi.tracks[track].channels[0].vc_type = VOCT;
+		Europi.tracks[track].channels[CV_OUT].enabled = TRUE;
+		Europi.tracks[track].channels[CV_OUT].type = CHNL_TYPE_CV;
+		Europi.tracks[track].channels[CV_OUT].quantise = 0;			/* Quantization off by default */
+		Europi.tracks[track].channels[CV_OUT].i2c_handle = handle;			
+		Europi.tracks[track].channels[CV_OUT].i2c_device = DEV_DAC8574;
+		Europi.tracks[track].channels[CV_OUT].i2c_address = 0x08;
+		Europi.tracks[track].channels[CV_OUT].i2c_channel = 0;		
+		Europi.tracks[track].channels[CV_OUT].scale_zero = 280;		/* Value required to generate zero volt output */
+		Europi.tracks[track].channels[CV_OUT].scale_max = 63000;		/* Value required to generate maximum output voltage */
+		Europi.tracks[track].channels[CV_OUT].transpose = 0;			/* fixed (transpose) voltage offset applied to this channel */
+		Europi.tracks[track].channels[CV_OUT].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
+		Europi.tracks[track].channels[CV_OUT].vc_type = VOCT;
 		/* Track 0 channel 1 = Gate Output */
-		Europi.tracks[track].channels[1].type = CHNL_TYPE_GATE;
-		Europi.tracks[track].channels[1].i2c_handle = pcf_handle;			
-		Europi.tracks[track].channels[1].i2c_device = DEV_PCF8574;
-		Europi.tracks[track].channels[1].i2c_channel = 0;		
+		Europi.tracks[track].channels[GATE_OUT].enabled = TRUE;
+		Europi.tracks[track].channels[GATE_OUT].type = CHNL_TYPE_GATE;
+		Europi.tracks[track].channels[GATE_OUT].i2c_handle = pcf_handle;			
+		Europi.tracks[track].channels[GATE_OUT].i2c_device = DEV_PCF8574;
+		Europi.tracks[track].channels[GATE_OUT].i2c_channel = 0;
 		/* Track 1 channel 0 = CV */
 		track++;
-		Europi.tracks[track].channels[0].enabled = TRUE;
-		Europi.tracks[track].channels[0].type = CHNL_TYPE_CV;
-		Europi.tracks[track].channels[0].quantise = 0;		
-		Europi.tracks[track].channels[0].i2c_handle = handle;			
-		Europi.tracks[track].channels[0].i2c_device = DEV_DAC8574;
-		Europi.tracks[track].channels[0].i2c_address = 0x08;
-		Europi.tracks[track].channels[0].i2c_channel = 1;		
-		Europi.tracks[track].channels[0].scale_zero = 280;		/* Value required to generate zero volt output */
-		Europi.tracks[track].channels[0].scale_max = 63000;		/* Value required to generate maximum output voltage */
-		Europi.tracks[track].channels[0].transpose = 0;				/* fixed (transpose) voltage offset applied to this channel */
-		Europi.tracks[track].channels[0].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
-		Europi.tracks[track].channels[0].vc_type = VOCT;
+		Europi.tracks[track].channels[CV_OUT].enabled = TRUE;
+		Europi.tracks[track].channels[CV_OUT].type = CHNL_TYPE_CV;
+		Europi.tracks[track].channels[CV_OUT].quantise = 0;		
+		Europi.tracks[track].channels[CV_OUT].i2c_handle = handle;			
+		Europi.tracks[track].channels[CV_OUT].i2c_device = DEV_DAC8574;
+		Europi.tracks[track].channels[CV_OUT].i2c_address = 0x08;
+		Europi.tracks[track].channels[CV_OUT].i2c_channel = 1;		
+		Europi.tracks[track].channels[CV_OUT].scale_zero = 280;		/* Value required to generate zero volt output */
+		Europi.tracks[track].channels[CV_OUT].scale_max = 63000;		/* Value required to generate maximum output voltage */
+		Europi.tracks[track].channels[CV_OUT].transpose = 0;				/* fixed (transpose) voltage offset applied to this channel */
+		Europi.tracks[track].channels[CV_OUT].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
+		Europi.tracks[track].channels[CV_OUT].vc_type = VOCT;
 		/* Track 1 channel 1 = Gate*/
-		Europi.tracks[track].channels[1].enabled = TRUE;
-		Europi.tracks[track].channels[1].type = CHNL_TYPE_GATE;
-		Europi.tracks[track].channels[1].i2c_handle = pcf_handle;			
-		Europi.tracks[track].channels[1].i2c_device = DEV_PCF8574;
-		Europi.tracks[track].channels[1].i2c_channel = 1;		
+		Europi.tracks[track].channels[GATE_OUT].enabled = TRUE;
+		Europi.tracks[track].channels[GATE_OUT].type = CHNL_TYPE_GATE;
+		Europi.tracks[track].channels[GATE_OUT].i2c_handle = pcf_handle;			
+		Europi.tracks[track].channels[GATE_OUT].i2c_device = DEV_PCF8574;
+		Europi.tracks[track].channels[GATE_OUT].i2c_channel = 1;		
 		/* Channels 3 & 4 of the PCF8574 are the Clock and Step 1 out 
 		 * no need to set them to anything specific, and we don't really
 		 * want them appearing as additional tracks*/

@@ -46,6 +46,8 @@ int fbfd = 0;
 int kbfd = 0;
 int is_europi = FALSE;	/* whether we are running on Europi hardware - set to True in hardware_init() */
 int print_messages = TRUE; /* controls whether log_msg outputs to std_err or not */
+int debug = FALSE;		/* controls whether debug messages are printed to the main screen */
+char debug_txt[320];	/* buffer for debug text messages */
 int prog_running=0;		/* Setting this to 0 will force the prog to quit*/
 int run_stop=STOP;		/* 0=Stop 1=Run: Halts the main step generator */
 int clock_counter = 95;	/* Main clock counter, tracks the 96 pulses per step */
@@ -101,6 +103,7 @@ menu mnu_seq_new = 		{0,0,"New",&seq_new,NULL};
 menu mnu_seq_setloop =	{0,0,"Set Loop Points",&seq_setloop,NULL};
 menu mnu_seq_setpitch = {0,0,"Set pitch for step",&seq_setpitch,NULL};
 menu mnu_seq_quantise = {0,0,"Set Quantization",&seq_quantise,NULL};
+menu mnu_seq_singlechnl = {0,0,"Single Channel View",&seq_singlechnl,NULL};
 
 menu mnu_config_setzero = {0,0,"Set Zero",&config_setzero,NULL};
 menu mnu_config_set10v = {0,0,"Set 10 Volt",&config_setten,NULL};
@@ -111,7 +114,7 @@ menu sub_end = {0,0,NULL,NULL,NULL}; //set of NULLs to mark the end of a sub men
 
 menu Menu[]={
 	{0,1,"File",NULL,{&mnu_file_open,&mnu_file_save,&mnu_file_saveas,&mnu_file_new,&mnu_file_quit,&sub_end}},
-	{0,0,"Sequence",NULL,{&mnu_seq_new,&mnu_seq_setloop,&mnu_seq_setpitch,&mnu_seq_quantise,&sub_end}},
+	{0,0,"Sequence",NULL,{&mnu_seq_new,&mnu_seq_setloop,&mnu_seq_setpitch,&mnu_seq_quantise,&mnu_seq_singlechnl,&sub_end}},
 	{0,0,"Config",NULL,{&mnu_config_setzero,&mnu_config_set10v,&sub_end}},
 	{0,0,"Test",NULL,{&mnu_test_scalevalue,&mnu_config_setzero,&sub_end}},
 	{0,0,"Play",NULL,{&sub_end}},
@@ -121,6 +124,7 @@ menu Menu[]={
 
 /* This is the main structure that holds info about the running sequence */
 struct europi Europi; 
+struct hardware Hardware;
 struct screen_elements ScreenElements;
 
 
@@ -184,7 +188,54 @@ while (prog_running == 1){
 						}
 					}
 				}
-			}			
+			}	
+			// Display a Single Channel
+			if(ScreenElements.SingleChannel == 1){
+				ClearBackground(RAYWHITE);
+				int track;
+				int step;
+				int val;
+				char track_no[20];
+				int txt_len;
+				for (track = 0; track < MAX_TRACKS; track++){
+					if (Europi.tracks[track].selected == TRUE){
+						sprintf(track_no,"%d",track+1);
+						txt_len = MeasureText(track_no,10);
+						DrawText(track_no,12-txt_len,220,10,DARKGRAY);
+						for (step = 0; step < MAX_STEPS; step++){
+							if(step < Europi.tracks[track].last_step){
+								val = (int)(((float)Europi.tracks[track].channels[CV_OUT].steps[step].scaled_value / (float)60000) * 220);
+								if(step == Europi.tracks[track].current_step){
+									DrawRectangle(15 + (step*9),220-val,8,val,MAROON);
+								}
+								else{
+									DrawRectangle(15 + (step*9),220-val,8,val,LIME);
+								}
+								// Gate State
+								if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1){
+									sprintf(track_no,"%d",Europi.tracks[track].channels[GATE_OUT].steps[step].retrigger);
+									DrawText(track_no,15 + (step*9),220,10,DARKGRAY);
+								}
+								// Slew
+								if (Europi.tracks[track].channels[CV_OUT].steps[step].slew_type != Off){
+									switch (Europi.tracks[track].channels[CV_OUT].steps[step].slew_shape){
+										case Both:
+											DrawText("V",15 + (step*9),230,10,DARKGRAY);
+										break;
+										case Rising:
+											DrawText("/",15 + (step*9),230,10,DARKGRAY);
+										break;
+										case Falling:
+											DrawText("\\",15 + (step*9),230,10,DARKGRAY);
+										break;
+									}
+								}
+							}
+						}
+					}
+				}
+
+			}
 			// Draw the menu
 			if(ScreenElements.MainMenu == 1){
 				int i = 0;
@@ -329,6 +380,10 @@ while (prog_running == 1){
 						DrawText(str,25,35,10,WHITE);
 					}
 				}
+			}
+			if(debug == TRUE){
+				DrawRectangle(0,200,320,20,BLACK);
+				DrawText(debug_txt,5,205,10,WHITE);
 			}
         EndDrawing(); 
         //----------------------------------------------------------------------------------

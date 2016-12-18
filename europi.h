@@ -69,6 +69,16 @@
 
 /* Typedefs */
 typedef unsigned char     uint8_t;  		/*unsigned 8 bit definition */
+
+enum device_t {
+//	CV_OUT,
+//	GATE_OUT,
+	MIDI_IN,
+	MIDI_OUT,
+//	CLOCK_OUT,
+//		STEP1_OUT
+};
+
 enum encoder_focus_t {
 	none,
 	pitch_cv,
@@ -85,6 +95,7 @@ enum encoder_focus_t {
 	set_pitch,
 	set_quantise
 };
+
 enum slew_t {
 	Off,
 	Linear,
@@ -148,6 +159,7 @@ static void *GateThread(void *arg);
 static void *AdThread(void *arg);
 
 /* Function Prototypes in europi_func2 */
+void seq_singlechnl(void);
 void select_first_track(void);
 void seq_new(void);
 void clear_screen_elements(void);
@@ -287,6 +299,7 @@ typedef struct MENU{
  */
  struct screen_elements{
 	 int GridView;
+	 int SingleChannel;
 	 int MainMenu;
 	 int SetZero;
 	 int SetTen;
@@ -357,6 +370,25 @@ struct ad {
 	enum shot_type_t shot_type; /* One-shot or Repeat */
 };
 
+/* 
+ * DEVICE records the physical configuration of 
+ * the Europi system, including device handles,
+ * Output scaling parameteres Etc. Keeping this
+ * information separate to the Sequence itself
+ * enables existing sequences to be run on differing
+ * base hardware configurations
+ */
+struct device {
+	enum device_t device_type;	/* CV_OUT, GATE_OUT etc. */
+	int i2c_handle;				/* Handle to the i2c device that outputs this track */
+	int i2c_device;				/* Type of i2c device DAC8754, MCP23008 etc */
+	int i2c_address;			/* Address of this device on the i2c Bus - address need to match the physical A3-A0 pins */
+	int i2c_channel;			/* Individual channel (on multi-channel i2c devices) */
+	long scale_zero;			/* Value required to generate zero volt output */
+	long scale_max;				/* Value required to generate 10v output voltage */
+	float scale_factor;			/* scaled_value = (raw * scale_factor) + scale_zero */
+};
+
 /*
  * STEP is an individual step in a sequence. Steps
  * are unique to a particular track. Steps contain
@@ -383,19 +415,19 @@ struct step {
  * single TRACK
  */
 struct channel {
+	struct step steps[MAX_STEPS];	/* Array of steps */
+	int i2c_handle;				/* Handle to the i2c device that outputs this track */
+	int i2c_device;				/* Type of i2c device DAC8754, MCP23008 etc */
+	int i2c_address;			/* Address of this device on the i2c Bus - address need to match the physical A3-A0 pins */
+	int i2c_channel;			/* Individual channel (on multi-channel i2c devices) */
+	long scale_zero;			/* Value required to generate zero volt output */
+	long scale_max;				/* Value required to generate 10v output voltage */
 	int enabled;			/* Whether this channel is in use or not */
 	int type;				/* Types include CV, GATE, TRIGGER */
 	int quantise;			/* whether this channel is quantised to a particular scale 0=OFF*/
-	int i2c_handle;			/* Handle to the i2c device that outputs this track */
-	int i2c_device;			/* Type of i2c device DAC8754, MCP23008 etc */
-	int i2c_address;		/* Address of this device on the i2c Bus - address need to match the physical A3-A0 pins */
-	int i2c_channel;		/* Individual channel (on multi-channel i2c devices) */
-	long scale_zero;		/* Value required to generate zero volt output */
-	long scale_max;			/* Value required to generate 10v output voltage */
 	long transpose;			/* fixed (transpose) voltage offset applied to this channel */
 	int	octaves;			/* How many octaves are covered from scale_zero to scale_max */
 	int vc_type;			/* Type of voltage control output V_OCT or V_HZ (ignored for gates) */
-	struct step steps[MAX_STEPS];	/* Array of steps */ 	
 };
 
 /*
@@ -403,11 +435,11 @@ struct channel {
  * together - a CV output plus its associated GATE output.
  */
 struct track{
+	struct channel channels[MAX_CHANNELS];	/* a TRACK contains an array of CHANNELs */
 	int selected;			/* Track is selected for some sort of operation */
 	int track_busy;			/* If TRUE then this Track won't advance to the next step */
 	int current_step;		/* Tracks where this track is going next */
 	int last_step;			/* sets the end step for a particular track */
-	struct channel channels[MAX_CHANNELS];	/* a TRACK contains an array of CHANNELs */
 };
 /*
  * Europi is the main Container structure for the Hardware
@@ -416,6 +448,7 @@ struct europi{
 	int track_enabled;
 	struct track tracks[MAX_TRACKS];
 };
+
 /* 
  * PATTERN is one main loopable section, 
  * can contain many TRACKS 
@@ -430,5 +463,13 @@ struct sequence {
 	int next_pattern;							/* used to control the way sequences are chained together in a Song */
 	struct pattern patterns[MAX_SEQUENCES];	/* Array of Sequences */
 };
+
+/*
+ * Hardware contains the per-track hardware configuration
+ */
+struct hardware {
+	int hardware_index;
+	struct device devices[MAX_TRACKS];
+}; 
 
 #endif /* EUROPI_H */
