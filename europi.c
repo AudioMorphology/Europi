@@ -32,21 +32,22 @@
 #include <linux/fb.h>
 #include <sys/mman.h>
 #include <pigpio.h>
-
+ 
 #include "europi.h"
 //#include "quantizer_scales.h"
 #include "../raylib/release/rpi/raylib.h"
 
 unsigned hw_version;			/* Type 1: 2,3 Type 2: 4,5,6 & 15 Type 3: 16 or Greater */
 struct fb_var_screeninfo vinfo;
-struct fb_fix_screeninfo finfo;
-struct fb_var_screeninfo orig_vinfo;
-char *fbp = 0;
-int fbfd = 0;
+struct fb_fix_screeninfo finfo; 
+struct fb_var_screeninfo orig_vinfo; 
+char *fbp = 0;   
+int fbfd = 0; 
 int kbfd = 0;
 int is_europi = FALSE;	/* whether we are running on Europi hardware - set to True in hardware_init() */
 int print_messages = TRUE; /* controls whether log_msg outputs to std_err or not */
-int debug = FALSE;		/* controls whether debug messages are printed to the main screen */
+int debug = TRUE;		/* controls whether debug messages are printed to the main screen */
+int impersonate_hw = FALSE;	/* allows the software to bypass hardware checks (useful when testing sw without full hw ) */ 
 char debug_txt[320];	/* buffer for debug text messages */
 int prog_running=0;		/* Setting this to 0 will force the prog to quit*/
 int run_stop=STOP;		/* 0=Stop 1=Run: Halts the main step generator */
@@ -63,6 +64,7 @@ uint32_t step_tick = 0;	/* used to record the start point of each step in ticks 
 uint32_t step_ticks = 250000;	/* Records the length of each step in ticks (used to limit slew length) Init value of 250000 is so it doesn't go nuts */
 uint32_t slew_interval = 1000; /* number of microseconds between each sucessive level change during a slew */
 /* global variables used by the touchscreen interface */
+int CalibCross;			/* which calibration cross we're displaying */
 int  xres,yres,x;
 int Xsamples[20];
 int Ysamples[20];
@@ -79,6 +81,10 @@ int encoder_level_B;
 int encoder_lastGpio;
 int encoder_vel;
 int disp_menu = 0;
+int touchStream = -1;                    // Touch device file descriptor
+int touchReady = FALSE;                 // Flag to know if touchscreen is present
+pthread_t touchThreadId;                 
+
 
 enum encoder_focus_t encoder_focus;
 uint32_t encoder_tick;
@@ -107,6 +113,7 @@ menu mnu_seq_singlechnl = {0,0,"Single Channel View",&seq_singlechnl,NULL};
 
 menu mnu_config_setzero = {0,0,"Set Zero",&config_setzero,NULL};
 menu mnu_config_set10v = {0,0,"Set 10 Volt",&config_setten,NULL};
+menu mnu_config_calibtouch = {0,0,"Calibrate Touchscreen",&config_calibtouch,NULL};
 
 menu mnu_test_scalevalue = {0,0,"Test scale value",&test_scalevalue,NULL};
 
@@ -115,7 +122,7 @@ menu sub_end = {0,0,NULL,NULL,NULL}; //set of NULLs to mark the end of a sub men
 menu Menu[]={
 	{0,1,"File",NULL,{&mnu_file_open,&mnu_file_save,&mnu_file_saveas,&mnu_file_new,&mnu_file_quit,&sub_end}},
 	{0,0,"Sequence",NULL,{&mnu_seq_new,&mnu_seq_setloop,&mnu_seq_setpitch,&mnu_seq_quantise,&mnu_seq_singlechnl,&sub_end}},
-	{0,0,"Config",NULL,{&mnu_config_setzero,&mnu_config_set10v,&sub_end}},
+	{0,0,"Config",NULL,{&mnu_config_setzero,&mnu_config_set10v,&mnu_config_calibtouch,&sub_end}},
 	{0,0,"Test",NULL,{&mnu_test_scalevalue,&mnu_config_setzero,&sub_end}},
 	{0,0,"Play",NULL,{&sub_end}},
 	{0,0,NULL,NULL,NULL}
@@ -131,12 +138,11 @@ struct screen_elements ScreenElements;
 // application entry point
 int main(int argc, char* argv[])
 {
-	unsigned int iseed = (unsigned int)time(NULL);			//Seed srand() 
+	unsigned int iseed = (unsigned int)time(NULL);
 	srand (iseed);
 	/* things to do when prog first starts */
+	impersonate_hw = TRUE;	/* !!! uncomment this line if testing software without full hardware present */
 	startup();
-	/* draw the main front screen */
-	//paint_main();
 	/* Read and set the states of the run/stop and int/ext switches */
 	log_msg("Run/stop: %d, Int/ext: %d\n",gpioRead(RUNSTOP_IN),gpioRead(INTEXT_IN));
 	run_stop = gpioRead(RUNSTOP_IN);
@@ -144,8 +150,41 @@ int main(int argc, char* argv[])
 	//Temp for testing
 	//run_stop = RUN; 
 	//clock_source = INT_CLK;
+	int currentGesture = GESTURE_NONE;
+	int lastGesture = GESTURE_NONE;
+	Vector2 ballPosition = { -100.0f, -100.0f };
+    Color ballColor = DARKBLUE;
+
+	Vector2 touchPosition = { 0, 0 };
 
 while (prog_running == 1){
+	
+        ballPosition = GetMousePosition();
+        
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) ballColor = MAROON; 
+        else if (IsMouseButtonPressed(MOUSE_MIDDLE_BUTTON)) ballColor = LIME;
+        else if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON)) ballColor = DARKBLUE;	
+	
+		currentGesture = GetGestureDetected();
+        touchPosition = GetTouchPosition(0);	
+		if (currentGesture != lastGesture)
+            {
+                // Store gesture string
+                switch (currentGesture)
+                {
+                    case GESTURE_TAP: log_msg("GESTURE TAP\n"); break;
+                    case GESTURE_DOUBLETAP: log_msg("GESTURE DOUBLETAP\n"); break;
+                    case GESTURE_HOLD: log_msg("GESTURE HOLD\n"); break;
+                    case GESTURE_DRAG: log_msg("GESTURE DRAG\n"); break;
+                    case GESTURE_SWIPE_RIGHT: log_msg("GESTURE SWIPE RIGHT\n"); break;
+                    case GESTURE_SWIPE_LEFT: log_msg("GESTURE SWIPE LEFT\n"); break;
+                    case GESTURE_SWIPE_UP: log_msg("GESTURE SWIPE UP\n"); break;
+                    case GESTURE_SWIPE_DOWN: log_msg("GESTURE SWIPE DOWN\n"); break;
+                    case GESTURE_PINCH_IN: log_msg("GESTURE PINCH IN\n"); break;
+                    case GESTURE_PINCH_OUT: log_msg("GESTURE PINCH OUT\n"); break;
+                    default: break;
+                }
+            }
         //----------------------------------------------------------------------------------
         // Draw 
         //----------------------------------------------------------------------------------
@@ -309,6 +348,30 @@ while (prog_running == 1){
 					}
 				}
 			}
+			if(ScreenElements.CalibTouch == 1){
+				DrawText("Touch each Cross as it appears",50,110,10,DARKGRAY);
+				switch(CalibCross){
+					case 0:
+						DrawRectangle(10,5,1,11, BLACK);
+						DrawRectangle(5,10,11,1,BLACK);
+						touchPosition = GetTouchPosition(0);
+						CalibCross = 1;
+					break;
+					case 1:
+						DrawRectangle(310,5,1,11, BLACK);
+						DrawRectangle(305,10,11,1,BLACK);
+					break;
+					case 2:
+						DrawRectangle(10,225,1,11, BLACK);
+						DrawRectangle(5,230,11,1,BLACK);
+					break;
+					case 3:
+						DrawRectangle(310,225,1,11, BLACK);
+						DrawRectangle(305,230,11,1,BLACK);
+					
+					break;
+				}
+			}
 			if(ScreenElements.ScaleValue == 1){
 				int track = 0;
 				char str[80];
@@ -381,53 +444,24 @@ while (prog_running == 1){
 					}
 				}
 			}
+			
+			DrawCircleV(ballPosition, 5, ballColor);			
 			if(debug == TRUE){
 				DrawRectangle(0,200,320,20,BLACK);
 				DrawText(debug_txt,5,205,10,WHITE);
 			}
+			
+			if (currentGesture != GESTURE_NONE) DrawCircleV(touchPosition, 30, MAROON);
         EndDrawing(); 
         //----------------------------------------------------------------------------------
-	
-	/* check for touchscreen input */
-	if (touched == 1){
-	int x;
-	touched = 0; 
-	getTouchSample(&rawX, &rawY, &rawPressure); 
-	Xsamples[sample] = rawX;
-	Ysamples[sample] = rawY;
-	if (sample++ >= SAMPLE_AMOUNT){
-		sample = 0;
-		Xaverage  = 0;
-		Yaverage  = 0;
 
-		for ( x = 0; x < SAMPLE_AMOUNT; x++ ){
-			Xaverage += Xsamples[x];
-			Yaverage += Ysamples[x];
-		}
-
-	Xaverage = Xaverage/SAMPLE_AMOUNT;
-	Yaverage = Yaverage/SAMPLE_AMOUNT;
-	/* scale these values by the known min & max raw values (obtained by
-	 * experimentation, and noted in europi.h
-	*/ 
-	if (Xaverage <= rawXmin) Xaverage = rawXmin;
-	if (Xaverage >= rawXmax) Xaverage = rawXmax;
-	if (Yaverage <= rawYmin) Yaverage = rawYmin;
-	if (Yaverage >= rawYmax) Yaverage = rawYmax;
-	/* Er., X is upside down */
-	scaledX = ((float)(Xaverage - rawXmin) / (float)(rawXmax-rawXmin))*X_MAX;
-	scaledY = Y_MAX-((float)(Yaverage - rawYmin) / (float)(rawYmax-rawYmin))*Y_MAX;
-	/* see whether one of the buttons has been touched. If so, select it */
-	button_touched(scaledX,scaledY);
-
-	}
-
-	
-	}
     usleep(100);
 }
 
+	pthread_join(touchThreadId, NULL);
 	shutdown();
 	return 0;
   
 }
+
+

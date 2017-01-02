@@ -35,7 +35,7 @@
 #include <signal.h>
 
 #include "europi.h"
-#include "front_panel.c"
+//#include "front_panel.c"
 #include "touch.h"
 #include "touch.c"
 //#include "quantizer_scales.h"
@@ -50,6 +50,7 @@ extern unsigned hw_version;
 extern int fbfd;
 extern char *fbp;
 extern char *kbfds;
+extern int impersonate_hw;
 extern int debug;
 extern char debug_txt[];
 extern int kbfd;
@@ -447,187 +448,11 @@ static void *GateThread(void *arg)
 	return(0);
 }
 
-/* Function to clear and recreate the
- * main front screen. Should be capable
- * of being called at any time, \	r current
- * state, though its main use is as the  v
- * prog launches to set out the display
- * area
- */
-int paint_main(void)
-{
-	int channel;
-	paint_front_panel();
-	step_button_grid();
-	/* Set all the gate & level indicators to off */
-	for(channel=0;channel<CHANNELS;channel++){
-		gate_state(channel,0);
-		channel_level(channel,0);
-	}
-}
-
-
-/*
- * Front Panel - reads the Front Panel image in splash.c
- * and displays it on the screen
- */
-void paint_front_panel(void)
-{
-	
-	int i,j;
-	for(i=0; i<front_panel.height; i++) {
-    for(j=0; j<front_panel.width; j++) {
-      int r = front_panel.pixel_data[(i*front_panel.width + j)*3 + 0];
-	  int g = front_panel.pixel_data[(i*front_panel.width + j)*3 + 1];
-	  int b = front_panel.pixel_data[(i*front_panel.width + j)*3 + 2];
-	  put_pixel_RGB565(fbp, j, i, RGB2565(r,g,b));
-	  
-    }
-  }
-}
-/*
- * Draws the complete grid of Step buttons.
- * absolute co-ordinates of the Top Left
- * corner of each button are calculated once
- * on startup and stored in the sequence array
- */
-void step_button_grid(void)
-{
-int row, col, x, y;
-for (row=0;row<BTN_STEP_ROWS;row++){
-	for(col=0;col<BTN_STEP_COLS;col++){
-		x = BTN_STEP_TLX + (col * (BTN_STEP_WIDTH + BTN_STEP_HGAP));
-		y = BTN_STEP_TLY + (row * (BTN_STEP_HEIGHT + BTN_STEP_VGAP));
-		draw_button(x,y,HEX2565(BTN_BACK_CLR));
-	}
-}
-	
-}
-/* Draws a button, given just a number and a colour */
-void draw_button_number(int button_number, unsigned short c)
-{
-	int row, col, x, y;
-	row = (int)(button_number / BTN_STEP_COLS);
-	col = button_number % BTN_STEP_COLS;
-	x = BTN_STEP_TLX + (col * (BTN_STEP_WIDTH + BTN_STEP_HGAP));
-	y = BTN_STEP_TLY + (row * (BTN_STEP_HEIGHT + BTN_STEP_VGAP));
-	draw_button(x,y,c);
-}
-/*
- * draws a sequencer grid button
- * is passed the coordinates of the 
- * Top Left corner
- */
-void draw_button(int x, int y, unsigned short c)
-{
-fill_rect_RGB565(fbp, x, y, BTN_STEP_WIDTH, BTN_STEP_HEIGHT, c);	
-}
-/* Draws a box around a button to indicate its selected state*/
-void select_button(int button_number, unsigned short c)
-{
-	int row, col, x, y;
-	row = (int)(button_number / BTN_STEP_COLS);
-	col = button_number % BTN_STEP_COLS;
-	x = BTN_STEP_TLX + (col * (BTN_STEP_WIDTH + BTN_STEP_HGAP));
-	y = BTN_STEP_TLY + (row * (BTN_STEP_HEIGHT + BTN_STEP_VGAP));
-	draw_rect_RGB565(fbp, x,y, BTN_STEP_WIDTH, BTN_STEP_HEIGHT,c);
-	draw_rect_RGB565(fbp, x+1,y+1, BTN_STEP_WIDTH-2, BTN_STEP_HEIGHT-2,c);
-	draw_rect_RGB565(fbp, x+2,y+2, BTN_STEP_WIDTH-4, BTN_STEP_HEIGHT-4,c);
-}
-/*
- * channel_levels
- * Draws the current levels 
- * for the Channel level indicators. Full scale
- * is 4096, so we are drawing two rectangles where
- * the height of the lower one is proportional
- * to level/4096
- */
-void channel_level(int channel,int level)
-{
-	int x, y, illuminated_height;
-	//DACSingleChannelWrite(DAChandle, channel,level);
-	
-	illuminated_height = (int)(((float)level/4096)*CHNL_LEVEL_HEIGHT);
-	x = CHNL_LEVEL_TLX + (channel * (CHNL_LEVEL_WIDTH+CHNL_LEVEL_HGAP));
-	/* Draw the un-lit portion */
-	y = CHNL_LEVEL_TLY;
-	fill_rect_RGB565(fbp, x, y, CHNL_LEVEL_WIDTH, CHNL_LEVEL_HEIGHT-illuminated_height, HEX2565(CHNL_BACK_CLR));	
-//	/* Draw the illuminated portion */
-	y = CHNL_LEVEL_TLY + CHNL_LEVEL_HEIGHT - illuminated_height;
-	fill_rect_RGB565(fbp, x, y, CHNL_LEVEL_WIDTH, illuminated_height, HEX2565(CHNL_FORE_CLR));	
-	
-}
-/*
- * gate_states
- * Draws the current state for 
- * for the Gate State indicator
- */
-void gate_state(int channel, int state)
-{
-	int x, y;
-	/* Temp: just output the state of channel 0 to all bits */
-	if (channel == 0){
-		//log_msg("Gate state\n");
-		//if (state == 1)	i2cWriteWordData(GPIOhandle, 0x09, (unsigned)(0xff)); else i2cWriteWordData(GPIOhandle, 0x09, (unsigned)(0xff==0)); 	
-	}
-	y = GATE_STATE_TLY;
-		x = GATE_STATE_TLX + (channel * (GATE_STATE_WIDTH+GATE_STATE_HGAP));
-		if (state == 1){
-			fill_rect_RGB565(fbp, x, y, GATE_STATE_WIDTH, GATE_STATE_HEIGHT, HEX2565(GATE_FORE_CLR));	
-		}
-		else {
-			fill_rect_RGB565(fbp, x, y, GATE_STATE_WIDTH, GATE_STATE_HEIGHT, HEX2565(GATE_BACK_CLR));	
-		}
-}
-/*
- * paint_menu
- * Function draws the Menu panel, including the current
- * state of any displayed controls / texst etc., so it
- * can be called after any menu information has been 
- * updated.
- */
-void paint_menu(void){
-	fill_rect_RGB565(fbp, MENU_X, MENU_Y, MENU_WIDTH, MENU_HEIGHT, MENU_BACK_CLR);	
-}
-/*
- * button_touched
- * Works out whether the passed coordinates fall within the 
- * boundaries of a sequencer button and, if so, selects it
- */
-void button_touched(int x, int y){
-	int button_number, tlx, tly, brx, bry, row, col;
-	for (button_number = 0; button_number < 32; button_number++){
-		row = (int)(button_number / BTN_STEP_COLS);
-		col = button_number % BTN_STEP_COLS;
-		tlx = BTN_STEP_TLX + (col * (BTN_STEP_WIDTH + BTN_STEP_HGAP));
-		tly = BTN_STEP_TLY + (row * (BTN_STEP_HEIGHT + BTN_STEP_VGAP));	
-		brx = tlx + BTN_STEP_WIDTH;
-		bry = tly + BTN_STEP_HEIGHT;
-		/* do our X & Y coordinates fall within this button */
-		if ((x >= tlx) && (x <= brx) && (y >= tly) && (y <= bry)){
-			/* this button touched */
-			/* unselect the previous one (if selected)*/
-			/* !!!! needs re-writing for new UI */
-/*			if(Europi.tracks[track].current_step == selected_step) draw_button_number(selected_step, HEX2565(BTN_STEP_CLR));
-			else if(selected_step >= 0) draw_button_number(selected_step, HEX2565(BTN_BACK_CLR));
-			if (button_number != selected_step) {
-				select_button(button_number, HEX2565(BTN_SELECT_CLR));
-				selected_step = button_number;	
-			}
-			else {
-				draw_button_number(selected_step, HEX2565(BTN_BACK_CLR));
-				selected_step = -1;
-			} */
-		}
-	}
-}
  int startup(void)
  {
 	 // Initial state of the Screen Elements (Menus etc)
+	 clear_screen_elements();
 	 ScreenElements.GridView = 1;
-	 ScreenElements.MainMenu = 0;
-	 ScreenElements.SetZero = 0;
-	 ScreenElements.SetTen = 0;
 	 // Initialise the Deatched pThread attribute
 	int rc = pthread_attr_init(&detached_attr);
 	rc = pthread_attr_setdetachstate(&detached_attr, PTHREAD_CREATE_DETACHED);
@@ -638,7 +463,7 @@ void button_touched(int x, int y){
 	if (pthread_mutex_init(&pcf8574_lock, NULL) != 0){
         log_msg("PCF8574 mutex init failed\n");
     }
-	 // Initialise the Europi structure
+	 // Initialise the Europi structure 
 	int channel;
 	for(channel=0;channel < MAX_CHANNELS;channel++){
 		
@@ -686,7 +511,7 @@ void button_touched(int x, int y){
 	gpioSetAlertFunc(BUTTON3_IN, button_3);
 	gpioSetAlertFunc(BUTTON4_IN, button_4);
 	gpioSetAlertFunc(ENCODER_BTN, encoder_button);
-	gpioSetAlertFunc(TOUCH_INT, touch_interrupt);
+	//gpioSetAlertFunc(TOUCH_INT, touch_interrupt);
 	gpioSetAlertFunc(CLOCK_IN, external_clock);
 	gpioSetAlertFunc(RUNSTOP_IN, runstop_input);
 	gpioSetAlertFunc(INTEXT_IN, clocksource_input);
@@ -750,16 +575,6 @@ void button_touched(int x, int y){
 		DrawTexture(Splash,0,0,WHITE);
 	EndDrawing();
 
-	// Open the touchscreen
-  	if (openTouchScreen() == 1)
-		log_msg("error opening touch screen"); 
-	getTouchScreenDetails(&screenXmin,&screenXmax,&screenYmin,&screenYmax);
-	//log_msg("screenXmin: %d, screenXmax: %d, screenYmin:L %d, screenYmax: %d \n",screenXmin,screenXmax,screenYmin,screenYmax);
-	scaleXvalue = ((float)screenXmax-screenXmin) / xres;
-	//log_msg ("X Scale Factor = %f\n", scaleXvalue);
-	scaleYvalue = ((float)screenYmax-screenYmin) / yres;
-	//log_msg ("Y Scale Factor = %f\n", scaleYvalue);
-
   	// Turn the cursor off
     kbfd = open(kbfds, O_WRONLY);
     if (kbfd >= 0) {
@@ -780,6 +595,18 @@ void button_touched(int x, int y){
 	gpioSetAlertFunc(MASTER_CLK, master_clock);
 	
 	prog_running = 1;
+/*
+	// Open the touchscreen
+  	InitTouch();
+	if (touchReady == TRUE){
+		getTouchScreenDetails(&screenXmin,&screenXmax,&screenYmin,&screenYmax);
+		//log_msg("screenXmin: %d, screenXmax: %d, screenYmin:L %d, screenYmax: %d \n",screenXmin,screenXmax,screenYmin,screenYmax);
+		scaleXvalue = ((float)screenXmax-screenXmin) / xres;
+		//log_msg ("X Scale Factor = %f\n", scaleXvalue);
+		scaleYvalue = ((float)screenYmax-screenYmin) / yres;
+		//log_msg ("Y Scale Factor = %f\n", scaleYvalue);
+	}
+*/
   return(0);
 }
 
@@ -1217,13 +1044,11 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 			break;
 		}
 		case pitch_cv:
-			pitch_adjust(dir, vel);
 			break;
 		case slew_type:
 			slew_adjust(dir, vel);
 			break;
 		case gate_on_off:
-			gate_onoff(dir,vel);
 			break;
 		case repeat:
 			step_repeat(dir,vel);
@@ -1291,27 +1116,21 @@ void encoder_button(int gpio, int level, uint32_t tick)
 			break;
 		case pitch_cv:
 			encoder_focus = slew_type;
-			put_string(fbp, 20, 215, "Slew Type:", HEX2565(0x000000), HEX2565(0xFFFFFF));
 			break;
 		case slew_type:
 			encoder_focus = gate_on_off;
-			put_string(fbp, 20, 215, "      Gate:", HEX2565(0x000000), HEX2565(0xFFFFFF));
 			break;
 		case gate_on_off:
 			encoder_focus = repeat;
-			put_string(fbp, 20, 215, "    Repeat:", HEX2565(0x000000), HEX2565(0xFFFFFF));
 			break;
 		case repeat:
 			encoder_focus = quantise;
-			put_string(fbp, 20, 215, "  Quantise:", HEX2565(0x000000), HEX2565(0xFFFFFF));
 			break;
 		case quantise:
 			encoder_focus = none;
-			put_string(fbp, 20, 215, "Menu       ", HEX2565(0x000000), HEX2565(0xFFFFFF));
 			break;
 		default:
 			encoder_focus = none;
-			put_string(fbp, 20, 215, "Menu       ", HEX2565(0x000000), HEX2565(0xFFFFFF));
 		}
 	}
 }
@@ -1437,6 +1256,7 @@ void DACSingleChannelWrite(unsigned handle, uint8_t address, uint8_t channel, ui
 	uint16_t v_sav;
 	uint8_t ctrl_reg;
 	int retval;
+	if(impersonate_hw == TRUE) return;
 	//log_msg("%d, %d, %d, %d\n",handle,address,channel,voltage);
 	ctrl_reg = (((address & 0xC) << 4) | 0x10) | ((channel << 1) & 0x06);
 	//log_msg("handle: %0x, address: %0x, channel: %d, ctrl_reg: %02x, Voltage: %d\n",handle, address, channel,ctrl_reg,voltage);
@@ -1459,6 +1279,7 @@ void DACSingleChannelWrite(unsigned handle, uint8_t address, uint8_t channel, ui
  */
 void GATEMultiOutput(unsigned handle, uint8_t value)
 {
+	if(impersonate_hw == TRUE) return;
 	i2cWriteByteData(handle, 0x09,value);	
 }
 /*
@@ -1484,6 +1305,7 @@ void GATESingleOutput(unsigned handle, uint8_t channel,int Device,int Value)
 {
 	//log_msg("handle: %d, channel: %d, Device: %d, Value: %d\n",handle,channel,Device,Value);
 	uint8_t curr_val;
+	if(impersonate_hw == TRUE) return;
 	if(Device == DEV_MCP23008){
 		if (Value > 0){
 			// Set corresponding bit high
@@ -1561,6 +1383,38 @@ void hardware_init(void)
 		Europi.tracks[track].channels[CV_OUT].enabled = FALSE;
 		Europi.tracks[track].channels[GATE_OUT].enabled = FALSE;
 	}
+	/*
+	 * If impersonate_hw is set to TRUE, then this bypasses the 
+	 * hardware checks, and pretends all hardware is present - this
+	 * is useful when testing the software without the full hardware
+	 * present
+	 */
+	 if (impersonate_hw == TRUE){
+		 is_europi = TRUE;
+		 for (track = 0; track < MAX_TRACKS;track++){
+			/* These are just dummy values to fool the software
+			 * into thinking it has the full hardware present
+			 */
+			Europi.tracks[track].channels[CV_OUT].enabled = TRUE;
+			Europi.tracks[track].channels[CV_OUT].type = CHNL_TYPE_CV;
+			Europi.tracks[track].channels[CV_OUT].quantise = 0;			/* Quantization off by default */
+			Europi.tracks[track].channels[CV_OUT].i2c_handle = track;			
+			Europi.tracks[track].channels[CV_OUT].i2c_device = DEV_DAC8574;
+			Europi.tracks[track].channels[CV_OUT].i2c_address = 0x0;
+			Europi.tracks[track].channels[CV_OUT].i2c_channel = 0;		
+			Europi.tracks[track].channels[CV_OUT].scale_zero = 280;		/* Value required to generate zero volt output */
+			Europi.tracks[track].channels[CV_OUT].scale_max = 63000;		/* Value required to generate maximum output voltage */
+			Europi.tracks[track].channels[CV_OUT].transpose = 0;			/* fixed (transpose) voltage offset applied to this channel */
+			Europi.tracks[track].channels[CV_OUT].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
+			Europi.tracks[track].channels[CV_OUT].vc_type = VOCT;
+			Europi.tracks[track].channels[GATE_OUT].enabled = TRUE;
+			Europi.tracks[track].channels[GATE_OUT].type = CHNL_TYPE_GATE;
+			Europi.tracks[track].channels[GATE_OUT].i2c_handle = track;			
+			Europi.tracks[track].channels[GATE_OUT].i2c_device = DEV_PCF8574;
+			Europi.tracks[track].channels[GATE_OUT].i2c_channel = 0;
+		 }
+		 return;
+	 }
 	/* 
 	 * Specifically look for a PCF8574 on address 0x38
 	 * if one exists, then it's on the Europi, so the first

@@ -35,6 +35,7 @@
 #include <signal.h>
 
 #include "europi.h"
+#include "../raylib/release/rpi/raylib.h"
 
 extern int run_stop;
 extern int disp_menu;
@@ -43,7 +44,9 @@ extern int selected_step;
 extern struct europi Europi;
 extern struct screen_elements ScreenElements;
 extern int prog_running;
+extern int impersonate_hw;
 extern enum encoder_focus_t encoder_focus;
+extern int CalibCross;
 
 /*
  * menu callback for Single Channel view
@@ -90,6 +93,7 @@ void clear_screen_elements(void){
 	//ScreenElements.SingleChannel = 0;
 	ScreenElements.SetZero = 0;
 	ScreenElements.SetTen = 0;
+	ScreenElements.CalibTouch = 0;
 	ScreenElements.ScaleValue = 0;
 	ScreenElements.SetLoop = 0;
 	ScreenElements.SetPitch = 0;
@@ -110,6 +114,7 @@ void select_first_track(void){
 	while(track < MAX_TRACKS){
 		if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE) {
 			Europi.tracks[track].selected = TRUE;
+			log_msg("Selected: %d\n",track);
 			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
 			break;
 		}
@@ -222,6 +227,15 @@ void config_setten(void){
 	select_first_track();
 }
 
+/*
+ * menu callback for calibrating the touchscreen
+ */
+void config_calibtouch(void){
+	clear_screen_elements();
+	ScreenElements.GridView = 0;
+	ScreenElements.CalibTouch = 1;
+	CalibCross = 0;
+}
 /* 
  * Set the zero volt level for the passed Track
  */
@@ -238,40 +252,7 @@ void file_quit(void){
 	prog_running = 0;
 }
 
-/*
- * adjust the pitch of the currently selected step / channel
- */
-void pitch_adjust(int dir, int vel){
-	char string_buf[20];
-	if(selected_step >= 0){
-		//hard-coded to track 0 for the moment
-		Europi.tracks[0].channels[0].steps[selected_step].raw_value += vel*dir*10;
-		//log_msg("Raw: %d\n",Europi.tracks[0].channels[0].steps[selected_step].raw_value);
-		sprintf(string_buf,"%d",Europi.tracks[0].channels[0].steps[selected_step].raw_value);
-		put_string(fbp, 108, 215, string_buf, HEX2565(0x000000), HEX2565(0xFFFFFF));
-		if(Europi.tracks[0].channels[0].steps[selected_step].raw_value < 0) Europi.tracks[0].channels[0].steps[selected_step].raw_value = 0;
-		if(Europi.tracks[0].channels[0].steps[selected_step].raw_value > 60000) Europi.tracks[0].channels[0].steps[selected_step].raw_value = 60000;
-		quantize_track(0,Europi.tracks[0].channels[0].quantise);
-	}
-}
 
-/*
- * change the gate type for the selected step
- */
-void gate_onoff(int dir, int vel){
-	char string_buf[20];
-	if(selected_step >= 0){
-		//hard-coded to track 0 for the moment
-		if (dir > 0) {
-			Europi.tracks[0].channels[1].steps[selected_step].gate_value = 1;
-			put_string(fbp, 108, 215, "On    ", HEX2565(0x000000), HEX2565(0xFFFFFF));
-		}
-		else if (dir < 0) {
-			Europi.tracks[0].channels[1].steps[selected_step].gate_value = 0;
-			put_string(fbp, 108, 215, "Off   ", HEX2565(0x000000), HEX2565(0xFFFFFF));
-		}
-	}
-}
 
 /*
  * change the slew type for the selected step
@@ -284,46 +265,36 @@ void slew_adjust(int dir, int vel){
 			switch(Europi.tracks[0].channels[0].steps[selected_step].slew_type){
 				case Off:
 					Europi.tracks[0].channels[0].steps[selected_step].slew_type = Linear;
-					put_string(fbp, 108, 215, "LIN", HEX2565(0x000000), HEX2565(0xFFFFFF));
 					break;
 				case Linear:
 					Europi.tracks[0].channels[0].steps[selected_step].slew_type = Logarithmic;
-					put_string(fbp, 108, 215, "LOG", HEX2565(0x000000), HEX2565(0xFFFFFF));
 					break;
 				case Logarithmic:
 					Europi.tracks[0].channels[0].steps[selected_step].slew_type = Exponential;
-					put_string(fbp, 108, 215, "EXP", HEX2565(0x000000), HEX2565(0xFFFFFF));
 					break;
 				case Exponential:
 					Europi.tracks[0].channels[0].steps[selected_step].slew_type = Off;
-					put_string(fbp, 108, 215, "OFF", HEX2565(0x000000), HEX2565(0xFFFFFF));
 					break;
 				default:
 					Europi.tracks[0].channels[0].steps[selected_step].slew_type = Off;
-					put_string(fbp, 108, 215, "OFF", HEX2565(0x000000), HEX2565(0xFFFFFF));
 				}
 		}
 		else if (dir < 0) {
 			switch(Europi.tracks[0].channels[0].steps[selected_step].slew_type){
 				case Off:
 					Europi.tracks[0].channels[0].steps[selected_step].slew_type = Exponential;
-					put_string(fbp, 108, 215, "EXP", HEX2565(0x000000), HEX2565(0xFFFFFF));
 					break;
 				case Exponential:
 					Europi.tracks[0].channels[0].steps[selected_step].slew_type = Logarithmic;
-					put_string(fbp, 108, 215, "LOG", HEX2565(0x000000), HEX2565(0xFFFFFF));
 					break;
 				case Logarithmic:
 					Europi.tracks[0].channels[0].steps[selected_step].slew_type = Linear;
-					put_string(fbp, 108, 215, "LIN", HEX2565(0x000000), HEX2565(0xFFFFFF));
 					break;
 				case Linear:
 					Europi.tracks[0].channels[0].steps[selected_step].slew_type = Off;
-					put_string(fbp, 108, 215, "OFF", HEX2565(0x000000), HEX2565(0xFFFFFF));
 					break;
 				default:
 					Europi.tracks[0].channels[0].steps[selected_step].slew_type = Off;
-					put_string(fbp, 108, 215, "OFF", HEX2565(0x000000), HEX2565(0xFFFFFF));
 				}
 			
 		}
@@ -372,8 +343,6 @@ void step_repeat(int dir, int vel){
 					break;
 			}
 		}
-		sprintf(string_buf,"%d",Europi.tracks[0].channels[1].steps[selected_step].retrigger);
-		put_string(fbp, 108, 215, string_buf, HEX2565(0x000000), HEX2565(0xFFFFFF));
 	}
 }
 
@@ -400,7 +369,7 @@ void init_sequence_old1(void)
 	}
 }
 
-void init_sequence_old(void)
+void init_sequence(void)
 {
 	int track,channel,step;
 	int raw;
@@ -593,7 +562,7 @@ void init_sequence_old(void)
  * so that there is something there for testing
  * and instant gratification purposes
  */
-void init_sequence(void)
+void init_sequence_old(void)
 {
 	int track,channel,step;
 	int raw;
@@ -782,3 +751,4 @@ uint16_t scale_value(int track,uint16_t raw_value)
 	output_scaling = ((float)Europi.tracks[track].channels[CV_OUT].scale_max - (float)Europi.tracks[track].channels[CV_OUT].scale_zero) / (float)60000;
 	return (uint16_t)(output_scaling * raw_value) + Europi.tracks[track].channels[CV_OUT].scale_zero;
 } 
+

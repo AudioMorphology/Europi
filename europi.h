@@ -126,7 +126,6 @@ enum shot_type_t {
 /* Function Prototypes in europi_func1 */
 int startup(void);
 int shutdown(void);
-void paint_menu(void);
 void log_msg(const char*, ...);
 void controlled_exit(int gpio, int level, uint32_t tick);
 void master_clock(int gpio, int level, uint32_t tick);
@@ -137,17 +136,6 @@ void button_2(int gpio, int level, uint32_t tick);
 void button_3(int gpio, int level, uint32_t tick);
 void button_4(int gpio, int level, uint32_t tick);
 void next_step(void);
-void next_step_old(void);
-void splash_screen(void);
-void paint_front_panel(void); 
-void step_button_grid(void);
-void draw_button(int x, int y, unsigned short c);
-void draw_button_number(int button_number, unsigned short c);
-void select_button(int button_number, unsigned short c);
-void channel_level(int channel, int level);
-void gate_state(int channel, int state);
-void touch_interrupt(int gpio, int level, uint32_t tick);
-void button_touched(int x, int y);
 int MinonFinder(unsigned address);
 int EuropiFinder(void);
 void DACSingleChannelWrite(unsigned handle, uint8_t address, uint8_t channel, uint16_t voltage);
@@ -170,74 +158,17 @@ void test_scalevalue(void);
 void file_save(void);
 void config_setzero(void);
 void config_setten(void);
+void config_calibtouch(void);
 void set_zero(int Track, long ZeroVal);
 void file_quit(void);
-void pitch_adjust(int dir, int vel);
-void gate_onoff(int dir, int vel);
 void step_repeat(int dir, int vel);
 void init_sequence(void);
 void quantize_track(int track, int scale);
 uint16_t scale_value(int track,uint16_t raw_value);
 
- 
-/* Function Prototypes for europi_framebuffer_utils */
-void put_pixel(char *, int x, int y, int c);
-void put_pixel_RGB24(char *, int x, int y, int r, int g, int b);
-void put_pixel_RGB565(char *, int x, int y, unsigned short c);
-void draw_line(char *, int x0, int y0, int x1, int y1, int c);
-void draw_line_RGB565(char *, int x0, int y0, int x1, int y1, unsigned short c);
-void draw_rect(char *, int x0, int y0, int w, int h, int c);
-void draw_rect_RGB565(char *, int x0, int y0, int w, int h, unsigned short c);
-void fill_rect(char *, int x0, int y0, int w, int h, int c);
-void fill_rect_RGB565(char *, int x0, int y0, int w, int h, unsigned short c);
-void draw_circle(char *, int x0, int y0, int r, int c);
-void draw_circle_RGB565(char *, int x0, int y0, int rad,  unsigned short c);
-void fill_circle(char *, int x0, int y0, int r, int c);
-void fill_circle_RGB565(char *, int x0, int y0, int rad,  unsigned short c);
-unsigned short RGB2565(int r, int g, int b);
-unsigned short HEX2565(long c);
-void put_string(char *, int x, int y, char *s, unsigned short fgc, unsigned short bgc);
-void put_char(char *, int x, int y, int c, unsigned short fgc, unsigned short bgc);
-
-/* Screen Colours */
-#define SCR_BACK_CLR		0xD936CF	/* main background colour */
-#define SCR_FRAMEBORDER_CLR	0xFFFFFF	/* border around main frames */
-#define LED_OFF				0xFF00FF	/* Unlit LED */
-#define LED_ON				0x00FF00	/* Lit LED */
-#define MENU_BACK_CLR		4			/* Menu Panel background colour */
-#define BTN_BACK_CLR		0xf8ea53	/* Default background colour for the grid of sequence buttons */
-#define BTN_STEP_CLR		0x59ef10	/* Colour of the current step  */
-#define BTN_SELECT_CLR		0xFF0000	/* Colour of the box drawn around a button to indicate that it is currently selected */
-#define CHNL_BACK_CLR		0x000000	/* Background (non-illuminated) level for each channel indicator */
-#define CHNL_FORE_CLR		0x32e30f	/* Foreground (illuminated) colour for each channel indicator */
-#define GATE_BACK_CLR		0x000000	/* Background (non-illuminated) of each Gate State indicator */
-#define GATE_FORE_CLR		0xec0718	/* Foreground (illuminate) colour for each Gate State indicator */
-
-/* Screen Object Sizes */
-#define LED_SIZE			8
-#define	MENU_WIDTH			317
-#define MENU_HEIGHT			30
-#define	MENU_X				1
-#define	MENU_Y				209
-#define BTN_STEP_WIDTH		16			/* width of each step button */
-#define BTN_STEP_HEIGHT		32			/* height of each step button */
-#define BTN_STEP_HGAP		13			/* gap between each step button horizontally */
-#define BTN_STEP_VGAP		14			/* gap between each step button vertically */
-#define BTN_STEP_COLS		8			/* how many Step buttons to display horizontally */
-#define BTN_STEP_ROWS		4			/* how many rows of buttons */
-#define BTN_STEP_TLX		15			/* X coordinate of Top Left of 1st button */
-#define BTN_STEP_TLY		14			/* Y coordinate of Top Left of 1st button */
-#define CHNL_LEVEL_WIDTH	4			/* Width of each channel level indicator */
-#define CHNL_LEVEL_HEIGHT	160			/* Height of each channel level indicator */
-#define CHNL_LEVEL_HGAP		6			/* Gap between each channel level indicator */
-#define CHNL_LEVEL_TLX		252			/* X coordinate of Top Left of 1st Channel Level indicator */
-#define CHNL_LEVEL_TLY		14			/* Y coordinate of Top Left of 1st Channel Level indicator */
-#define CHANNELS			2			/* How many CV / Gate Channels */
-#define GATE_STATE_WIDTH	4			/* Width of the Gate State indicator */
-#define GATE_STATE_HEIGHT	4			/* Height of the Gate State indicators */
-#define GATE_STATE_HGAP		6			/* Gap between each Gate State indicator */
-#define GATE_STATE_TLX		252			/* X Coordinate of Top Left of 1st channel Gate State indicator */
-#define GATE_STATE_TLY		183			/* Y Coordinate of Top Left of 1st channel Gate State indicator */
+/* function prototypes in touch.c */
+void *TouchThread(void *arg);
+void InitTouch(void);
 
 /* Global Constants */
 // Some global variables that we'll need all over the place
@@ -303,6 +234,7 @@ typedef struct MENU{
 	 int MainMenu;
 	 int SetZero;
 	 int SetTen;
+	 int CalibTouch;
 	 int ScaleValue;
 	 int SetLoop;
 	 int SetPitch;

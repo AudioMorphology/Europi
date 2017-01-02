@@ -24,39 +24,58 @@
 #define KWHT  "\x1B[37m"
 #define KYEL  "\x1B[33m"
 
-int fd;
+extern pthread_t touchThreadId; 
+extern int touchStream;                    
+extern int touchReady;
+extern int prog_running;
+ 
 
-
-int openTouchScreen()
+/*
+ * InitTouch - opens the first 4 event devices
+ * looking for the ADS7846 touchscreen controller
+ * if it finds it, it starts the touchThread
+ */
+void InitTouch(void)
 {
-    /*    if ((fd = open(TOUCH_EVENT_HANDLER, O_RDONLY)) < 0) {
-                return 1;
-        }
-		 */
 int i;
 char name[256];
-/* Attempt to open each input device
- * in turn, to find which one is the 
- * touchscreen
- */
 for (i = 0; 4; i++)
 	{
 	sprintf(name, "/dev/input/event%i", i);
-	fd = open(name, O_RDONLY);
-	if (fd < 0) break; /* no more devices */
-	ioctl(fd, EVIOCGNAME(sizeof(name)), name);
+	touchStream = open(name, O_RDONLY|O_NONBLOCK);
+	if (touchStream < 0) break; /* no more devices */
+	ioctl(touchStream, EVIOCGNAME(sizeof(name)), name);
 	if (strcmp(name, "ADS7846 Touchscreen") == 0){
-		log_msg("Found touchscreen: Event%d fd:%d\n",i,fd);
-		break; /* found the Touchscreen! */
+		touchReady = TRUE;
+        int error = pthread_create(&touchThreadId, NULL, &TouchThread, NULL);
+        if (error != 0) log_msg("Error creating touch input event thread\n");
+        else log_msg("Found touchscreen: Event%d touchStream: %d\n",i,touchStream);
+		return;
 		}
 	else {
 		log_msg("Found this: %s\n",name);
-		close(fd); /* we don't need this device */
+		close(touchStream); /* we don't need this device */
 		}
 	}
-if (fd < 0) return 1;
 }
 
+/*
+ * Touch thread - touch events are handled in a separate pThread to
+ * avoid missing events
+ */
+void *TouchThread(void *arg)
+{
+	struct input_event ev[1];
+    while (prog_running == 1)
+    {
+		//log_msg("In mouse thread\n");
+		if (read(touchStream, ev, sizeof(struct input_event)) == (int)sizeof(struct input_event)){
+			log_msg("type: %d, code: %d, value: %d\n",ev[0].type,ev[0].code,ev[0].value);
+		}
+    }
+	log_msg("prog not running!\n");
+    return NULL;
+}
 
 void getTouchScreenDetails(int *screenXmin,int *screenXmax,int *screenYmin,int *screenYmax)
 {
@@ -65,11 +84,11 @@ void getTouchScreenDetails(int *screenXmin,int *screenXmax,int *screenYmin,int *
         char name[256] = "Unknown";
         int abs[6] = {0};
 
-        ioctl(fd, EVIOCGNAME(sizeof(name)), name);
+        ioctl(touchStream, EVIOCGNAME(sizeof(name)), name);
         log_msg("Input device name: \"%s\"\n", name);
 
         memset(bit, 0, sizeof(bit));
-        ioctl(fd, EVIOCGBIT(0, EV_MAX), bit[0]);
+        ioctl(touchStream, EVIOCGBIT(0, EV_MAX), bit[0]);
         log_msg("Supported events:\n");
 
         int i,j,k;
@@ -77,12 +96,12 @@ void getTouchScreenDetails(int *screenXmin,int *screenXmax,int *screenYmin,int *
                 if (test_bit(i, bit[0])) {
                         log_msg("  Event type %d (%s)\n", i, events[i] ? events[i] : "?");
                         if (!i) continue;
-                        ioctl(fd, EVIOCGBIT(i, KEY_MAX), bit[i]);
+                        ioctl(touchStream, EVIOCGBIT(i, KEY_MAX), bit[i]);
                         for (j = 0; j < KEY_MAX; j++){
                                 if (test_bit(j, bit[i])) {
                                         log_msg("    Event code %d (%s)\n", j, names[i] ? (names[i][j] ? names[i][j] : "?") : "?");
                                         if (i == EV_ABS) {
-                                                ioctl(fd, EVIOCGABS(j), abs);
+                                                ioctl(touchStream, EVIOCGABS(j), abs);
                                                 for (k = 0; k < 5; k++)
                                                         if ((k < 3) || abs[k]){
                                                                 log_msg("     %s %6d\n", absval[k], abs[k]);
@@ -113,8 +132,9 @@ void getTouchSample(int *rawX, int *rawY, int *rawPressure)
 		 * it seemed to stop at this point waiting to 
 		 * read input events??
 		 * */
-        struct input_event ev[1];
-		rb=read(fd,ev,sizeof(struct input_event)*1);
+        struct input_event ev;
+		log_msg("Type: %d, Code: %d, Value %d\n",ev.type,ev.code,ev.value);
+		rb=read(touchStream,ev,sizeof(struct input_event));
         /*for (i = 0;  i <  (rb / sizeof(struct input_event)); i++){
               if (ev[i].type ==  EV_SYN)
                         printf("Event type is %s%s%s = Start of New Event\n",KYEL,events[ev[i].type],KWHT);
@@ -140,14 +160,14 @@ void getTouchSample(int *rawX, int *rawY, int *rawPressure)
 
 	} */
 	for (i = 0;  i <  (rb / sizeof(struct input_event)); i++){
-		if (ev[i].type == EV_ABS && ev[i].code == 0 && ev[i].value > 0){
-			*rawX = ev[i].value;
+		if (ev.type == EV_ABS && ev.code == 0 && ev.value > 0){
+			*rawX = ev.value;
 		}
-        else if (ev[i].type == EV_ABS  && ev[i].code == 1 && ev[i].value > 0){
-			*rawY = ev[i].value;
+        else if (ev.type == EV_ABS  && ev.code == 1 && ev.value > 0){
+			*rawY = ev.value;
 		}
-        else if (ev[i].type == EV_ABS  && ev[i].code == 24 && ev[i].value > 0){
-			*rawPressure = ev[i].value;
+        else if (ev.type == EV_ABS  && ev.code == 24 && ev.value > 0){
+			*rawPressure = ev.value;
 		}
 
 	}

@@ -5,7 +5,7 @@ Download, compile and install the PIGPIO library\
 edit /boot/config.txt and take the comment off the following line:
 #dtparam=spi=on
 
-add the following line to prevent the undeer-voltage warning being displayed if
+add the following line to prevent the under-voltage warning being displayed if
 the power voltage drops:
 avoid_warnings=1
 
@@ -22,6 +22,24 @@ there is an explanation as to how to load the fbtft driver at boot time
 
 sudo modprobe fbtft_device custom name=fb_iti9340 buswidth=8 speed=16000000 bgr=1 gpios=reset:27,dc:22 rotate=270
 
+Also in /boot/config.txt if you add the following lines, it will force the raspberry Pi into native 
+1280x960 graphics mode, which is the same aspect ration (4:3) as the 320x240 TFT display. Doing
+this has certain advantages inasmuch as it is then possible, whilst deverloping under X11
+to check the resulting display on the 320x240TFT display as it scales exactly:
+
+framebuffer_width=1280
+framebuffer_height=960
+hdmi_group=2
+hdmi_mode=32
+hdmi_cvt 1280 960 60 1 0 0 0 
+
+When you are ready to run headless with only the TFT display, use the following instead, which 
+will set the Pi to native 320x240:
+framebuffer_width=320
+framebuffer_height=240
+hdmi_group=2
+hdmi_mode=87
+hdmi_cvt 320 240 60 1 0 0 0 
 
 The following two changes mean that you don't have to run the sudo modprobe line each time the pi boots:
 
