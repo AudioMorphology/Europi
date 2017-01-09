@@ -36,8 +36,8 @@
 
 #include "europi.h"
 //#include "front_panel.c"
-#include "touch.h"
-#include "touch.c"
+//#include "touch.h"
+//#include "touch.c"
 //#include "quantizer_scales.h"
 #include "../raylib/release/rpi/raylib.h"
 
