@@ -1211,6 +1211,25 @@ int EuropiFinder()
 }
 
 /* 
+ * Looks for an SC16IS750 on the passed address. If one
+ * exists, then it should be safe to assume that this is 
+ * a MidiMinion, in which case it is safe to pass back a handle
+ * to the DAC8574
+ */
+int MidiMinionFinder(unsigned address)
+{
+	int handle;
+	int retval;
+	unsigned i2cAddr;
+	int mid_handle;
+	if((address > 8) || (address < 0)) return -1;
+	i2cAddr = MID_BASE_ADDR | (address & 0x7);
+	mid_handle = i2cOpen(1,i2cAddr,0);
+	if (handle < 0) return -1;
+	return handle;
+}
+
+/* 
  * Looks for an MCP23008 on the passed address. If one
  * exists, then it should be safe to assume that this is 
  * a Minion, in which case it is safe to pass back a handle

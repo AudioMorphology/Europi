@@ -50,6 +50,7 @@
 #define DAC_BASE_ADDR 	0x4C	/* Base i2c address	of DAC8574 */
 #define MCP_BASE_ADDR	0x20	/* Base i2c address of MCP23008 GPIO Expander */
 #define PCF_BASE_ADDR	0x38	/* Base i2c address of PCF8574 GPIO Expander */
+#define MID_BASE_ADDR	0x50	/* Base i2c address of MIDI Minion SC16IS750 UART */
 
 /* Channels */
 #define CV_OUT		0x00		/* Europi and Minion */
@@ -136,6 +137,7 @@ void button_2(int gpio, int level, uint32_t tick);
 void button_3(int gpio, int level, uint32_t tick);
 void button_4(int gpio, int level, uint32_t tick);
 void next_step(void);
+int MidiMinonFinder(unsigned address);
 int MinonFinder(unsigned address);
 int EuropiFinder(void);
 void DACSingleChannelWrite(unsigned handle, uint8_t address, uint8_t channel, uint16_t voltage);

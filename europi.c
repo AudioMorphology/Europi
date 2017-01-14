@@ -21,7 +21,7 @@
 // THE SOFTWARE.
 // 
 // See http://creativecommons.org/licenses/MIT/ for more information.
-
+ 
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,7 +32,7 @@
 #include <linux/fb.h>
 #include <sys/mman.h>
 #include <pigpio.h>
- 
+
 #include "europi.h"
 //#include "quantizer_scales.h"
 #include "../raylib/release/rpi/raylib.h"
@@ -169,9 +169,9 @@ while (prog_running == 1){
         touchPosition = GetTouchPosition(0);	
 		if (currentGesture != lastGesture)
             {
-                // Store gesture string
+/*                // Store gesture string
                 switch (currentGesture)
-                {
+                { 
                     case GESTURE_TAP: log_msg("GESTURE TAP\n"); break;
                     case GESTURE_DOUBLETAP: log_msg("GESTURE DOUBLETAP\n"); break;
                     case GESTURE_HOLD: log_msg("GESTURE HOLD\n"); break;
@@ -184,7 +184,7 @@ while (prog_running == 1){
                     case GESTURE_PINCH_OUT: log_msg("GESTURE PINCH OUT\n"); break;
                     default: break;
                 }
-            }
+  */          }
         //----------------------------------------------------------------------------------
         // Draw 
         //----------------------------------------------------------------------------------
@@ -451,8 +451,11 @@ while (prog_running == 1){
 				DrawText(debug_txt,5,205,10,WHITE);
 			}
 			
-			if (currentGesture != GESTURE_NONE) DrawCircleV(touchPosition, 30, MAROON);
-        EndDrawing(); 
+			if (currentGesture != GESTURE_NONE){ 
+                log_msg("Ball: %d,%d Touch: %d,%d\n",ballPosition.x,ballPosition.y,touchPosition.x,touchPosition.y);
+                DrawCircleV(touchPosition, 10, BLUE);
+            }        
+            EndDrawing(); 
         //----------------------------------------------------------------------------------
 
     usleep(100);
