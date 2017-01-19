@@ -168,9 +168,13 @@ void init_sequence(void);
 void quantize_track(int track, int scale);
 uint16_t scale_value(int track,uint16_t raw_value);
 
+/* function prototypes in europi_gui.c */
+void gui_8x8(void);
+void gui_grid(void);
+
 /* function prototypes in touch.c */
-void *TouchThread(void *arg);
-void InitTouch(void);
+//void *TouchThread(void *arg);
+//void InitTouch(void);
 
 /* Global Constants */
 // Some global variables that we'll need all over the place

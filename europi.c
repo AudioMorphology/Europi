@@ -46,7 +46,7 @@ int fbfd = 0;
 int kbfd = 0;
 int is_europi = FALSE;	/* whether we are running on Europi hardware - set to True in hardware_init() */
 int print_messages = TRUE; /* controls whether log_msg outputs to std_err or not */
-int debug = TRUE;		/* controls whether debug messages are printed to the main screen */
+int debug = FALSE;		/* controls whether debug messages are printed to the main screen */
 int impersonate_hw = FALSE;	/* allows the software to bypass hardware checks (useful when testing sw without full hw ) */ 
 char debug_txt[320];	/* buffer for debug text messages */
 int prog_running=0;		/* Setting this to 0 will force the prog to quit*/
@@ -141,7 +141,7 @@ int main(int argc, char* argv[])
 	unsigned int iseed = (unsigned int)time(NULL);
 	srand (iseed);
 	/* things to do when prog first starts */
-	impersonate_hw = TRUE;	/* !!! uncomment this line if testing software without full hardware present */
+	impersonate_hw = FALSE; //TRUE;	/* !!! uncomment this line if testing software without full hardware present */
 	startup();
 	/* Read and set the states of the run/stop and int/ext switches */
 	log_msg("Run/stop: %d, Int/ext: %d\n",gpioRead(RUNSTOP_IN),gpioRead(INTEXT_IN));
@@ -190,43 +190,8 @@ while (prog_running == 1){
         //----------------------------------------------------------------------------------
         BeginDrawing();
 			if(ScreenElements.GridView == 1){
-				ClearBackground(RAYWHITE);
-				int track;
-				int step;
-				char track_no[20];
-				int txt_len;
-				for(track=0;track<24;track++){
-					// Track Number
-					sprintf(track_no,"%d",track+1);
-					txt_len = MeasureText(track_no,10);
-					DrawText(track_no,12-txt_len,track * 10,10,DARKGRAY);
-					for(step=0;step<32;step++){
-						if(step == Europi.tracks[track].last_step){
-							// Paint last step
-							DrawRectangle(15 + (step * 9), track * 10, 8, 9, BLACK); 
-						}
-						else if(step == Europi.tracks[track].current_step){
-							// Paint current step
-							DrawRectangle(15 + (step * 9), track * 10, 8, 9, LIME); 
-							// Gate state for current step
-							if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1){
-								if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].retrigger > 0) {
-									DrawRectangle(15 + (32 * 9), track * 10, 8, 9, BLACK);	
-								}
-								else {
-									DrawRectangle(15 + (32 * 9), track * 10, 8, 9, VIOLET);	
-								}	
-							}
-							else {
-								DrawRectangle(15 + (32 * 9), track * 10, 8, 9, WHITE);	
-							}
-						}
-						else {
-							// paint blank step
-							DrawRectangle(15 + (step * 9), track * 10, 8, 9, MAROON); 
-						}
-					}
-				}
+                gui_8x8();
+                //gui_grid();
 			}	
 			// Display a Single Channel
 			if(ScreenElements.SingleChannel == 1){
@@ -251,7 +216,7 @@ while (prog_running == 1){
 									DrawRectangle(15 + (step*9),220-val,8,val,LIME);
 								}
 								// Gate State
-								if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1){
+								if (Europi.tracks[track].channels[GATE_OUT].steps[step].gate_value == 1){
 									sprintf(track_no,"%d",Europi.tracks[track].channels[GATE_OUT].steps[step].retrigger);
 									DrawText(track_no,15 + (step*9),220,10,DARKGRAY);
 								}
@@ -445,15 +410,14 @@ while (prog_running == 1){
 				}
 			}
 			
-			DrawCircleV(ballPosition, 5, ballColor);			
+			//DrawCircleV(ballPosition, 5, ballColor);			
 			if(debug == TRUE){
 				DrawRectangle(0,200,320,20,BLACK);
 				DrawText(debug_txt,5,205,10,WHITE);
 			}
 			
 			if (currentGesture != GESTURE_NONE){ 
-                log_msg("Ball: %d,%d Touch: %d,%d\n",ballPosition.x,ballPosition.y,touchPosition.x,touchPosition.y);
-                DrawCircleV(touchPosition, 10, BLUE);
+                DrawCircleV(touchPosition, 5, BLUE);
             }        
             EndDrawing(); 
         //----------------------------------------------------------------------------------
