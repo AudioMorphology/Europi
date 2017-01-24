@@ -96,7 +96,8 @@ extern int encoder_vel;
 extern uint32_t encoder_tick;
 extern enum encoder_focus_t encoder_focus;
 extern struct europi Europi;
-extern struct screen_elements ScreenElements;
+extern enum display_page_t DisplayPage;
+extern struct screen_overlays ScreenOverlays;
 extern struct MENU Menu[];
 extern pthread_attr_t detached_attr;		
 extern pthread_mutex_t mcp23008_lock;
@@ -451,8 +452,8 @@ static void *GateThread(void *arg)
  int startup(void)
  {
 	 // Initial state of the Screen Elements (Menus etc)
-	 clear_screen_elements();
-	 ScreenElements.GridView = 1;
+	 ClearScreenOverlays();
+	 DisplayPage = GridView;
 	 // Initialise the Deatched pThread attribute
 	int rc = pthread_attr_init(&detached_attr);
 	rc = pthread_attr_setdetachstate(&detached_attr, PTHREAD_CREATE_DETACHED);
@@ -493,8 +494,8 @@ static void *GateThread(void *arg)
 	gpioGlitchFilter(ENCODER_BTN,100);
 	gpioSetPullUpDown(ENCODER_BTN, PI_PUD_UP);
 
-	gpioSetMode(TOUCH_INT, PI_INPUT);
-	gpioSetPullUpDown(TOUCH_INT, PI_PUD_UP);
+	//gpioSetMode(TOUCH_INT, PI_INPUT);
+	//gpioSetPullUpDown(TOUCH_INT, PI_PUD_UP);
 	gpioSetMode(CLOCK_IN, PI_INPUT);
 	//gpioGlitchFilter(CLOCK_IN,100);				/* EXT_CLK has to be at the new level for 100uS before it is registered */
 	gpioSetMode(RUNSTOP_IN, PI_INPUT);
@@ -595,19 +596,7 @@ static void *GateThread(void *arg)
 	gpioSetAlertFunc(MASTER_CLK, master_clock);
 	
 	prog_running = 1;
-/*
-	// Open the touchscreen
-  	InitTouch();
-	if (touchReady == TRUE){
-		getTouchScreenDetails(&screenXmin,&screenXmax,&screenYmin,&screenYmax);
-		//log_msg("screenXmin: %d, screenXmax: %d, screenYmin:L %d, screenYmax: %d \n",screenXmin,screenXmax,screenYmin,screenYmax);
-		scaleXvalue = ((float)screenXmax-screenXmin) / xres;
-		//log_msg ("X Scale Factor = %f\n", scaleXvalue);
-		scaleYvalue = ((float)screenYmax-screenYmin) / yres;
-		//log_msg ("Y Scale Factor = %f\n", scaleYvalue);
-	}
-*/
-  return(0);
+    return(0);
 }
 
 /* Things to do as the prog closess */
@@ -675,22 +664,7 @@ void log_msg(const char* format, ...)
 	}
 }
 
-/* function called whenever the Touch Screen detects an input
- * it can be called multiple times determined by the global
- * constant SAMPLE_AMOUNT and, once it has that many samples
- * it averages them to determine where the touch occurred
- * this is a crude way of avoiding jitter
- * */
-void touch_interrupt(int gpio, int level, uint32_t tick)
-{
-	/* maybe what I need to do here is, rather
-	 * than read the sample at this point, just set a flag 
-	 * to indicate that a sample is ready to be read
-	 * then do the actual reading and averaging during
-	 * the main program loop??
-	 * */
-	 touched = 1;
-}
+
 
 /* Called to initiate a controlled shutdown and
  * exit of the prog
@@ -1072,29 +1046,14 @@ void encoder_button(int gpio, int level, uint32_t tick)
 			break;
 		case menu_on:
 			//Expand / contract sub-menu or execute callback
-			i = 0;
-			while(Menu[i].name != NULL){
-				if((Menu[i].highlight == 1) && (Menu[i].child[0]->name != NULL)){
-					Menu[i].expanded ^= 1;
-				}
-				else if ((Menu[i].expanded == 1) && (Menu[i].highlight == 0)){
-					int j = 0;
-					while(Menu[i].child[j]->name != NULL){
-						if((Menu[i].child[j]->highlight == 1) && (Menu[i].child[j]->funcPtr != NULL)) {
-							Menu[i].child[j]->funcPtr();
-						}
-						j++;
-					}
-				}
-				i++;
-			}
+            toggle_menu();
 			break;
 		case track_select:
-				if(ScreenElements.SetZero == 1)	encoder_focus = set_zerolevel;
-				else if (ScreenElements.SetTen == 1) encoder_focus = set_maxlevel;
-				else if (ScreenElements.SetLoop == 1) encoder_focus = set_loop;
-				else if (ScreenElements.SetPitch == 1) encoder_focus = step_select;
-				else if (ScreenElements.SetQuantise == 1) encoder_focus = set_quantise;
+				if(ScreenOverlays.SetZero == 1)	encoder_focus = set_zerolevel;
+				else if (ScreenOverlays.SetTen == 1) encoder_focus = set_maxlevel;
+				else if (ScreenOverlays.SetLoop == 1) encoder_focus = set_loop;
+				else if (ScreenOverlays.SetPitch == 1) encoder_focus = step_select;
+				else if (ScreenOverlays.SetQuantise == 1) encoder_focus = set_quantise;
 			break;
 		case step_select:
 				encoder_focus = set_pitch;
@@ -1135,6 +1094,60 @@ void encoder_button(int gpio, int level, uint32_t tick)
 	}
 }
 
+/* toggle_menu */
+void toggle_menu(void){
+    int i = 0;
+    while(Menu[i].name != NULL){
+        if((Menu[i].highlight == 1) && (Menu[i].child[0]->name != NULL)){
+            Menu[i].expanded ^= 1;
+        }
+        else if ((Menu[i].expanded == 1) && (Menu[i].highlight == 0)){
+            int j = 0;
+            while(Menu[i].child[j]->name != NULL){
+                if((Menu[i].child[j]->highlight == 1) && (Menu[i].child[j]->funcPtr != NULL)) {
+                    Menu[i].child[j]->funcPtr();
+                }
+                j++;
+            }
+        }
+        i++;
+    }
+}
+
+/* clear_menu 
+ * runs through the menu structure and 
+ * ensures that no sub menus are expanded
+ * and that the only element highlighted is 
+ * the first menu item
+ */
+void ClearMenus(void){
+    int i = 0;
+    while(Menu[i].name != NULL){
+        Menu[i].highlight = 0;
+        Menu[i].expanded = 0;
+        int j = 0;
+        while(Menu[i].child[j]->name != NULL){
+            Menu[i].child[j]->highlight = 0;
+            j++;
+        }
+        i++;
+    }
+}
+
+/* MenuSelectItem takes the passed parent and child
+ * branches and clears all but those
+ */
+void MenuSelectItem(int Parent, int Child){
+    ClearMenus();
+    if(Child == 0) {
+        Menu[Parent].highlight = 1;   
+    }
+    else {
+        Menu[Parent].expanded = 1;
+        Menu[Parent].child[Child]->highlight = 1;   
+    }
+}
+
 /* Button 1 pressed */
 void button_1(int gpio, int level, uint32_t tick)
 {
@@ -1148,13 +1161,14 @@ void button_1(int gpio, int level, uint32_t tick)
 /* Button 2 pressed */
 void button_2(int gpio, int level, uint32_t tick)
 {
-	if (level == 1) ScreenElements.MainMenu ^= 1;
-	if(ScreenElements.MainMenu == 1){
+	if (level == 1) ScreenOverlays.MainMenu ^= 1;
+	if(ScreenOverlays.MainMenu == 1){
 		encoder_focus = menu_on;
-		// Make sure other screen elements are OFF
-		clear_screen_elements();
-		ScreenElements.MainMenu = 1;
 	}
+    else {
+        ClearMenus();
+        MenuSelectItem(0,0);    // Select just the first item of the first branch
+    }
 }
 /* Button 3 pressed */
 void button_3(int gpio, int level, uint32_t tick)

@@ -42,7 +42,8 @@ extern int disp_menu;
 extern char *fbp;
 extern int selected_step;
 extern struct europi Europi;
-extern struct screen_elements ScreenElements;
+extern struct screen_overlays ScreenOverlays;
+extern enum display_page_t DisplayPage;
 extern int prog_running;
 extern int impersonate_hw;
 extern enum encoder_focus_t encoder_focus;
@@ -52,10 +53,18 @@ extern int CalibCross;
  * menu callback for Single Channel view
  */
 void seq_singlechnl(void) {
-	clear_screen_elements();
-	ScreenElements.GridView = 0;
-	ScreenElements.SingleChannel = 1;
+	ClearScreenOverlays();
+	DisplayPage = SingleChannel;
 	encoder_focus = track_select;
+	select_first_track();	
+}
+/*
+ * menu callback for Grid Channel view
+ */
+void seq_gridview(void) {
+	ClearScreenOverlays();
+	DisplayPage = GridView;
+    encoder_focus = none;
 	select_first_track();	
 }
 
@@ -83,21 +92,19 @@ void seq_new(void){
 	}
 }
 /*
- * Set all screen elements OFF
+ * Set all screen overlays OFF
  * this is just a handy place to do it,
  * rather than relying on the various
  * menu functions to take care of it
  */
-void clear_screen_elements(void){
-	ScreenElements.MainMenu = 0;
-	//ScreenElements.SingleChannel = 0;
-	ScreenElements.SetZero = 0;
-	ScreenElements.SetTen = 0;
-	ScreenElements.CalibTouch = 0;
-	ScreenElements.ScaleValue = 0;
-	ScreenElements.SetLoop = 0;
-	ScreenElements.SetPitch = 0;
-	ScreenElements.SetQuantise = 0;
+void ClearScreenOverlays(void){
+	ScreenOverlays.MainMenu = 0;
+	ScreenOverlays.SetZero = 0;
+	ScreenOverlays.SetTen = 0;
+	ScreenOverlays.ScaleValue = 0;
+	ScreenOverlays.SetLoop = 0;
+	ScreenOverlays.SetPitch = 0;
+	ScreenOverlays.SetQuantise = 0;
 }
 /*
  * Select First Track
@@ -121,12 +128,22 @@ void select_first_track(void){
 		track++;
 	}
 }
+/*
+ * Select Track
+ */
+void select_track(int track){
+    int ThisTrack;
+    for(ThisTrack=0;ThisTrack<MAX_TRACKS;ThisTrack++){
+        if(ThisTrack == track) Europi.tracks[ThisTrack].selected = TRUE;
+        else Europi.tracks[ThisTrack].selected = FALSE;
+    }
+}
 /* 
  * menu callback to set/display track quantisation
  */
 void seq_quantise(void){
-	clear_screen_elements();
-	ScreenElements.SetQuantise = 1;
+	ClearScreenOverlays();
+	ScreenOverlays.SetQuantise = 1;
 	encoder_focus = track_select;
 	select_first_track();
 }
@@ -134,8 +151,8 @@ void seq_quantise(void){
  * menu callback to set the pitch for each step 
  */
 void seq_setpitch(void){
-	clear_screen_elements();
-	ScreenElements.SetPitch = 1;
+	ClearScreenOverlays();
+	ScreenOverlays.SetPitch = 1;
 	encoder_focus = track_select;
 	run_stop = STOP;
 	select_first_track();
@@ -145,8 +162,8 @@ void seq_setpitch(void){
  */
 void seq_setloop(void){
 	int runstop_save = run_stop;
-	clear_screen_elements();
-	ScreenElements.SetLoop = 1;
+	ClearScreenOverlays();
+	ScreenOverlays.SetLoop = 1;
 	encoder_focus = track_select;
 	select_first_track();
 }
@@ -158,8 +175,8 @@ void test_scalevalue(void){
 	int track;
 	int runstop_save = run_stop;	// Save this, so we can revert to previous state when we're done
 	run_stop = STOP;
-	clear_screen_elements();
-	ScreenElements.ScaleValue = 1;
+	ClearScreenOverlays();
+	ScreenOverlays.ScaleValue = 1;
 	encoder_focus = track_select;
 	/* Slight pause to give some threads time to exist */
 	sleep(2);
@@ -177,7 +194,7 @@ void test_scalevalue(void){
  */
 void file_save(void){
 	run_stop = STOP;
-	clear_screen_elements();
+	ClearScreenOverlays();
 	FILE * file = fopen("default.seq","wb");
 	if (file != NULL) {
 		fwrite(&Europi,sizeof(struct europi),1,file);
@@ -192,8 +209,8 @@ void config_setzero(void){
 	int track;
 	int runstop_save = run_stop;	// Save this, so we can revert to previous state when we're done
 	run_stop = STOP;
-	clear_screen_elements();
-	ScreenElements.SetZero = 1;
+	ClearScreenOverlays();
+	ScreenOverlays.SetZero = 1;
 	encoder_focus = track_select;
 	/* Slight pause to give some threads time to exist */
 	sleep(2);
@@ -213,8 +230,8 @@ void config_setten(void){
 	int track;
 	int runstop_save = run_stop;	// Save this, so we can revert to previous state when we're done
 	run_stop = STOP;
-	clear_screen_elements();
-	ScreenElements.SetTen = 1;
+	ClearScreenOverlays();
+	ScreenOverlays.SetTen = 1;
 	encoder_focus = track_select;
 	/* Slight pause to give some threads time to exist */
 	sleep(2);
@@ -227,15 +244,6 @@ void config_setten(void){
 	select_first_track();
 }
 
-/*
- * menu callback for calibrating the touchscreen
- */
-void config_calibtouch(void){
-	clear_screen_elements();
-	ScreenElements.GridView = 0;
-	ScreenElements.CalibTouch = 1;
-	CalibCross = 0;
-}
 /* 
  * Set the zero volt level for the passed Track
  */

@@ -44,7 +44,7 @@
 #define INTEXT_IN	20	/* PIN 38	*/
 #define RUNSTOP_IN	26	/* PIN 37	*/
 #define RESET_IN	16	/* PIN 36	*/
-#define TOUCH_INT	17	/* PIN 11	*/
+//#define TOUCH_INT	17	/* PIN 11	*/
 
 /* Hardware Address Constants */
 #define DAC_BASE_ADDR 	0x4C	/* Base i2c address	of DAC8574 */
@@ -132,6 +132,9 @@ void controlled_exit(int gpio, int level, uint32_t tick);
 void master_clock(int gpio, int level, uint32_t tick);
 void encoder_callback(int gpio, int level, uint32_t tick);
 void encoder_button(int gpio, int level, uint32_t tick);
+void toggle_menu(void);
+void ClearMenus(void);
+void MenuSelectItem(int Parent, int Child);
 void button_1(int gpio, int level, uint32_t tick);
 void button_2(int gpio, int level, uint32_t tick);
 void button_3(int gpio, int level, uint32_t tick);
@@ -150,9 +153,11 @@ static void *AdThread(void *arg);
 
 /* Function Prototypes in europi_func2 */
 void seq_singlechnl(void);
+void seq_gridview(void);
 void select_first_track(void);
+void select_track(int track);
 void seq_new(void);
-void clear_screen_elements(void);
+void ClearScreenOverlays(void);
 void seq_quantise(void);
 void seq_setpitch(void);
 void seq_setloop(void);
@@ -171,6 +176,9 @@ uint16_t scale_value(int track,uint16_t raw_value);
 /* function prototypes in europi_gui.c */
 void gui_8x8(void);
 void gui_grid(void);
+void gui_SingleChannel(void);
+void gui_MainMenu(void);
+void ShowScreenOverlays(void);
 
 /* function prototypes in touch.c */
 //void *TouchThread(void *arg);
@@ -230,17 +238,25 @@ typedef struct MENU{
 	struct MENU *child[8];			// Pointer to child submenu (Optionally NULL)
 }menu;
 
-/* Screen element structures - track
- * whether particular screen elements
- * are visible or not
+/* Display Pages - only one sort of 
+ * page can be displayed at any point
+ * in time, so an Enumerated Type is
+ * used to record what Page is being 
+ * displayed.
  */
- struct screen_elements{
-	 int GridView;
-	 int SingleChannel;
+enum display_page_t {
+	GridView,
+	SingleChannel
+};
+
+/* Overlays are things such as Menus, 
+ * which can be overlaid on top of whatever
+ * page is currently being displayed
+ */
+ struct screen_overlays{
 	 int MainMenu;
 	 int SetZero;
 	 int SetTen;
-	 int CalibTouch;
 	 int ScaleValue;
 	 int SetLoop;
 	 int SetPitch;
