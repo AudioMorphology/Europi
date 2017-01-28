@@ -47,7 +47,6 @@ extern enum display_page_t DisplayPage;
 extern int prog_running;
 extern int impersonate_hw;
 extern enum encoder_focus_t encoder_focus;
-extern int CalibCross;
 
 /*
  * menu callback for Single Channel view
@@ -105,7 +104,26 @@ void ClearScreenOverlays(void){
 	ScreenOverlays.SetLoop = 0;
 	ScreenOverlays.SetPitch = 0;
 	ScreenOverlays.SetQuantise = 0;
+    ScreenOverlays.Keyboard = 0;
 }
+
+/*
+ * OverlayActive returns TRUE is any
+ * screen overlays are currently active
+ * This is useful to ensure touch
+ * events are only taken by the Overlay
+ */
+int OverlayActive(void){
+    if((ScreenOverlays.SetZero == 1) ||
+        (ScreenOverlays.SetTen == 1) ||
+        (ScreenOverlays.ScaleValue == 1) ||
+        (ScreenOverlays.SetLoop == 1) ||
+        (ScreenOverlays.SetPitch == 1) ||
+        (ScreenOverlays.SetQuantise == 1) ||
+        (ScreenOverlays.Keyboard == 1)) return 1;
+    else return 0;        
+}
+
 /*
  * Select First Track
  */
@@ -189,6 +207,14 @@ void test_scalevalue(void){
 	select_first_track();
 }
 
+/* 
+ * Menu callback for test->Keyboard
+ */
+void test_keyboard(void){
+    ClearScreenOverlays();
+    ScreenOverlays.Keyboard = 1;
+    encoder_focus = keyboard_input;
+} 
 /*
  * menu callback for File->Save
  */

@@ -68,8 +68,22 @@
 #define TRUE		1
 #define FALSE		0
 
+/* Menu Constants */
+#define MENU_FONT_SIZE      20
+#define MENU_TB_MARGIN      1   // How many pixels above & below (Top & Bottom) the Menu Text
+#define MENU_LR_MARGIN      3   // How many pixels to Left and Right of the Menu Text
+#define MENU_HORIZ_SPACE    2   // Horizontal Gap between top-level menus
+
 /* Typedefs */
 typedef unsigned char     uint8_t;  		/*unsigned 8 bit definition */
+
+enum direction_t {
+    dir_none,
+    dir_up,
+    dir_down,
+    dir_left,
+    dir_right
+};
 
 enum device_t {
 //	CV_OUT,
@@ -94,7 +108,8 @@ enum encoder_focus_t {
 	set_maxlevel,
 	set_loop,
 	set_pitch,
-	set_quantise
+	set_quantise,
+    keyboard_input
 };
 
 enum slew_t {
@@ -158,10 +173,12 @@ void select_first_track(void);
 void select_track(int track);
 void seq_new(void);
 void ClearScreenOverlays(void);
+int OverlayActive(void);
 void seq_quantise(void);
 void seq_setpitch(void);
 void seq_setloop(void);
 void test_scalevalue(void);
+void test_keyboard(void);
 void file_save(void);
 void config_setzero(void);
 void config_setten(void);
@@ -233,6 +250,7 @@ void ShowScreenOverlays(void);
 typedef struct MENU{
 	int expanded;					// Whether this node is expanded or not
 	int highlight;					// whether to highlight this leaf
+    enum direction_t direction;     // which direction branches from this leaf open
 	const char *name;				// Menu display text
 	void (*funcPtr)();				// Handler for this leaf node (Optionally NULL)
 	struct MENU *child[8];			// Pointer to child submenu (Optionally NULL)
@@ -261,6 +279,7 @@ enum display_page_t {
 	 int SetLoop;
 	 int SetPitch;
 	 int SetQuantise;
+     int Keyboard;
  };
  
 /*

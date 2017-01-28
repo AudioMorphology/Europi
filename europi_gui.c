@@ -31,6 +31,7 @@ extern Vector2 touchPosition;
 extern int currentGesture;
 extern int lastGesture;
 extern menu Menu[];
+extern enum encoder_focus_t encoder_focus;
 extern struct screen_overlays ScreenOverlays;
 extern enum display_page_t DisplayPage;
 extern struct europi Europi;
@@ -218,14 +219,68 @@ void gui_SingleChannel(void){
  */
 void ShowScreenOverlays(void){
     if(ScreenOverlays.MainMenu == 1){
+        ClearScreenOverlays();
+        ScreenOverlays.MainMenu = 1;
         gui_MainMenu();
     }
- 
+    if(ScreenOverlays.SetLoop == 1){
+        int track = 0;
+        char str[80];
+        for(track = 0; track < MAX_TRACKS; track++) {
+            if (Europi.tracks[track].selected == TRUE){
+                if(encoder_focus == track_select){
+                    sprintf(str,"Track: [%02d] Loop Point: %02d\0",track+1,Europi.tracks[track].last_step);
+                }
+                else if (encoder_focus == set_loop) {
+                    sprintf(str,"Track: %02d Loop Point: [%02d]\0",track+1,Europi.tracks[track].last_step);
+                }
+                DrawRectangle(20, 30, 250, 20, BLACK);
+                DrawText(str,25,35,10,WHITE);
+            }
+        }
+    }
+        if(ScreenOverlays.SetPitch == 1){
+        int track = 0;
+        char str[80];
+        for(track = 0; track < MAX_TRACKS; track++) {
+            if (Europi.tracks[track].selected == TRUE){
+                if(encoder_focus == track_select){
+                    sprintf(str,"Track: [%02d] Step: %02d Pitch: %05d\0",track+1,Europi.tracks[track].current_step+1,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);
+                }
+                else if (encoder_focus == step_select) {
+                    sprintf(str,"Track: %02d Step: [%02d] Pitch: %05d\0",track+1,Europi.tracks[track].current_step+1,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);
+                }
+                else if (encoder_focus == set_pitch){
+                    sprintf(str,"Track: %02d Step: %02d Pitch: [%05d]\0",track+1,Europi.tracks[track].current_step+1,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);
+                }
+                DrawRectangle(20, 30, 250, 20, BLACK);
+                DrawText(str,25,35,10,WHITE);
+            }
+        }
+    }
+    if(ScreenOverlays.SetQuantise == 1){
+        int track = 0;
+        char str[80];
+        for(track = 0; track < MAX_TRACKS; track++) {
+            if (Europi.tracks[track].selected == TRUE){
+                if(encoder_focus == track_select){
+                    sprintf(str,"Track: [%02d] Quantisation: %s\0",track+1,scale_names[Europi.tracks[track].channels[CV_OUT].quantise]);
+                }
+                else if (encoder_focus == set_quantise) {
+                    sprintf(str,"Track: %02d Quantisation: [%s]\0",track+1,scale_names[Europi.tracks[track].channels[CV_OUT].quantise]);
+                }
+                DrawRectangle(20, 30, 250, 20, BLACK);
+                DrawText(str,25,35,10,WHITE);
+            }
+        }
+    }
+
 }
 
 void gui_MainMenu(void){
     int x = 5;
     int txt_len;
+    int PanelHeight = MENU_FONT_SIZE + (MENU_TB_MARGIN * 2);
     Color menu_colour;
     Rectangle menuRectangle = {0,0,0,0}; 
     lastGesture = currentGesture;
@@ -233,13 +288,13 @@ void gui_MainMenu(void){
     touchPosition = GetTouchPosition(0);
     int i = 0;
     while(Menu[i].name != NULL){
-        txt_len = MeasureText(Menu[i].name,10);
+        txt_len = MeasureText(Menu[i].name,MENU_FONT_SIZE);
         //Draw a box a bit bigger than this
         if (Menu[i].highlight == 1) menu_colour = BLUE; else menu_colour = BLACK;
         menuRectangle.x = x;
         menuRectangle.y = 0;
-        menuRectangle.width = txt_len+6;
-        menuRectangle.height = 12;
+        menuRectangle.width = txt_len+(MENU_LR_MARGIN * 2);
+        menuRectangle.height = PanelHeight;
         if (CheckCollisionPointRec(touchPosition, menuRectangle) && (currentGesture == GESTURE_HOLD)){
             // Toggle the expansion of this menu item
             currentGesture = GESTURE_NONE;
@@ -258,26 +313,37 @@ void gui_MainMenu(void){
             toggle_menu();
         }
         DrawRectangleRec(menuRectangle,menu_colour);
-        DrawText(Menu[i].name,x+3,1,10,WHITE);
+        DrawText(Menu[i].name,x+MENU_LR_MARGIN,MENU_TB_MARGIN,MENU_FONT_SIZE,WHITE);
         if(Menu[i].expanded == 1){
             // Draw sub-menus
             int j = 0;
-            int y = 12;
+            int y = PanelHeight;
             int sub_len = 0;
             int tmp_len;
             // Measure the length of the longest sub menu
             while(Menu[i].child[j]->name != NULL){
-                tmp_len = MeasureText(Menu[i].child[j]->name,10);
+                tmp_len = MeasureText(Menu[i].child[j]->name,MENU_FONT_SIZE);
                 if(tmp_len > sub_len) sub_len = tmp_len;
                 j++;
             }
             j = 0;
             while(Menu[i].child[j]->name != NULL){
                 if (Menu[i].child[j]->highlight == 1) menu_colour = BLUE; else menu_colour = BLACK;
-                menuRectangle.x = x;
+                // Deal with the direction this leaf opens
+                switch (Menu[i].child[j]->direction){
+                    case dir_right:
+                        menuRectangle.x = x;
+                    break;
+                    case dir_left:
+                        menuRectangle.x = x + txt_len - sub_len;
+                    break;
+                    default:
+                        menuRectangle.x = x;
+                    break;
+                }
                 menuRectangle.y = y;
-                menuRectangle.width = sub_len+6;
-                menuRectangle.height = 12;
+                menuRectangle.width = sub_len+(MENU_LR_MARGIN * 2);
+                menuRectangle.height = PanelHeight;
                 if (CheckCollisionPointRec(touchPosition, menuRectangle) && (currentGesture == GESTURE_HOLD)){
                     // Call this function
                     currentGesture = GESTURE_NONE;
@@ -285,12 +351,12 @@ void gui_MainMenu(void){
                     if (Menu[i].child[j]->funcPtr != NULL) Menu[i].child[j]->funcPtr();
                 }
                 DrawRectangleRec(menuRectangle,menu_colour);
-                DrawText(Menu[i].child[j]->name,x+3,y+1,10,WHITE);
-                y+=12;
+                DrawText(Menu[i].child[j]->name,menuRectangle.x+MENU_LR_MARGIN,y+MENU_TB_MARGIN,MENU_FONT_SIZE,WHITE);
+                y+=PanelHeight;
                 j++;
             }
         }
-        x+=txt_len+6+2;
+        x+=txt_len+(MENU_LR_MARGIN * 2)+MENU_HORIZ_SPACE;
         i++;
     }
 }
