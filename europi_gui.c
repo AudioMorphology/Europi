@@ -31,6 +31,8 @@ extern Vector2 touchPosition;
 extern int currentGesture;
 extern int lastGesture;
 extern menu Menu[];
+extern Texture2D KeyboardTexture;
+extern int kbd_char_selected;
 extern enum encoder_focus_t encoder_focus;
 extern struct screen_overlays ScreenOverlays;
 extern enum display_page_t DisplayPage;
@@ -69,7 +71,7 @@ void gui_8x8(void){
             
             //if (currentGesture != lastGesture){
                 // Open this Track in isolation
-                currentGesture = GESTURE_NONE;
+                //currentGesture = GESTURE_NONE;
                 ClearScreenOverlays();
                 DisplayPage = SingleChannel;
                 select_track(track);
@@ -274,7 +276,36 @@ void ShowScreenOverlays(void){
             }
         }
     }
-
+    
+    
+    if(ScreenOverlays.Keyboard == 1){
+        Rectangle btnHighlight = {0,0,0,0};
+        touchPosition = GetTouchPosition(0);
+        currentGesture = GetGestureDetected();
+        int button;
+        int row, col;
+        DrawTexture(KeyboardTexture,KBD_GRID_TL_X,KBD_GRID_TL_Y,WHITE);
+        for(button=0;button < (KBD_ROWS * KBD_COLS);button++){
+            row = button / KBD_COLS;
+            col = button % KBD_COLS;
+            btnHighlight.x = (KBD_GRID_TL_X + KBD_BTN_TL_X) + (col * KBD_COL_WIDTH);
+            btnHighlight.y = (KBD_GRID_TL_Y + KBD_BTN_TL_Y) + (row * KBD_ROW_HEIGHT);
+            btnHighlight.width = KBD_BTN_WIDTH;
+            btnHighlight.height = KBD_BTN_HEIGHT;
+            if(button == kbd_char_selected){
+                //Highlight this button
+                DrawRectangleLines((KBD_GRID_TL_X + KBD_BTN_TL_X) + (col * KBD_COL_WIDTH),
+                (KBD_GRID_TL_Y + KBD_BTN_TL_Y) + (row * KBD_ROW_HEIGHT),
+                KBD_BTN_WIDTH,
+                KBD_BTN_HEIGHT,WHITE);
+            }
+            // Check for touch input
+            if (CheckCollisionPointRec(touchPosition, btnHighlight) && (currentGesture != GESTURE_NONE)){
+                kbd_char_selected = button;
+            }
+            
+        }
+    }
 }
 
 void gui_MainMenu(void){

@@ -98,6 +98,7 @@ extern enum encoder_focus_t encoder_focus;
 extern struct europi Europi;
 extern enum display_page_t DisplayPage;
 extern struct screen_overlays ScreenOverlays;
+extern int kbd_char_selected;
 extern struct MENU Menu[];
 extern pthread_attr_t detached_attr;		
 extern pthread_mutex_t mcp23008_lock;
@@ -107,6 +108,7 @@ extern int test_v;
 pthread_t ThreadId; 		// Pointer to detatched Thread Ids (re-used by each/every detatched thread)
 extern SpriteFont font1;
 extern Texture2D Splash;
+extern Texture2D KeyboardTexture;
 extern int disp_menu;	
 
 /* Internal Clock
@@ -568,7 +570,7 @@ static void *GateThread(void *arg)
 	ToggleFullscreen();
 	DisableCursor();
 	font1 = LoadSpriteFont("resources/fonts/mecha.rbmf");
-
+    KeyboardTexture = LoadTexture("resources/images/keyboard.png");
 	//Splash screen
 	Splash = LoadTexture("resources/images/splash_screen.png");
 	BeginDrawing();
@@ -1014,6 +1016,19 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 				}
 				track++;
 			}
+			
+			break;
+		}
+		case keyboard_input:
+		{
+            if ((dir == 1) && (kbd_char_selected < KBD_ROWS * KBD_COLS)) {
+                kbd_char_selected++;
+			}
+            else {
+                if(kbd_char_selected > 0){
+                    kbd_char_selected--;
+                }
+            }
 			
 			break;
 		}

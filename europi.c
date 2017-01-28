@@ -96,6 +96,11 @@ pthread_mutex_t mcp23008_lock;
 pthread_mutex_t pcf8574_lock;
 uint8_t mcp23008_state[16];
 char *kbfds = "/dev/tty";
+char *kbd_chars[4][11] = {{"1","2","3","4","5","6","7","8","9","0","_"},
+                        {"/","q","w","e","r","t","y","u","i","o","p"},
+                        {"/","a","s","d","f","g","h","j","k","l","."},
+                        {" "," ","z","x","c","v","b","n","m",",","]"}};
+int kbd_char_selected = 0;
 
 /* Raylib-related stuff */
 SpriteFont font1;
@@ -128,7 +133,7 @@ menu Menu[]={
 	{0,1,dir_down,"File",NULL,{&mnu_file_open,&mnu_file_save,&mnu_file_saveas,&mnu_file_new,&mnu_file_quit,&sub_end}},
 	{0,0,dir_down,"Sequence",NULL,{&mnu_seq_setloop,&mnu_seq_setpitch,&mnu_seq_quantise,&mnu_seq_gridview,&mnu_seq_singlechnl,&mnu_seq_new,&sub_end}},
 	{0,0,dir_down,"Config",NULL,{&mnu_config_setzero,&mnu_config_set10v,&sub_end}},
-	{0,0,dir_down,"Test",NULL,{&mnu_test_scalevalue,&mnu_config_setzero,&sub_end}},
+	{0,0,dir_down,"Test",NULL,{&mnu_test_scalevalue,&mnu_config_setzero,&mnu_test_keyboard,&sub_end}},
 	{0,0,dir_down,"Play",NULL,{&sub_end}},
 	{0,0,dir_down,NULL,NULL,NULL}
 	};

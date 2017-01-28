@@ -205,14 +205,16 @@ void ShowScreenOverlays(void);
 // Some global variables that we'll need all over the place
 #define X_MAX 320 
 #define Y_MAX 240
-#define TOUCH_EVENT_HANDLER "/dev/input/event2"	/* need to set this to match the event handler, use cat /proc/bus/input/devices to find which event hsandler the touchscreen is using */
-#define SAMPLE_AMOUNT 2					/* number of times to sample touchscreen (to reduce jitter) */
-/* min and max values returned by from touchscreen - need to measure
- * these from the actual screen used, and set these values accordingly */
-#define rawXmin				231
-#define rawXmax				3700
-#define rawYmin				380
-#define rawYmax				3775
+#define KBD_GRID_TL_X 0
+#define KBD_GRID_TL_Y 240-123
+#define KBD_BTN_TL_X 5
+#define KBD_BTN_TL_Y 5
+#define KBD_BTN_WIDTH 29
+#define KBD_BTN_HEIGHT 29
+#define KBD_COL_WIDTH 28
+#define KBD_ROW_HEIGHT 28
+#define KBD_ROWS 4
+#define KBD_COLS 11
 
 /* 
  * The Main Europi Structures, which are used to construct
