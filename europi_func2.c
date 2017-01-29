@@ -27,6 +27,8 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dirent.h>
+#include <malloc.h>
 #include <fcntl.h>
 #include <linux/fb.h>
 #include <sys/mman.h>
@@ -40,6 +42,7 @@
 extern int run_stop;
 extern int disp_menu;
 extern char *fbp;
+extern char input_txt[];
 extern int selected_step;
 extern struct europi Europi;
 extern struct screen_overlays ScreenOverlays;
@@ -47,6 +50,11 @@ extern enum display_page_t DisplayPage;
 extern int prog_running;
 extern int impersonate_hw;
 extern enum encoder_focus_t encoder_focus;
+extern char **files;
+extern size_t file_count;                      
+extern int file_selected;
+extern int first_file;
+
 
 /*
  * menu callback for Single Channel view
@@ -73,6 +81,10 @@ void seq_gridview(void) {
 void seq_new(void){
 	int track;
 	int step;
+	ClearScreenOverlays();
+	DisplayPage = GridView;
+    encoder_focus = none;
+	select_first_track();	
 	for(track = 0;track < MAX_TRACKS;track++){
 		Europi.tracks[track].selected = FALSE;
 		Europi.tracks[track].track_busy = FALSE;
@@ -105,6 +117,8 @@ void ClearScreenOverlays(void){
 	ScreenOverlays.SetPitch = 0;
 	ScreenOverlays.SetQuantise = 0;
     ScreenOverlays.Keyboard = 0;
+    ScreenOverlays.FileOpen = 0;
+    ScreenOverlays.TextInput = 0;
 }
 
 /*
@@ -120,7 +134,10 @@ int OverlayActive(void){
         (ScreenOverlays.SetLoop == 1) ||
         (ScreenOverlays.SetPitch == 1) ||
         (ScreenOverlays.SetQuantise == 1) ||
-        (ScreenOverlays.Keyboard == 1)) return 1;
+        (ScreenOverlays.Keyboard == 1) ||
+        (ScreenOverlays.FileOpen == 1) ||
+        (ScreenOverlays.TextInput == 1)
+        ) return 1;
     else return 0;        
 }
 
@@ -215,17 +232,44 @@ void test_keyboard(void){
     ScreenOverlays.Keyboard = 1;
     encoder_focus = keyboard_input;
 } 
+/*  
+ * menu callback for File->Open
+ */
+void file_open(void){
+    //run_stop = STOP;
+    ClearScreenOverlays();
+    ScreenOverlays.FileOpen = 1;
+    encoder_focus = file_open_focus;
+    // Read the list of files in the resources/sequences directory
+    file_count = file_list("resources/sequences", &files);
+    // Sort the array of filenames
+    qsort(files, file_count, sizeof(char *), cstring_cmp);
+    file_selected = 0;
+    first_file = 0;
+} 
 /*
  * menu callback for File->Save
  */
 void file_save(void){
-	run_stop = STOP;
+	//run_stop = STOP;
 	ClearScreenOverlays();
-	FILE * file = fopen("default.seq","wb");
+	FILE * file = fopen("resources/sequences/default.seq","wb");
 	if (file != NULL) {
 		fwrite(&Europi,sizeof(struct europi),1,file);
 		fclose(file);
 	}
+}
+
+/*
+ * menu callback for File->SaveAs
+ */
+void file_saveas(void){
+	//run_stop = STOP;
+	ClearScreenOverlays();
+    ScreenOverlays.Keyboard = 1;
+    ScreenOverlays.TextInput = 1;
+    encoder_focus = keyboard_input;
+    sprintf(input_txt,"\0");
 }
 
 /*
@@ -286,6 +330,20 @@ void file_quit(void){
 	prog_running = 0;
 }
 
+/*
+ * load_sequence()
+ * Reads the specified sequence 
+ * TODO: Probably ought to worry about whether
+ * the sequence being read is the same size & shape
+ * as our Europi Object?
+ */
+void load_sequence(const char *filename){
+	FILE * file = fopen(filename,"rb");
+	if (file != NULL) {
+		fread(&Europi, sizeof(struct europi), 1, file);
+		fclose(file);
+	}
+}
 
 
 /*
@@ -545,7 +603,12 @@ void init_sequence(void)
 				//Europi.tracks[track].channels[CV_OUT].steps[step].slew_length = rand() % 30000;
 				Europi.tracks[track].channels[CV_OUT].steps[step].slew_length = 50000;
 				int gate_prob = rand() % 100;
-				if (gate_prob > 30){
+				if (gate_prob > 30){	FILE * file = fopen("default.seq","rb");
+	if (file != NULL) {
+		fread(&Europi, sizeof(struct europi), 1, file);
+		fclose(file);
+	}
+
 				Europi.tracks[track].channels[CV_OUT].steps[step].slew_type = Off;
 				}
 				else {
@@ -786,3 +849,56 @@ uint16_t scale_value(int track,uint16_t raw_value)
 	return (uint16_t)(output_scaling * raw_value) + Europi.tracks[track].channels[CV_OUT].scale_zero;
 } 
 
+/*
+ * Creates an array of file names given
+ * a Directory path. NOTE: This ignores
+ * anything starting with a ".", specifically
+ * the self and parent directories, plus files
+ * such as .gitignore
+ */
+size_t file_list(const char *path, char ***ls) {
+    size_t count = 0;
+    size_t length = 0;
+    DIR *dp = NULL;
+    struct dirent *ep = NULL;
+    char *p;
+
+    dp = opendir(path);
+    if(NULL == dp) {
+        log_msg("no such directory: '%s'\n", path);
+        return 0;
+    }
+
+    *ls = NULL;
+    ep = readdir(dp);
+    while(NULL != ep){
+        p = ep->d_name;
+        if(p[0] != 0x2E){
+            count++;
+        }
+        ep = readdir(dp);
+    }
+
+    rewinddir(dp);
+    *ls = calloc(count, sizeof(char *));
+
+    count = 0;
+    ep = readdir(dp);
+    while(NULL != ep){
+        p = ep->d_name;
+        if(p[0] != 0x2E){
+            (*ls)[count++] = strdup(ep->d_name);
+        }
+        ep = readdir(dp);
+    }
+    closedir(dp);
+    return count;
+}
+
+/* qsort C-string comparison function */ 
+int cstring_cmp(const void *a, const void *b) 
+{ 
+    const char **ia = (const char **)a;
+    const char **ib = (const char **)b;
+    return strcmp(*ia, *ib);
+} 

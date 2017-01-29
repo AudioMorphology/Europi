@@ -109,7 +109,8 @@ enum encoder_focus_t {
 	set_loop,
 	set_pitch,
 	set_quantise,
-    keyboard_input
+    keyboard_input,
+    file_open_focus
 };
 
 enum slew_t {
@@ -153,7 +154,7 @@ void MenuSelectItem(int Parent, int Child);
 void button_1(int gpio, int level, uint32_t tick);
 void button_2(int gpio, int level, uint32_t tick);
 void button_3(int gpio, int level, uint32_t tick);
-void button_4(int gpio, int level, uint32_t tick);
+void button_4(int gpio, int level, uint32_t tick); 
 void next_step(void);
 int MidiMinonFinder(unsigned address);
 int MinonFinder(unsigned address);
@@ -180,15 +181,21 @@ void seq_setloop(void);
 void test_scalevalue(void);
 void test_keyboard(void);
 void file_save(void);
+void file_saveas(void);
+void file_open(void);
 void config_setzero(void);
 void config_setten(void);
 void config_calibtouch(void);
 void set_zero(int Track, long ZeroVal);
 void file_quit(void);
+void load_sequence(const char *filename);
 void step_repeat(int dir, int vel);
 void init_sequence(void);
 void quantize_track(int track, int scale);
 uint16_t scale_value(int track,uint16_t raw_value);
+size_t file_list(const char *path, char ***ls);
+int cstring_cmp(const void *a, const void *b);
+
 
 /* function prototypes in europi_gui.c */
 void gui_8x8(void);
@@ -215,6 +222,16 @@ void ShowScreenOverlays(void);
 #define KBD_ROW_HEIGHT 28
 #define KBD_ROWS 4
 #define KBD_COLS 11
+#define DLG_ROWS 7
+#define DLG_BTN1_X 18
+#define DLG_BTN1_Y 189
+#define DLG_BTN1_W 121
+#define DLG_BTN1_H 39
+#define DLG_BTN2_X 181
+#define DLG_BTN2_Y 189
+#define DLG_BTN2_W 121
+#define DLG_BTN2_H 39
+
 
 /* 
  * The Main Europi Structures, which are used to construct
@@ -282,6 +299,8 @@ enum display_page_t {
 	 int SetPitch;
 	 int SetQuantise;
      int Keyboard;
+     int FileOpen;
+     int TextInput;
  };
  
 /*

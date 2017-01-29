@@ -48,7 +48,8 @@ int is_europi = FALSE;	/* whether we are running on Europi hardware - set to Tru
 int print_messages = TRUE; /* controls whether log_msg outputs to std_err or not */
 int debug = FALSE;		/* controls whether debug messages are printed to the main screen */
 int impersonate_hw = FALSE;	/* allows the software to bypass hardware checks (useful when testing sw without full hw ) */ 
-char debug_txt[320];	/* buffer for debug text messages */
+char debug_txt[100];	/* buffer for debug text messages */
+char input_txt[100];    /* buffer for capturing user input */
 int prog_running=0;		/* Setting this to 0 will force the prog to quit*/
 int run_stop=STOP;		/* 0=Stop 1=Run: Halts the main step generator */
 int clock_counter = 95;	/* Main clock counter, tracks the 96 pulses per step */
@@ -95,6 +96,10 @@ pthread_attr_t detached_attr;		/* Single detached thread attribute used by any /
 pthread_mutex_t mcp23008_lock;
 pthread_mutex_t pcf8574_lock;
 uint8_t mcp23008_state[16];
+char **files;                       // Filled with a list of filenames in a directory by file_list( )
+size_t file_count;                      
+int file_selected;
+int first_file;
 char *kbfds = "/dev/tty";
 char *kbd_chars[4][11] = {{"1","2","3","4","5","6","7","8","9","0","_"},
                         {"/","q","w","e","r","t","y","u","i","o","p"},
@@ -105,12 +110,14 @@ int kbd_char_selected = 0;
 /* Raylib-related stuff */
 SpriteFont font1;
 Texture2D Splash;	        // Splash screen texture
-Texture2D KeyboardTexture;  // Keyboard Overlay texcture
+Texture2D KeyboardTexture;  // Keyboard Overlay texture
+Texture2D DialogTexture;    // Common dialog control
+Texture2D TextInputTexture; // text input dialog box
 
 /* declare and populate the menu structure */ 
-menu mnu_file_open = 	{0,0,dir_none,"Open",NULL,NULL};
+menu mnu_file_open = 	{0,0,dir_none,"Open",&file_open,NULL};
 menu mnu_file_save = 	{0,0,dir_none,"Save",&file_save,NULL};
-menu mnu_file_saveas = 	{0,0,dir_none,"Save As",NULL,NULL};
+menu mnu_file_saveas = 	{0,0,dir_none,"Save As",&file_saveas,NULL};
 menu mnu_file_new = 	{0,0,dir_none,"New",NULL,NULL};
 menu mnu_file_quit = 	{0,0,dir_none,"Quit",&file_quit,NULL};
 
@@ -161,9 +168,14 @@ int main(int argc, char* argv[])
 	//Temp for testing
 	//run_stop = RUN; 
 	//clock_source = INT_CLK;
+    
+    //SetGesturesEnabled(0b0000000000000011);
 
 while (prog_running == 1){
-	
+
+    lastGesture = currentGesture;
+    currentGesture = GetGestureDetected();
+    touchPosition = GetTouchPosition(0);
     switch(DisplayPage){
         case GridView:
             gui_8x8();
@@ -240,7 +252,7 @@ while (prog_running == 1){
     if (currentGesture != GESTURE_NONE){ 
         DrawCircleV(touchPosition, 2, BLACK);
     }        
-    usleep(100);
+    usleep(100); 
 }
 
 	pthread_join(touchThreadId, NULL);

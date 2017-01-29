@@ -46,13 +46,14 @@ extern struct fb_var_screeninfo vinfo;
 extern struct fb_fix_screeninfo finfo;
 extern struct fb_var_screeninfo orig_vinfo;
 
-extern unsigned hw_version;
+extern unsigned hw_version; 
 extern int fbfd;
 extern char *fbp;
 extern char *kbfds;
 extern int impersonate_hw;
 extern int debug;
 extern char debug_txt[];
+extern char input_txt[];
 extern int kbfd;
 extern int prog_running;
 extern int run_stop;
@@ -109,8 +110,14 @@ pthread_t ThreadId; 		// Pointer to detatched Thread Ids (re-used by each/every 
 extern SpriteFont font1;
 extern Texture2D Splash;
 extern Texture2D KeyboardTexture;
+extern Texture2D DialogTexture;
+extern Texture2D TextInputTexture;
 extern int disp_menu;	
-
+extern char **files;
+extern char *kbd_chars[4][11];
+extern size_t file_count;                      
+extern int file_selected;
+extern int first_file;
 /* Internal Clock
  * 
  * This is the main timing loop for the 
@@ -571,6 +578,8 @@ static void *GateThread(void *arg)
 	DisableCursor();
 	font1 = LoadSpriteFont("resources/fonts/mecha.rbmf");
     KeyboardTexture = LoadTexture("resources/images/keyboard.png");
+    DialogTexture = LoadTexture("resources/images/dialog.png");
+    TextInputTexture = LoadTexture("resources/images/text_input.png");
 	//Splash screen
 	Splash = LoadTexture("resources/images/splash_screen.png");
 	BeginDrawing();
@@ -1032,6 +1041,23 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 			
 			break;
 		}
+		case file_open_focus:
+		{
+            if ((dir == 1) && (file_selected < (file_count-1))) {
+                file_selected++;
+                // If we have scrolled to the bottom of the list, but there 
+                // are more files to display, scroll the list as we go
+                if((file_selected - first_file) >= DLG_ROWS) first_file++;
+			}
+            else {
+                if((dir == -1) && (file_selected > 0)){
+                    file_selected--;
+                    if(((file_selected - first_file) < 0) && (first_file > 0)) first_file--;
+                }
+            }
+			
+			break;
+		}
 		case pitch_cv:
 			break;
 		case slew_type:
@@ -1070,6 +1096,23 @@ void encoder_button(int gpio, int level, uint32_t tick)
 				else if (ScreenOverlays.SetPitch == 1) encoder_focus = step_select;
 				else if (ScreenOverlays.SetQuantise == 1) encoder_focus = set_quantise;
 			break;
+        case file_open_focus:{
+            char filename[100];
+            snprintf(filename, sizeof(filename), "resources/sequences/%s", files[file_selected]);
+            load_sequence(filename);
+            ClearScreenOverlays();
+            encoder_focus = none;
+            }
+            break;
+        case keyboard_input:{
+            // Add this key to the input buffer
+            int row,col;
+                    row = kbd_char_selected / KBD_COLS;
+                    col = kbd_char_selected % KBD_COLS;
+                    //Add this to the input_txt buffer
+                    sprintf(input_txt,"%s%s\0", input_txt,kbd_chars[row][col]);
+            }
+            break;
 		case step_select:
 				encoder_focus = set_pitch;
 			break;

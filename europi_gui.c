@@ -31,20 +31,26 @@ extern Vector2 touchPosition;
 extern int currentGesture;
 extern int lastGesture;
 extern menu Menu[];
+extern char input_txt[];
 extern Texture2D KeyboardTexture;
+extern Texture2D DialogTexture;
+extern Texture2D TextInputTexture;
+extern char *kbd_chars[4][11];
 extern int kbd_char_selected;
 extern enum encoder_focus_t encoder_focus;
 extern struct screen_overlays ScreenOverlays;
 extern enum display_page_t DisplayPage;
 extern struct europi Europi;
+extern char **files;
+extern size_t file_count;                      
+extern int file_selected;
+extern int first_file;
 
 /*
  * GUI_8x8 Attempts to display more detail in a subset of tracks and steps
  * 8 Tracks x 8 Steps
  */
 void gui_8x8(void){
-    lastGesture = currentGesture;
-    touchPosition = GetTouchPosition(0);
     Rectangle stepRectangle = {0,0,0,0};
     BeginDrawing();
     ClearBackground(RAYWHITE);
@@ -66,7 +72,6 @@ void gui_8x8(void){
         stepRectangle.y = 20+(track * 25);
         stepRectangle.width = txt_len;
         stepRectangle.height = 20;
-        currentGesture = GetGestureDetected();
         if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture == GESTURE_TAP)){
             
             //if (currentGesture != lastGesture){
@@ -163,9 +168,6 @@ void gui_SingleChannel(void){
     int val;
     char track_no[20];
     int txt_len;
-    lastGesture = currentGesture;
-    currentGesture = GetGestureDetected();
-    touchPosition = GetTouchPosition(0);
     Rectangle stepRectangle = {0,0,0,0};
     BeginDrawing();
     ClearBackground(RAYWHITE);
@@ -241,7 +243,7 @@ void ShowScreenOverlays(void){
             }
         }
     }
-        if(ScreenOverlays.SetPitch == 1){
+        if(ScreenOverlays.SetPitch == 1){ 
         int track = 0;
         char str[80];
         for(track = 0; track < MAX_TRACKS; track++) {
@@ -279,9 +281,10 @@ void ShowScreenOverlays(void){
     
     
     if(ScreenOverlays.Keyboard == 1){
+//        lastGesture = currentGesture;
         Rectangle btnHighlight = {0,0,0,0};
-        touchPosition = GetTouchPosition(0);
-        currentGesture = GetGestureDetected();
+//        touchPosition = GetTouchPosition(0);
+//        currentGesture = GetGestureDetected();
         int button;
         int row, col;
         DrawTexture(KeyboardTexture,KBD_GRID_TL_X,KBD_GRID_TL_Y,WHITE);
@@ -301,10 +304,73 @@ void ShowScreenOverlays(void){
             }
             // Check for touch input
             if (CheckCollisionPointRec(touchPosition, btnHighlight) && (currentGesture != GESTURE_NONE)){
-                kbd_char_selected = button;
+                if(currentGesture != lastGesture){
+                    kbd_char_selected = button;
+                    row = button / KBD_COLS;
+                    col = button % KBD_COLS;
+                    //Add this to the input_txt buffer
+                    sprintf(input_txt,"%s%s\0", input_txt,kbd_chars[row][col]);
+                }
             }
             
         }
+    }
+    if(ScreenOverlays.FileOpen == 1){
+        Rectangle fileHighlight = {0,0,0,0};
+        //touchPosition = GetTouchPosition(0);
+        //currentGesture = GetGestureDetected();
+        DrawTexture(DialogTexture,0,0,WHITE);
+        DrawText("File Open",10,5,20,DARKGRAY);
+        DrawText("OK",63,198,20,DARKGRAY);
+        DrawText("Cancel",210,198,20,DARKGRAY);
+        // List the files
+        int i;
+        int j=0;
+        for(i=0;i<file_count;i++){
+            if((i >= first_file) & (i < first_file + DLG_ROWS)){
+                fileHighlight.x=5;
+                fileHighlight.y=27+(j*20);
+                fileHighlight.width=310;
+                fileHighlight.height=20;
+                // Check for touch input
+                if (CheckCollisionPointRec(touchPosition, fileHighlight) && (currentGesture != GESTURE_NONE)){
+                    file_selected = i;
+                }
+
+                if(i == file_selected) {
+                    //highlight this file
+                    DrawRectangleRec(fileHighlight,LIGHTGRAY);
+                }
+                DrawText(files[i],10,27+(j*20),20,DARKGRAY);
+                j++;
+            }
+        }
+        fileHighlight.x=DLG_BTN1_X;
+        fileHighlight.y=DLG_BTN1_Y;
+        fileHighlight.width=DLG_BTN1_W;
+        fileHighlight.height=DLG_BTN1_H;
+        // Check for touch input
+        if (CheckCollisionPointRec(touchPosition, fileHighlight) && (currentGesture != GESTURE_NONE)){
+            // OK Button Touched
+            char filename[100];
+            snprintf(filename, sizeof(filename), "resources/sequences/%s", files[file_selected]);
+            load_sequence(filename);
+            ClearScreenOverlays();
+        }
+        fileHighlight.x=DLG_BTN2_X;
+        fileHighlight.y=DLG_BTN2_Y;
+        fileHighlight.width=DLG_BTN2_W;
+        fileHighlight.height=DLG_BTN2_H;
+        if (CheckCollisionPointRec(touchPosition, fileHighlight) && (currentGesture != GESTURE_NONE)){
+            // Cancel Button Touched
+            ClearScreenOverlays();
+        }
+        
+    }
+    if(ScreenOverlays.TextInput == 1){
+        DrawTexture(TextInputTexture,0,65,WHITE);
+        DrawText("Save As:",10,70,20,DARKGRAY);
+        DrawText(input_txt,10,92,20,DARKGRAY);
     }
 }
 
@@ -314,9 +380,9 @@ void gui_MainMenu(void){
     int PanelHeight = MENU_FONT_SIZE + (MENU_TB_MARGIN * 2);
     Color menu_colour;
     Rectangle menuRectangle = {0,0,0,0}; 
-    lastGesture = currentGesture;
-    currentGesture = GetGestureDetected();
-    touchPosition = GetTouchPosition(0);
+    //lastGesture = currentGesture;
+    //currentGesture = GetGestureDetected();
+    //touchPosition = GetTouchPosition(0);
     int i = 0;
     while(Menu[i].name != NULL){
         txt_len = MeasureText(Menu[i].name,MENU_FONT_SIZE);
