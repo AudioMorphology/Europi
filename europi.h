@@ -161,13 +161,13 @@ int MinonFinder(unsigned address);
 int EuropiFinder(void);
 void DACSingleChannelWrite(unsigned handle, uint8_t address, uint8_t channel, uint16_t voltage);
 void GATESingleOutput(unsigned handle, uint8_t channel,int Device,int Value);
-void hardware_init(void);
+void hardware_init(void); 
 int quantize(int raw, int scale);
 static void *SlewThread(void *arg);
 static void *GateThread(void *arg);
 static void *AdThread(void *arg);
 
-/* Function Prototypes in europi_func2 */
+/* Function Prototypes in europi_func2 */ 
 void seq_singlechnl(void);
 void seq_gridview(void);
 void select_first_track(void);
@@ -182,7 +182,7 @@ void test_scalevalue(void);
 void test_keyboard(void);
 void file_save(void);
 void file_saveas(void);
-void file_open(void);
+void file_open(void); 
 void config_setzero(void);
 void config_setten(void);
 void config_calibtouch(void);

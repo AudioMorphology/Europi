@@ -41,7 +41,7 @@
 
 extern int run_stop;
 extern int disp_menu;
-extern char *fbp;
+extern char *fbp; 
 extern char input_txt[];
 extern int selected_step;
 extern struct europi Europi;
@@ -54,7 +54,7 @@ extern char **files;
 extern size_t file_count;                      
 extern int file_selected;
 extern int first_file;
-
+ 
 
 /*
  * menu callback for Single Channel view
@@ -196,7 +196,6 @@ void seq_setpitch(void){
  * menu callback for Sequence -> Set Loop Points
  */
 void seq_setloop(void){
-	int runstop_save = run_stop;
 	ClearScreenOverlays();
 	ScreenOverlays.SetLoop = 1;
 	encoder_focus = track_select;
@@ -208,7 +207,6 @@ void seq_setloop(void){
  */
 void test_scalevalue(void){
 	int track;
-	int runstop_save = run_stop;	// Save this, so we can revert to previous state when we're done
 	run_stop = STOP;
 	ClearScreenOverlays();
 	ScreenOverlays.ScaleValue = 1;
@@ -247,7 +245,7 @@ void file_open(void){
     file_selected = 0;
     first_file = 0;
 } 
-/*
+/* 
  * menu callback for File->Save
  */
 void file_save(void){
@@ -277,7 +275,6 @@ void file_saveas(void){
  */
 void config_setzero(void){
 	int track;
-	int runstop_save = run_stop;	// Save this, so we can revert to previous state when we're done
 	run_stop = STOP;
 	ClearScreenOverlays();
 	ScreenOverlays.SetZero = 1;
@@ -298,7 +295,6 @@ void config_setzero(void){
  */
 void config_setten(void){
 	int track;
-	int runstop_save = run_stop;	// Save this, so we can revert to previous state when we're done
 	run_stop = STOP;
 	ClearScreenOverlays();
 	ScreenOverlays.SetTen = 1;

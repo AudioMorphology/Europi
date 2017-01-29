@@ -23,14 +23,14 @@
 // See http://creativecommons.org/licenses/MIT/ for more information.
 
 #include <stdio.h>
-
+ 
 #include "europi.h"
 #include "../raylib/release/rpi/raylib.h"
 
 extern Vector2 touchPosition;
-extern int currentGesture;
+extern int currentGesture1;
 extern int lastGesture;
-extern menu Menu[];
+extern menu Menu[]; 
 extern char input_txt[];
 extern Texture2D KeyboardTexture;
 extern Texture2D DialogTexture;
@@ -56,7 +56,7 @@ void gui_8x8(void){
     ClearBackground(RAYWHITE);
     int track, column;
     int step, offset, txt_len;
-    char txt[20];
+    char txt[20]; 
     for(track = 0; track < 8; track++){
         // for each track, we need to know where the 
         // current step in the sequence is for that
@@ -70,9 +70,9 @@ void gui_8x8(void){
         // Check for doube-tap on the Track Number
         stepRectangle.x = 20-txt_len;
         stepRectangle.y = 20+(track * 25);
-        stepRectangle.width = txt_len;
+        stepRectangle.width = txt_len; 
         stepRectangle.height = 20;
-        if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture == GESTURE_TAP)){
+        if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture1 == GESTURE_TAP)){
             
             //if (currentGesture != lastGesture){
                 // Open this Track in isolation
@@ -88,7 +88,7 @@ void gui_8x8(void){
             stepRectangle.width = 22;
             stepRectangle.height = 22;
             // Check gesture collision
-            if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture != GESTURE_NONE)){
+            if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture1 != GESTURE_NONE)){
                 // Paint this step Blue
                 DrawRectangleRec(stepRectangle, BLUE); 
             }
@@ -105,7 +105,7 @@ void gui_8x8(void){
                     // paint blank step
                     DrawRectangleRec(stepRectangle, MAROON); 
                 }
-            }
+            } 
         }        
     }
     // Handle any screen overlays - these need to 
@@ -233,10 +233,10 @@ void ShowScreenOverlays(void){
         for(track = 0; track < MAX_TRACKS; track++) {
             if (Europi.tracks[track].selected == TRUE){
                 if(encoder_focus == track_select){
-                    sprintf(str,"Track: [%02d] Loop Point: %02d\0",track+1,Europi.tracks[track].last_step);
+                    sprintf(str,"Track: [%02d] Loop Point: %02d",track+1,Europi.tracks[track].last_step);
                 }
                 else if (encoder_focus == set_loop) {
-                    sprintf(str,"Track: %02d Loop Point: [%02d]\0",track+1,Europi.tracks[track].last_step);
+                    sprintf(str,"Track: %02d Loop Point: [%02d]",track+1,Europi.tracks[track].last_step);
                 }
                 DrawRectangle(20, 30, 250, 20, BLACK);
                 DrawText(str,25,35,10,WHITE);
@@ -249,13 +249,13 @@ void ShowScreenOverlays(void){
         for(track = 0; track < MAX_TRACKS; track++) {
             if (Europi.tracks[track].selected == TRUE){
                 if(encoder_focus == track_select){
-                    sprintf(str,"Track: [%02d] Step: %02d Pitch: %05d\0",track+1,Europi.tracks[track].current_step+1,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);
+                    sprintf(str,"Track: [%02d] Step: %02d Pitch: %05d",track+1,Europi.tracks[track].current_step+1,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);
                 }
                 else if (encoder_focus == step_select) {
-                    sprintf(str,"Track: %02d Step: [%02d] Pitch: %05d\0",track+1,Europi.tracks[track].current_step+1,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);
+                    sprintf(str,"Track: %02d Step: [%02d] Pitch: %05d",track+1,Europi.tracks[track].current_step+1,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);
                 }
                 else if (encoder_focus == set_pitch){
-                    sprintf(str,"Track: %02d Step: %02d Pitch: [%05d]\0",track+1,Europi.tracks[track].current_step+1,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);
+                    sprintf(str,"Track: %02d Step: %02d Pitch: [%05d]",track+1,Europi.tracks[track].current_step+1,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);
                 }
                 DrawRectangle(20, 30, 250, 20, BLACK);
                 DrawText(str,25,35,10,WHITE);
@@ -268,10 +268,10 @@ void ShowScreenOverlays(void){
         for(track = 0; track < MAX_TRACKS; track++) {
             if (Europi.tracks[track].selected == TRUE){
                 if(encoder_focus == track_select){
-                    sprintf(str,"Track: [%02d] Quantisation: %s\0",track+1,scale_names[Europi.tracks[track].channels[CV_OUT].quantise]);
+                    sprintf(str,"Track: [%02d] Quantisation: %s",track+1,scale_names[Europi.tracks[track].channels[CV_OUT].quantise]);
                 }
                 else if (encoder_focus == set_quantise) {
-                    sprintf(str,"Track: %02d Quantisation: [%s]\0",track+1,scale_names[Europi.tracks[track].channels[CV_OUT].quantise]);
+                    sprintf(str,"Track: %02d Quantisation: [%s]",track+1,scale_names[Europi.tracks[track].channels[CV_OUT].quantise]);
                 }
                 DrawRectangle(20, 30, 250, 20, BLACK);
                 DrawText(str,25,35,10,WHITE);
@@ -303,13 +303,27 @@ void ShowScreenOverlays(void){
                 KBD_BTN_HEIGHT,WHITE);
             }
             // Check for touch input
-            if (CheckCollisionPointRec(touchPosition, btnHighlight) && (currentGesture != GESTURE_NONE)){
-                if(currentGesture != lastGesture){
+            if (CheckCollisionPointRec(touchPosition, btnHighlight) && (currentGesture1 != GESTURE_NONE)){
+                if(currentGesture1 != lastGesture){
                     kbd_char_selected = button;
                     row = button / KBD_COLS;
                     col = button % KBD_COLS;
                     //Add this to the input_txt buffer
-                    sprintf(input_txt,"%s%s\0", input_txt,kbd_chars[row][col]);
+                    sprintf(input_txt,"%s%s", input_txt,kbd_chars[row][col]);
+                    /*                // Store gesture string
+                switch (currentGesture1)
+                {
+                    case GESTURE_TAP: sprintf(input_txt,"%s%s", input_txt,"TAP"); break;
+                    case GESTURE_DOUBLETAP: sprintf(input_txt,"%s%s", input_txt,"DOUBLETAP"); break;
+                    case GESTURE_HOLD: sprintf(input_txt,"%s%s", input_txt,"HOLD"); break;
+                    case GESTURE_DRAG: sprintf(input_txt,"%s%s", input_txt,"DRAG"); break;
+                    case GESTURE_SWIPE_RIGHT: sprintf(input_txt,"%s%s", input_txt,"RIGHT"); break;
+                    case GESTURE_SWIPE_LEFT: sprintf(input_txt,"%s%s", input_txt,"LEFT"); break;
+                    case GESTURE_SWIPE_UP: sprintf(input_txt,"%s%s", input_txt,"UP"); break;
+                    case GESTURE_SWIPE_DOWN: sprintf(input_txt,"%s%s", input_txt,"DOWN"); break;
+                    default: break;
+                }*/
+
                 }
             }
             
@@ -333,7 +347,7 @@ void ShowScreenOverlays(void){
                 fileHighlight.width=310;
                 fileHighlight.height=20;
                 // Check for touch input
-                if (CheckCollisionPointRec(touchPosition, fileHighlight) && (currentGesture != GESTURE_NONE)){
+                if (CheckCollisionPointRec(touchPosition, fileHighlight) && (currentGesture1 != GESTURE_NONE)){
                     file_selected = i;
                 }
 
@@ -350,7 +364,7 @@ void ShowScreenOverlays(void){
         fileHighlight.width=DLG_BTN1_W;
         fileHighlight.height=DLG_BTN1_H;
         // Check for touch input
-        if (CheckCollisionPointRec(touchPosition, fileHighlight) && (currentGesture != GESTURE_NONE)){
+        if (CheckCollisionPointRec(touchPosition, fileHighlight) && (currentGesture1 != GESTURE_NONE)){
             // OK Button Touched
             char filename[100];
             snprintf(filename, sizeof(filename), "resources/sequences/%s", files[file_selected]);
@@ -361,7 +375,7 @@ void ShowScreenOverlays(void){
         fileHighlight.y=DLG_BTN2_Y;
         fileHighlight.width=DLG_BTN2_W;
         fileHighlight.height=DLG_BTN2_H;
-        if (CheckCollisionPointRec(touchPosition, fileHighlight) && (currentGesture != GESTURE_NONE)){
+        if (CheckCollisionPointRec(touchPosition, fileHighlight) && (currentGesture1 != GESTURE_NONE)){
             // Cancel Button Touched
             ClearScreenOverlays();
         }
@@ -392,9 +406,9 @@ void gui_MainMenu(void){
         menuRectangle.y = 0;
         menuRectangle.width = txt_len+(MENU_LR_MARGIN * 2);
         menuRectangle.height = PanelHeight;
-        if (CheckCollisionPointRec(touchPosition, menuRectangle) && (currentGesture == GESTURE_HOLD)){
+        if (CheckCollisionPointRec(touchPosition, menuRectangle) && (currentGesture1 == GESTURE_HOLD)){
             // Toggle the expansion of this menu item
-            currentGesture = GESTURE_NONE;
+            //currentGesture = GESTURE_NONE;
             if (Menu[i].highlight == 0) {
                 //this Menu item not currently highlighted, so
                 // de-hilight the existing one, and highlight this
@@ -441,9 +455,9 @@ void gui_MainMenu(void){
                 menuRectangle.y = y;
                 menuRectangle.width = sub_len+(MENU_LR_MARGIN * 2);
                 menuRectangle.height = PanelHeight;
-                if (CheckCollisionPointRec(touchPosition, menuRectangle) && (currentGesture == GESTURE_HOLD)){
+                if (CheckCollisionPointRec(touchPosition, menuRectangle) && (currentGesture1 == GESTURE_HOLD)){
                     // Call this function
-                    currentGesture = GESTURE_NONE;
+                    //currentGesture = GESTURE_NONE;
                     MenuSelectItem(i,j);
                     if (Menu[i].child[j]->funcPtr != NULL) Menu[i].child[j]->funcPtr();
                 }

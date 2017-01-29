@@ -66,8 +66,8 @@ uint32_t step_ticks = 250000;	/* Records the length of each step in ticks (used 
 uint32_t slew_interval = 1000; /* number of microseconds between each sucessive level change during a slew */
 /* global variables used by the touchscreen interface */
 Vector2 touchPosition = { 0, 0 };
-int currentGesture = GESTURE_NONE;
-int lastGesture = GESTURE_NONE;
+int currentGesture1;
+int lastGesture;
 
 int  xres,yres,x;
 int Xsamples[20];
@@ -153,7 +153,7 @@ enum display_page_t DisplayPage = GridView;
 struct screen_overlays ScreenOverlays;
 
 
-// application entry point
+// application entry point 
 int main(int argc, char* argv[])
 {
 	unsigned int iseed = (unsigned int)time(NULL);
@@ -166,15 +166,17 @@ int main(int argc, char* argv[])
 	run_stop = gpioRead(RUNSTOP_IN);
 	clock_source = gpioRead(INTEXT_IN);
 	//Temp for testing
-	//run_stop = RUN; 
+	//run_stop = STOP; 
 	//clock_source = INT_CLK;
     
-    //SetGesturesEnabled(0b0000000000000011);
+    currentGesture1 = GESTURE_NONE;
+    lastGesture = GESTURE_NONE;
+    //SetGesturesEnabled(0b0000000011100011);   //None, tap & DoubleTap 
 
 while (prog_running == 1){
 
-    lastGesture = currentGesture;
-    currentGesture = GetGestureDetected();
+    lastGesture = currentGesture1;
+    currentGesture1 = GetGestureDetected();
     touchPosition = GetTouchPosition(0);
     switch(DisplayPage){
         case GridView:
@@ -184,7 +186,7 @@ while (prog_running == 1){
             gui_SingleChannel();
         break;
     }
-
+ 
 /*
     if(ScreenElements.SetZero == 1){
         int track = 0;
@@ -249,9 +251,10 @@ while (prog_running == 1){
         DrawText(debug_txt,5,205,10,WHITE);
     }
     
-    if (currentGesture != GESTURE_NONE){ 
+    if (currentGesture1 != GESTURE_NONE){ 
         DrawCircleV(touchPosition, 2, BLACK);
-    }        
+    }  
+    //UpdateGestures();
     usleep(100); 
 }
 

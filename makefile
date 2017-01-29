@@ -8,13 +8,15 @@
 #    make PLATFORM=PLATFORM_RPI
 # this builds ../raylib/release/rpi/libraylib.a
 OBJS := europi.o europi_func1.o europi_func2.o europi_gui.o
-INCLUDES = -I. -I../raylib/src -I../raylib/src/external -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads
+INCLUDES = -I. -I../raylib/src -I../raylib/src/external -I../raylib/release/rpi -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads
 LIBS = -lpigpio -lrt -lraylib -lGLESv2 -lEGL -lpthread -lrt -lm -lbcm_host -lopenal
 LFLAGS = -L. -L../raylib/src -L../raylib/release/rpi -L/opt/vc/lib
+CFLAGS = -O2 -s -Wall -std=gnu99 -fgnu89-inline -Wno-unused-variable
+PLATFORM = PLATFORM_RPI
 
 # link
 europi: $(OBJS)
-	gcc $(OBJS) $(INCLUDES) $(LFLAGS) $(LIBS) -Wall -Wno-trigraphs -o europi 
+	gcc $(OBJS) $(CFLAGS) $(INCLUDES) $(LFLAGS) $(LIBS) -D$(PLATFORM) -o europi 
 
 # pull in dependency info for *existing* .o files
 -include $(OBJS:.o=.d)
