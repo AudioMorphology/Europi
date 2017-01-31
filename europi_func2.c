@@ -50,6 +50,14 @@ extern enum display_page_t DisplayPage;
 extern int prog_running;
 extern int impersonate_hw;
 extern enum encoder_focus_t encoder_focus;
+extern enum btnA_func_t btnA_func;
+extern enum btnB_func_t btnB_func;
+extern enum btnC_func_t btnC_func;
+extern enum btnD_func_t btnD_func;
+extern int btnA_state;
+extern int btnB_state;
+extern int btnC_state;
+extern int btnD_state;
 extern char **files;
 extern size_t file_count;                      
 extern int file_selected;
@@ -139,6 +147,20 @@ int OverlayActive(void){
         (ScreenOverlays.TextInput == 1)
         ) return 1;
     else return 0;        
+}
+
+/*
+ * Sets the default soft menu buttons
+ */
+void buttonsDefault(void){
+    btnA_func = btnA_quit;
+    btnB_func = btnB_menu;
+    btnC_func = btnC_bpm_dn;
+    btnD_func = btnD_bpm_up;
+    btnA_state = 0;
+    btnB_state = 0;
+    btnC_state = 0;
+    btnD_state = 0;
 }
 
 /*
@@ -245,7 +267,7 @@ void file_open(void){
     file_selected = 0;
     first_file = 0;
 } 
-/* 
+/*  
  * menu callback for File->Save
  */
 void file_save(void){
@@ -267,7 +289,7 @@ void file_saveas(void){
     ScreenOverlays.Keyboard = 1;
     ScreenOverlays.TextInput = 1;
     encoder_focus = keyboard_input;
-    sprintf(input_txt,"\0");
+    sprintf(input_txt,"");
 }
 
 /*

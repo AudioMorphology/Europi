@@ -27,17 +27,28 @@
 #include "europi.h"
 #include "../raylib/release/rpi/raylib.h"
 
+extern int clock_freq;
+extern int prog_running;
 extern Vector2 touchPosition;
 extern int currentGesture1;
 extern int lastGesture;
 extern menu Menu[]; 
-extern char input_txt[];
+extern char input_txt[]; 
 extern Texture2D KeyboardTexture;
 extern Texture2D DialogTexture;
 extern Texture2D TextInputTexture;
+extern Texture2D ButtonBarTexture; 
 extern char *kbd_chars[4][11];
 extern int kbd_char_selected;
 extern enum encoder_focus_t encoder_focus;
+extern enum btnA_func_t btnA_func;
+extern enum btnB_func_t btnB_func;
+extern enum btnC_func_t btnC_func;
+extern enum btnD_func_t btnD_func;
+extern int btnA_state;
+extern int btnB_state;
+extern int btnC_state;
+extern int btnD_state;
 extern struct screen_overlays ScreenOverlays;
 extern enum display_page_t DisplayPage;
 extern struct europi Europi;
@@ -335,8 +346,12 @@ void ShowScreenOverlays(void){
         //currentGesture = GetGestureDetected();
         DrawTexture(DialogTexture,0,0,WHITE);
         DrawText("File Open",10,5,20,DARKGRAY);
-        DrawText("OK",63,198,20,DARKGRAY);
-        DrawText("Cancel",210,198,20,DARKGRAY);
+        // OK & Cancel buttons are handled by the 
+        // soft buttons
+        btnA_func = btnA_none;
+        btnB_func = btnB_open;
+        btnC_func = btnC_cancel;
+        btnD_func = btnD_none;
         // List the files
         int i;
         int j=0;
@@ -363,21 +378,25 @@ void ShowScreenOverlays(void){
         fileHighlight.y=DLG_BTN1_Y;
         fileHighlight.width=DLG_BTN1_W;
         fileHighlight.height=DLG_BTN1_H;
-        // Check for touch input
-        if (CheckCollisionPointRec(touchPosition, fileHighlight) && (currentGesture1 != GESTURE_NONE)){
-            // OK Button Touched
+        // Check for Open button
+        if (btnB_state == 1){
+            // Open Button Touched
+            btnB_state = 0;
             char filename[100];
             snprintf(filename, sizeof(filename), "resources/sequences/%s", files[file_selected]);
             load_sequence(filename);
             ClearScreenOverlays();
+            buttonsDefault();
         }
         fileHighlight.x=DLG_BTN2_X;
         fileHighlight.y=DLG_BTN2_Y;
         fileHighlight.width=DLG_BTN2_W;
         fileHighlight.height=DLG_BTN2_H;
-        if (CheckCollisionPointRec(touchPosition, fileHighlight) && (currentGesture1 != GESTURE_NONE)){
+        if (btnC_state == 1){
             // Cancel Button Touched
+            btnC_state = 0;
             ClearScreenOverlays();
+            buttonsDefault();
         }
         
     }
@@ -385,6 +404,120 @@ void ShowScreenOverlays(void){
         DrawTexture(TextInputTexture,0,65,WHITE);
         DrawText("Save As:",10,70,20,DARKGRAY);
         DrawText(input_txt,10,92,20,DARKGRAY);
+    }
+    // The soft button function bar is always displayed 
+    // at the bottom of the screen
+    gui_ButtonBar();
+}
+
+/*
+ * gui_ButtonBar
+ * Draws the button bar at the bottom of the screen according 
+ * to the current function of each of the 4 Soft Buttons. It
+ * also scans for Touch Input for each button, and calls the
+ * same function that the button would
+ */
+void gui_ButtonBar(void){
+    Rectangle buttonRectangle = {0,0,0,0};
+    DrawTexture(ButtonBarTexture,0,213,WHITE);
+    // Button A
+    buttonRectangle.x = 0;
+    buttonRectangle.y = 213;
+    buttonRectangle.width = 80;
+    buttonRectangle.height = 17;
+    if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture1 != GESTURE_NONE)){
+        btnA_state = 1;
+    }
+    switch(btnA_func){
+        case btnA_quit:
+            DrawText("Quit",17,217,20,DARKGRAY);
+            if (btnA_state == 1){
+                btnA_state = 0;
+                prog_running = 0;
+            }
+
+        break;
+
+        case btnA_none:
+        default:
+        break;
+    }
+    // Button B
+    buttonRectangle.x = 80;
+    buttonRectangle.y = 213;
+    buttonRectangle.width = 80;
+    buttonRectangle.height = 17;
+    if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture1 != GESTURE_NONE)){
+        btnB_state = 1;
+    }
+    switch(btnB_func){
+        case btnB_menu:
+            DrawText("Menu",95,217,20,DARKGRAY);
+            if (btnB_state == 1){
+                btnB_state = 0;
+                ScreenOverlays.MainMenu ^= 1;
+                if(ScreenOverlays.MainMenu == 1){
+                    encoder_focus = menu_on;
+                }
+                else {
+                    ClearMenus();
+                    MenuSelectItem(0,0);    // Select just the first item of the first branch
+                }
+            }
+        break;
+        case btnB_open:
+            DrawText("Open",95,217,20,DARKGRAY);
+        break;
+
+        case btnB_none:
+        default:
+        break;
+    }
+    // Button C
+    buttonRectangle.x = 160;
+    buttonRectangle.y = 213;
+    buttonRectangle.width = 80;
+    buttonRectangle.height = 17;
+    if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture1 != GESTURE_NONE)){
+        btnC_state = 1;
+    }
+    switch(btnC_func){
+        case btnC_bpm_dn:
+            DrawText("BPM-",177,217,20,DARKGRAY);
+            if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture1 != GESTURE_NONE)){
+                clock_freq -= 10;
+                if (clock_freq < 1) clock_freq = 1;
+                gpioHardwarePWM(MASTER_CLK,clock_freq,500000);
+            }
+        break;
+        case btnC_cancel:
+            DrawText("Cancel",167,217,20,DARKGRAY);
+        break;
+
+        case btnC_none:
+        default:
+        break;
+    }
+    // Button D
+    buttonRectangle.x = 240;
+    buttonRectangle.y = 213;
+    buttonRectangle.width = 80;
+    buttonRectangle.height = 17;
+    if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture1 != GESTURE_NONE)){
+        btnD_state = 1;
+    }
+    switch(btnD_func){
+        case btnD_bpm_up:
+            DrawText("BPM+",257,217,20,DARKGRAY);
+            if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture1 != GESTURE_NONE)){
+                clock_freq += 10;
+                gpioHardwarePWM(MASTER_CLK,clock_freq,500000);
+            }
+        break;
+
+        case btnD_none:
+        default:
+        break;
     }
 }
 

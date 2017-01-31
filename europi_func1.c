@@ -57,7 +57,7 @@ extern char input_txt[];
 extern int kbfd;
 extern int prog_running;
 extern int run_stop; 
-extern int is_europi;
+extern int is_europi; 
 extern int retrig_counter;
 extern int extclk_counter;
 extern int extclk_level;
@@ -96,6 +96,14 @@ extern int encoder_pos;
 extern int encoder_vel;
 extern uint32_t encoder_tick;
 extern enum encoder_focus_t encoder_focus;
+extern enum btnA_func_t btnA_func;
+extern enum btnB_func_t btnB_func;
+extern enum btnC_func_t btnC_func;
+extern enum btnD_func_t btnD_func;
+extern int btnA_state;
+extern int btnB_state;
+extern int btnC_state;
+extern int btnD_state;
 extern struct europi Europi;
 extern enum display_page_t DisplayPage;
 extern struct screen_overlays ScreenOverlays;
@@ -112,6 +120,7 @@ extern Texture2D Splash;
 extern Texture2D KeyboardTexture;
 extern Texture2D DialogTexture;
 extern Texture2D TextInputTexture;
+extern Texture2D ButtonBarTexture; 
 extern int disp_menu;	
 extern char **files;
 extern char *kbd_chars[4][11];
@@ -537,6 +546,12 @@ static void *GateThread(void *arg)
 	encoder_level_B = 0;
 	encoder_tick = gpioTick();
 	encoder_focus = none;
+    // Initial function of each soft-button
+    btnA_func = btnA_quit;
+    btnB_func = btnB_menu;
+    btnC_func = btnC_bpm_dn;
+    btnD_func = btnD_bpm_up;
+
 
 	/* Raylib Initialisation */
 	/* force main screen resolution to same as TFT */
@@ -580,6 +595,7 @@ static void *GateThread(void *arg)
     KeyboardTexture = LoadTexture("resources/images/keyboard.png");
     DialogTexture = LoadTexture("resources/images/dialog.png");
     TextInputTexture = LoadTexture("resources/images/text_input.png");
+    ButtonBarTexture = LoadTexture("resources/images/button_bar.png");
 	//Splash screen
 	Splash = LoadTexture("resources/images/splash_screen.png");
 	BeginDrawing();
@@ -1209,48 +1225,24 @@ void MenuSelectItem(int Parent, int Child){
 /* Button 1 pressed */
 void button_1(int gpio, int level, uint32_t tick)
 {
-	if (level == 1) {
-		// Temp:Controlled shutdown
-		prog_running = 0;
-	}
-
+    btnA_state = level;
 }
 
 /* Button 2 pressed */
 void button_2(int gpio, int level, uint32_t tick)
 {
-	if (level == 1) ScreenOverlays.MainMenu ^= 1;
-	if(ScreenOverlays.MainMenu == 1){
-		encoder_focus = menu_on;
-	}
-    else {
-        ClearMenus();
-        MenuSelectItem(0,0);    // Select just the first item of the first branch
-    }
+    btnB_state = level;
 }
 /* Button 3 pressed */
 void button_3(int gpio, int level, uint32_t tick)
 {
-	float bpm;
-	if (level == 1) {
-		clock_freq -= 10;
-		if (clock_freq < 1) clock_freq = 1;
-		gpioHardwarePWM(MASTER_CLK,clock_freq,500000);
-		bpm = ((((float)clock_freq)/48) * 60);
-		log_msg("BPM: %f\n",bpm);
-	}
+    btnC_state = level;
 }
 	
 /* Button 4 pressed */
 void button_4(int gpio, int level, uint32_t tick)
 {
-	float bpm;
-	if (level == 1) {
-		clock_freq += 10;
-		gpioHardwarePWM(MASTER_CLK,clock_freq,500000);
-		bpm = ((((float)clock_freq)/48) * 60);
-		log_msg("BPM: %f\n",bpm);
-	}
+    btnD_state - level;
 }
 
 /*

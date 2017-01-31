@@ -113,6 +113,28 @@ enum encoder_focus_t {
     file_open_focus
 };
 
+enum btnA_func_t {
+    btnA_none,
+    btnA_quit
+};
+
+enum btnB_func_t {
+    btnB_none,
+    btnB_menu,
+    btnB_open
+};
+
+enum btnC_func_t {
+    btnC_none,
+    btnC_bpm_dn,
+    btnC_cancel
+};
+
+enum btnD_func_t {
+    btnD_none,
+    btnD_bpm_up
+};
+
 enum slew_t {
 	Off,
 	Linear,
@@ -175,6 +197,7 @@ void select_track(int track);
 void seq_new(void);
 void ClearScreenOverlays(void);
 int OverlayActive(void);
+void buttonsDefault(void);
 void seq_quantise(void);
 void seq_setpitch(void);
 void seq_setloop(void);
@@ -201,6 +224,7 @@ int cstring_cmp(const void *a, const void *b);
 void gui_8x8(void);
 void gui_grid(void);
 void gui_SingleChannel(void);
+void gui_ButtonBar(void);
 void gui_MainMenu(void);
 void ShowScreenOverlays(void);
 
@@ -289,7 +313,7 @@ enum display_page_t {
 /* Overlays are things such as Menus, 
  * which can be overlaid on top of whatever
  * page is currently being displayed
- */
+ */ 
  struct screen_overlays{
 	 int MainMenu;
 	 int SetZero;

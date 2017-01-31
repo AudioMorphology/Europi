@@ -91,6 +91,14 @@ pthread_t touchThreadId;
 
 
 enum encoder_focus_t encoder_focus;
+enum btnA_func_t btnA_func;
+enum btnB_func_t btnB_func;
+enum btnC_func_t btnC_func;
+enum btnD_func_t btnD_func;
+int btnA_state = 0;
+int btnB_state = 0;
+int btnC_state = 0;
+int btnD_state = 0;
 uint32_t encoder_tick;
 pthread_attr_t detached_attr;		/* Single detached thread attribute used by any /all detached threads */
 pthread_mutex_t mcp23008_lock;
@@ -113,6 +121,7 @@ Texture2D Splash;	        // Splash screen texture
 Texture2D KeyboardTexture;  // Keyboard Overlay texture
 Texture2D DialogTexture;    // Common dialog control
 Texture2D TextInputTexture; // text input dialog box
+Texture2D ButtonBarTexture; // Soft-button graphic bar
 
 /* declare and populate the menu structure */ 
 menu mnu_file_open = 	{0,0,dir_none,"Open",&file_open,NULL};
@@ -172,7 +181,7 @@ int main(int argc, char* argv[])
     currentGesture1 = GESTURE_NONE;
     lastGesture = GESTURE_NONE;
     //SetGesturesEnabled(0b0000000011100011);   //None, tap & DoubleTap 
-
+ 
 while (prog_running == 1){
 
     lastGesture = currentGesture1;
