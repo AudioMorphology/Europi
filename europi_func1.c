@@ -1121,6 +1121,9 @@ void encoder_button(int gpio, int level, uint32_t tick)
             snprintf(filename, sizeof(filename), "resources/sequences/%s", files[file_selected]);
             load_sequence(filename);
             ClearScreenOverlays();
+            buttonsDefault();
+            ClearMenus();
+            MenuSelectItem(0,0);
             encoder_focus = none;
             }
             break;
@@ -1246,7 +1249,7 @@ void button_3(int gpio, int level, uint32_t tick)
 /* Button 4 pressed */
 void button_4(int gpio, int level, uint32_t tick)
 {
-    btnD_state - level;
+    btnD_state = level;
 }
 
 /*

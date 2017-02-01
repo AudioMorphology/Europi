@@ -127,6 +127,7 @@ void ClearScreenOverlays(void){
     ScreenOverlays.Keyboard = 0;
     ScreenOverlays.FileOpen = 0;
     ScreenOverlays.TextInput = 0;
+    ScreenOverlays.FileSaveAs = 0;
 }
 
 /*
@@ -144,7 +145,8 @@ int OverlayActive(void){
         (ScreenOverlays.SetQuantise == 1) ||
         (ScreenOverlays.Keyboard == 1) ||
         (ScreenOverlays.FileOpen == 1) ||
-        (ScreenOverlays.TextInput == 1)
+        (ScreenOverlays.TextInput == 1) ||
+        (ScreenOverlays.FileSaveAs == 1)
         ) return 1;
     else return 0;        
 }
@@ -290,8 +292,7 @@ void file_saveas(void){
     btnB_func = btnB_save;
     btnC_func = btnC_cancel;
     btnD_func = btnD_none;
-    ScreenOverlays.Keyboard = 1;
-    ScreenOverlays.TextInput = 1;
+    ScreenOverlays.FileSaveAs = 1;
     encoder_focus = keyboard_input;
     sprintf(input_txt,"");
 }

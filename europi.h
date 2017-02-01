@@ -156,7 +156,13 @@ enum gate_type_t {
 	GateOff,
 	Trigger,
 	ReTrigger,
-	Gate
+	Gate,
+    Gate_0,     // Off (ie no Gate)
+    Gate_25,    // Gate on for 25% of step length
+    Gate_50,
+    Gate_75,
+    Gate_95,
+    Gate_100    // Gate on (ie no gate off)
 };
 
 enum shot_type_t {
@@ -330,6 +336,7 @@ enum display_page_t {
      int Keyboard;
      int FileOpen;
      int TextInput;
+     int FileSaveAs;
  };
  
 /*

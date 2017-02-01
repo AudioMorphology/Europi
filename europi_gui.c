@@ -70,7 +70,6 @@ void gui_8x8(void){
     char txt[20]; 
 
     BeginDrawing();
-    //ClearBackground(RAYWHITE);
     DrawTexture(MainScreenTexture,0,0,WHITE);
     for(track = 0; track < 8; track++){
         // for each track, we need to know where the 
@@ -183,6 +182,65 @@ void gui_SingleChannel(void){
     int val;
     char track_no[20];
     int txt_len;
+    int row;
+    Rectangle stepRectangle = {0,0,0,0};
+    BeginDrawing();
+    DrawTexture(MainScreenTexture,0,0,WHITE);
+    for (track = 0; track < MAX_TRACKS; track++){
+        if (Europi.tracks[track].selected == TRUE){
+            sprintf(track_no,"%d",track+1);
+            txt_len = MeasureText(track_no,10);
+            //DrawText(track_no,12-txt_len,220,10,DARKGRAY);
+            for (step = 0; step < MAX_STEPS; step++){
+                row = step / 16;
+                if(step < Europi.tracks[track].last_step){
+                    //val = (int)(((float)Europi.tracks[track].channels[CV_OUT].steps[step].scaled_value / (float)60000) * 55);
+                    val = (int)(((float)Europi.tracks[track].channels[CV_OUT].steps[step].scaled_value / (float)10000) * 100);
+                    stepRectangle.x = ((step-(row*16)) * 18)+20;
+                    stepRectangle.y = ((row+1) * 100)-val;
+                    stepRectangle.width = 15;
+                    stepRectangle.height = val;
+                    if(step == Europi.tracks[track].current_step){
+                        DrawRectangleRec(stepRectangle,MAROON);
+                    }
+                    else{
+                        DrawRectangleRec(stepRectangle,LIME);
+                    }
+/*                    // Gate State
+                    if (Europi.tracks[track].channels[GATE_OUT].steps[step].gate_value == 1){
+                        sprintf(track_no,"%d",Europi.tracks[track].channels[GATE_OUT].steps[step].retrigger);
+                        DrawText(track_no,15 + (step*9),220,10,DARKGRAY);
+                    }
+                    // Slew
+                    if (Europi.tracks[track].channels[CV_OUT].steps[step].slew_type != Off){
+                        switch (Europi.tracks[track].channels[CV_OUT].steps[step].slew_shape){
+                            case Both:
+                                DrawText("V",15 + (step*9),230,10,DARKGRAY);
+                            break;
+                            case Rising:
+                                DrawText("/",15 + (step*9),230,10,DARKGRAY);
+                            break;
+                            case Falling:
+                                DrawText("\\",15 + (step*9),230,10,DARKGRAY);
+                            break;
+                        }
+                    } */
+                }
+            }
+        }
+    }
+    // Handle any screen overlays - these need to 
+    // be added within the Drawing loop
+    ShowScreenOverlays();
+    EndDrawing();
+}
+
+void gui_SingleChannel_Old(void){
+    int track;
+    int step;
+    int val;
+    char track_no[20];
+    int txt_len;
     Rectangle stepRectangle = {0,0,0,0};
     BeginDrawing();
     ClearBackground(RAYWHITE);
@@ -228,6 +286,7 @@ void gui_SingleChannel(void){
     ShowScreenOverlays();
     EndDrawing();
 }
+
 
 /*
  * ShowScreenOverlays is called from within the 
@@ -325,23 +384,8 @@ void ShowScreenOverlays(void){
                     col = button % KBD_COLS;
                     //Add this to the input_txt buffer
                     sprintf(input_txt,"%s%s", input_txt,kbd_chars[row][col]);
-                    /*                // Store gesture string
-                switch (currentGesture1)
-                {
-                    case GESTURE_TAP: sprintf(input_txt,"%s%s", input_txt,"TAP"); break;
-                    case GESTURE_DOUBLETAP: sprintf(input_txt,"%s%s", input_txt,"DOUBLETAP"); break;
-                    case GESTURE_HOLD: sprintf(input_txt,"%s%s", input_txt,"HOLD"); break;
-                    case GESTURE_DRAG: sprintf(input_txt,"%s%s", input_txt,"DRAG"); break;
-                    case GESTURE_SWIPE_RIGHT: sprintf(input_txt,"%s%s", input_txt,"RIGHT"); break;
-                    case GESTURE_SWIPE_LEFT: sprintf(input_txt,"%s%s", input_txt,"LEFT"); break;
-                    case GESTURE_SWIPE_UP: sprintf(input_txt,"%s%s", input_txt,"UP"); break;
-                    case GESTURE_SWIPE_DOWN: sprintf(input_txt,"%s%s", input_txt,"DOWN"); break;
-                    default: break;
-                }*/
-
                 }
             }
-            
         }
     }
     if(ScreenOverlays.FileOpen == 1){
@@ -396,11 +440,42 @@ void ShowScreenOverlays(void){
         }
         
     }
-    if(ScreenOverlays.TextInput == 1){
+    if(ScreenOverlays.FileSaveAs == 1){
+        // Top data entry bar
         DrawTexture(TopBarTexture,0,0,WHITE);
         DrawTexture(TextInputTexture,103,1,WHITE);
         DrawText("Save As:",10,MENU_TOP_MARGIN,20,DARKGRAY);
         DrawText(input_txt,110,4,20,DARKGRAY);
+        // Keyboard
+         Rectangle btnHighlight = {0,0,0,0};
+        int button;
+        int row, col;
+        DrawTexture(KeyboardTexture,KBD_GRID_TL_X,KBD_GRID_TL_Y,WHITE);
+        for(button=0;button < (KBD_ROWS * KBD_COLS);button++){
+            row = button / KBD_COLS;
+            col = button % KBD_COLS;
+            btnHighlight.x = (KBD_GRID_TL_X + KBD_BTN_TL_X) + (col * KBD_COL_WIDTH);
+            btnHighlight.y = (KBD_GRID_TL_Y + KBD_BTN_TL_Y) + (row * KBD_ROW_HEIGHT);
+            btnHighlight.width = KBD_BTN_WIDTH;
+            btnHighlight.height = KBD_BTN_HEIGHT;
+            if(button == kbd_char_selected){
+                //Highlight this button
+                DrawRectangleLines((KBD_GRID_TL_X + KBD_BTN_TL_X) + (col * KBD_COL_WIDTH),
+                (KBD_GRID_TL_Y + KBD_BTN_TL_Y) + (row * KBD_ROW_HEIGHT),
+                KBD_BTN_WIDTH,
+                KBD_BTN_HEIGHT,WHITE);
+            }
+            // Check for touch input
+            if (CheckCollisionPointRec(touchPosition, btnHighlight) && (currentGesture1 != GESTURE_NONE)){
+                if(currentGesture1 != lastGesture){
+                    kbd_char_selected = button;
+                    row = button / KBD_COLS;
+                    col = button % KBD_COLS;
+                    //Add this to the input_txt buffer
+                    sprintf(input_txt,"%s%s", input_txt,kbd_chars[row][col]);
+                }
+            }
+        }       
     }
     // The soft button function bar is always displayed 
     // at the bottom of the screen
@@ -464,9 +539,30 @@ void gui_ButtonBar(void){
         break;
         case btnB_open:
             DrawText("Open",95,217,20,DARKGRAY);
+            if (btnB_state == 1){
+                btnB_state = 0;
+
+            }
         break;
         case btnB_save:
             DrawText("Save",95,217,20,DARKGRAY);
+            if (btnB_state == 1){
+                btnB_state = 0;
+                //Check what we're saving...
+                if(ScreenOverlays.FileSaveAs == 1){
+                    ClearScreenOverlays();
+                    buttonsDefault();
+                    ClearMenus();
+                    MenuSelectItem(0,0);
+                    char *filename[80];
+                    sprintf(filename,"resources/sequences/%s",input_txt);
+                    FILE * file = fopen(filename,"wb");
+                    if (file != NULL) {
+                        fwrite(&Europi,sizeof(struct europi),1,file);
+                        fclose(file);
+                    }
+                }
+            }
         break;
 
         case btnB_none:
@@ -484,7 +580,8 @@ void gui_ButtonBar(void){
     switch(btnC_func){
         case btnC_bpm_dn:
             DrawText("BPM-",177,217,20,DARKGRAY);
-            if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture1 != GESTURE_NONE)){
+            if (btnC_state == 1){
+                btnC_state = 0;
                 clock_freq -= 10;
                 if (clock_freq < 1) clock_freq = 1;
                 gpioHardwarePWM(MASTER_CLK,clock_freq,500000);
@@ -492,6 +589,14 @@ void gui_ButtonBar(void){
         break;
         case btnC_cancel:
             DrawText("Cancel",167,217,20,DARKGRAY);
+            if (btnC_state == 1){
+                btnC_state = 0;
+                // Don't know what we're cancelling, and don't care
+                ClearScreenOverlays();
+                buttonsDefault();
+                ClearMenus();
+                MenuSelectItem(0,0);
+            }
         break;
 
         case btnC_none:
@@ -509,7 +614,8 @@ void gui_ButtonBar(void){
     switch(btnD_func){
         case btnD_bpm_up:
             DrawText("BPM+",257,217,20,DARKGRAY);
-            if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture1 != GESTURE_NONE)){
+            if (btnD_state == 1){
+                btnD_state = 0;
                 clock_freq += 10;
                 gpioHardwarePWM(MASTER_CLK,clock_freq,500000);
             }
