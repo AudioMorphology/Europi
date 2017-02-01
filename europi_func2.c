@@ -286,6 +286,10 @@ void file_save(void){
 void file_saveas(void){
 	//run_stop = STOP;
 	ClearScreenOverlays();
+    btnA_func = btnA_none;
+    btnB_func = btnB_save;
+    btnC_func = btnC_cancel;
+    btnD_func = btnD_none;
     ScreenOverlays.Keyboard = 1;
     ScreenOverlays.TextInput = 1;
     encoder_focus = keyboard_input;

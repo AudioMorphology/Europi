@@ -37,6 +37,8 @@ extern char input_txt[];
 extern Texture2D KeyboardTexture;
 extern Texture2D DialogTexture;
 extern Texture2D TextInputTexture;
+extern Texture2D MainScreenTexture;
+extern Texture2D TopBarTexture;
 extern Texture2D ButtonBarTexture; 
 extern char *kbd_chars[4][11];
 extern int kbd_char_selected;
@@ -63,11 +65,13 @@ extern int first_file;
  */
 void gui_8x8(void){
     Rectangle stepRectangle = {0,0,0,0};
-    BeginDrawing();
-    ClearBackground(RAYWHITE);
     int track, column;
     int step, offset, txt_len;
     char txt[20]; 
+
+    BeginDrawing();
+    //ClearBackground(RAYWHITE);
+    DrawTexture(MainScreenTexture,0,0,WHITE);
     for(track = 0; track < 8; track++){
         // for each track, we need to know where the 
         // current step in the sequence is for that
@@ -77,10 +81,10 @@ void gui_8x8(void){
         // Display the step offset at the start of each track
         sprintf(txt,"%d",offset);
         txt_len = MeasureText(txt,20);
-        DrawText(txt,20-txt_len,20+(track * 25),20,DARKGRAY);
+        DrawText(txt,20-txt_len,10+(track * 25),20,DARKGRAY);
         // Check for doube-tap on the Track Number
         stepRectangle.x = 20-txt_len;
-        stepRectangle.y = 20+(track * 25);
+        stepRectangle.y = 10+(track * 25);
         stepRectangle.width = txt_len; 
         stepRectangle.height = 20;
         if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture1 == GESTURE_TAP)){
@@ -95,7 +99,7 @@ void gui_8x8(void){
         }
         for(column=0;column<8;column++){
             stepRectangle.x = 30 + (column * 25);
-            stepRectangle.y = 20 + (track * 25);
+            stepRectangle.y = 10 + (track * 25);
             stepRectangle.width = 22;
             stepRectangle.height = 22;
             // Check gesture collision
@@ -374,24 +378,16 @@ void ShowScreenOverlays(void){
                 j++;
             }
         }
-        fileHighlight.x=DLG_BTN1_X;
-        fileHighlight.y=DLG_BTN1_Y;
-        fileHighlight.width=DLG_BTN1_W;
-        fileHighlight.height=DLG_BTN1_H;
         // Check for Open button
         if (btnB_state == 1){
             // Open Button Touched
             btnB_state = 0;
-            char filename[100];
+            char filename[100]; 
             snprintf(filename, sizeof(filename), "resources/sequences/%s", files[file_selected]);
             load_sequence(filename);
             ClearScreenOverlays();
             buttonsDefault();
         }
-        fileHighlight.x=DLG_BTN2_X;
-        fileHighlight.y=DLG_BTN2_Y;
-        fileHighlight.width=DLG_BTN2_W;
-        fileHighlight.height=DLG_BTN2_H;
         if (btnC_state == 1){
             // Cancel Button Touched
             btnC_state = 0;
@@ -401,9 +397,10 @@ void ShowScreenOverlays(void){
         
     }
     if(ScreenOverlays.TextInput == 1){
-        DrawTexture(TextInputTexture,0,65,WHITE);
-        DrawText("Save As:",10,70,20,DARKGRAY);
-        DrawText(input_txt,10,92,20,DARKGRAY);
+        DrawTexture(TopBarTexture,0,0,WHITE);
+        DrawTexture(TextInputTexture,103,1,WHITE);
+        DrawText("Save As:",10,MENU_TOP_MARGIN,20,DARKGRAY);
+        DrawText(input_txt,110,4,20,DARKGRAY);
     }
     // The soft button function bar is always displayed 
     // at the bottom of the screen
@@ -419,7 +416,7 @@ void ShowScreenOverlays(void){
  */
 void gui_ButtonBar(void){
     Rectangle buttonRectangle = {0,0,0,0};
-    DrawTexture(ButtonBarTexture,0,213,WHITE);
+    //DrawTexture(ButtonBarTexture,0,213,WHITE);
     // Button A
     buttonRectangle.x = 0;
     buttonRectangle.y = 213;
@@ -467,6 +464,9 @@ void gui_ButtonBar(void){
         break;
         case btnB_open:
             DrawText("Open",95,217,20,DARKGRAY);
+        break;
+        case btnB_save:
+            DrawText("Save",95,217,20,DARKGRAY);
         break;
 
         case btnB_none:
@@ -524,26 +524,27 @@ void gui_ButtonBar(void){
 void gui_MainMenu(void){
     int x = 5;
     int txt_len;
-    int PanelHeight = MENU_FONT_SIZE + (MENU_TB_MARGIN * 2);
+    int PanelHeight = MENU_FONT_SIZE + MENU_TB_MARGIN;
     Color menu_colour;
     Rectangle menuRectangle = {0,0,0,0}; 
     //lastGesture = currentGesture;
     //currentGesture = GetGestureDetected();
     //touchPosition = GetTouchPosition(0);
+    // Top Bar
+    DrawTexture(TopBarTexture,0,0,WHITE);
     int i = 0;
     while(Menu[i].name != NULL){
         txt_len = MeasureText(Menu[i].name,MENU_FONT_SIZE);
         //Draw a box a bit bigger than this
-        if (Menu[i].highlight == 1) menu_colour = BLUE; else menu_colour = BLACK;
+        if (Menu[i].highlight == 1) menu_colour = CLR_LIGHTBLUE; else menu_colour = CLR_DARKBLUE;
         menuRectangle.x = x;
-        menuRectangle.y = 0;
+        menuRectangle.y = 2;
         menuRectangle.width = txt_len+(MENU_LR_MARGIN * 2);
         menuRectangle.height = PanelHeight;
         if (CheckCollisionPointRec(touchPosition, menuRectangle) && (currentGesture1 == GESTURE_HOLD)){
             // Toggle the expansion of this menu item
-            //currentGesture = GESTURE_NONE;
             if (Menu[i].highlight == 0) {
-                //this Menu item not currently highlighted, so
+                // this Menu item not currently highlighted, so
                 // de-hilight the existing one, and highlight this
                 int m = 0;
                 while(Menu[m].name != NULL){
@@ -557,7 +558,7 @@ void gui_MainMenu(void){
             toggle_menu();
         }
         DrawRectangleRec(menuRectangle,menu_colour);
-        DrawText(Menu[i].name,x+MENU_LR_MARGIN,MENU_TB_MARGIN,MENU_FONT_SIZE,WHITE);
+        DrawText(Menu[i].name,x+MENU_LR_MARGIN,MENU_TOP_MARGIN,MENU_FONT_SIZE,DARKGRAY);
         if(Menu[i].expanded == 1){
             // Draw sub-menus
             int j = 0;
@@ -572,7 +573,7 @@ void gui_MainMenu(void){
             }
             j = 0;
             while(Menu[i].child[j]->name != NULL){
-                if (Menu[i].child[j]->highlight == 1) menu_colour = BLUE; else menu_colour = BLACK;
+                if (Menu[i].child[j]->highlight == 1) menu_colour = CLR_LIGHTBLUE; else menu_colour = CLR_DARKBLUE;
                 // Deal with the direction this leaf opens
                 switch (Menu[i].child[j]->direction){
                     case dir_right:
@@ -589,13 +590,12 @@ void gui_MainMenu(void){
                 menuRectangle.width = sub_len+(MENU_LR_MARGIN * 2);
                 menuRectangle.height = PanelHeight;
                 if (CheckCollisionPointRec(touchPosition, menuRectangle) && (currentGesture1 == GESTURE_HOLD)){
-                    // Call this function
-                    //currentGesture = GESTURE_NONE;
+                    // Call function pointed to by this menu item
                     MenuSelectItem(i,j);
                     if (Menu[i].child[j]->funcPtr != NULL) Menu[i].child[j]->funcPtr();
                 }
                 DrawRectangleRec(menuRectangle,menu_colour);
-                DrawText(Menu[i].child[j]->name,menuRectangle.x+MENU_LR_MARGIN,y+MENU_TB_MARGIN,MENU_FONT_SIZE,WHITE);
+                DrawText(Menu[i].child[j]->name,menuRectangle.x+MENU_LR_MARGIN,y+MENU_TB_MARGIN,MENU_FONT_SIZE,DARKGRAY);
                 y+=PanelHeight;
                 j++;
             }
@@ -604,3 +604,4 @@ void gui_MainMenu(void){
         i++;
     }
 }
+

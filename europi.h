@@ -70,6 +70,7 @@
 
 /* Menu Constants */
 #define MENU_FONT_SIZE      20
+#define MENU_TOP_MARGIN     3   // How many pixels above & below (Top & Bottom) the Menu Text
 #define MENU_TB_MARGIN      1   // How many pixels above & below (Top & Bottom) the Menu Text
 #define MENU_LR_MARGIN      3   // How many pixels to Left and Right of the Menu Text
 #define MENU_HORIZ_SPACE    2   // Horizontal Gap between top-level menus
@@ -121,7 +122,8 @@ enum btnA_func_t {
 enum btnB_func_t {
     btnB_none,
     btnB_menu,
-    btnB_open
+    btnB_open,
+    btnB_save
 };
 
 enum btnC_func_t {
@@ -237,7 +239,7 @@ void ShowScreenOverlays(void);
 #define X_MAX 320 
 #define Y_MAX 240
 #define KBD_GRID_TL_X 0
-#define KBD_GRID_TL_Y 240-123
+#define KBD_GRID_TL_Y 95
 #define KBD_BTN_TL_X 5
 #define KBD_BTN_TL_Y 5
 #define KBD_BTN_WIDTH 29
@@ -246,15 +248,18 @@ void ShowScreenOverlays(void);
 #define KBD_ROW_HEIGHT 28
 #define KBD_ROWS 4
 #define KBD_COLS 11
-#define DLG_ROWS 7
-#define DLG_BTN1_X 18
-#define DLG_BTN1_Y 189
-#define DLG_BTN1_W 121
-#define DLG_BTN1_H 39
-#define DLG_BTN2_X 181
-#define DLG_BTN2_Y 189
-#define DLG_BTN2_W 121
-#define DLG_BTN2_H 39
+#define DLG_ROWS 9
+// Two shades of BLUE used in menus etc.
+#define CLR_DARKBLUE (Color){ 153, 181, 208, 255 } 
+#define CLR_LIGHTBLUE (Color){ 186, 212, 238, 255 } 
+//#define DLG_BTN1_X 18
+//#define DLG_BTN1_Y 189
+//#define DLG_BTN1_W 121
+//#define DLG_BTN1_H 39
+//#define DLG_BTN2_X 181
+//#define DLG_BTN2_Y 189
+//#define DLG_BTN2_W 121
+//#define DLG_BTN2_H 39
 
 
 /* 

@@ -120,6 +120,8 @@ extern Texture2D Splash;
 extern Texture2D KeyboardTexture;
 extern Texture2D DialogTexture;
 extern Texture2D TextInputTexture;
+extern Texture2D MainScreenTexture;
+extern Texture2D TopBarTexture;
 extern Texture2D ButtonBarTexture; 
 extern int disp_menu;	
 extern char **files;
@@ -595,6 +597,8 @@ static void *GateThread(void *arg)
     KeyboardTexture = LoadTexture("resources/images/keyboard.png");
     DialogTexture = LoadTexture("resources/images/dialog.png");
     TextInputTexture = LoadTexture("resources/images/text_input.png");
+    MainScreenTexture = LoadTexture("resources/images/main_screen.png");
+    TopBarTexture = LoadTexture("resources/images/top_bar.png");
     ButtonBarTexture = LoadTexture("resources/images/button_bar.png");
 	//Splash screen
 	Splash = LoadTexture("resources/images/splash_screen.png");
