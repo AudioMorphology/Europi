@@ -203,6 +203,8 @@ void select_track(int track){
 void seq_quantise(void){
 	ClearScreenOverlays();
 	ScreenOverlays.SetQuantise = 1;
+    ClearMenus();
+    MenuSelectItem(0,0);
 	encoder_focus = track_select;
 	select_first_track();
 }
@@ -212,6 +214,8 @@ void seq_quantise(void){
 void seq_setpitch(void){
 	ClearScreenOverlays();
 	ScreenOverlays.SetPitch = 1;
+    ClearMenus();
+    MenuSelectItem(0,0);
 	encoder_focus = track_select;
 	run_stop = STOP;
 	select_first_track();
@@ -222,6 +226,8 @@ void seq_setpitch(void){
 void seq_setloop(void){
 	ClearScreenOverlays();
 	ScreenOverlays.SetLoop = 1;
+    ClearMenus();
+    MenuSelectItem(0,0);
 	encoder_focus = track_select;
 	select_first_track();
 }

@@ -120,6 +120,8 @@ extern Texture2D Splash;
 extern Texture2D KeyboardTexture;
 extern Texture2D DialogTexture;
 extern Texture2D TextInputTexture;
+extern Texture2D Text2chTexture;
+extern Texture2D Text5chTexture;
 extern Texture2D MainScreenTexture;
 extern Texture2D TopBarTexture;
 extern Texture2D ButtonBarTexture; 
@@ -597,6 +599,8 @@ static void *GateThread(void *arg)
     KeyboardTexture = LoadTexture("resources/images/keyboard.png");
     DialogTexture = LoadTexture("resources/images/dialog.png");
     TextInputTexture = LoadTexture("resources/images/text_input.png");
+    Text2chTexture = LoadTexture("resources/images/text_2ch.png");
+    Text5chTexture = LoadTexture("resources/images/text_5ch.png");
     MainScreenTexture = LoadTexture("resources/images/main_screen.png");
     TopBarTexture = LoadTexture("resources/images/top_bar.png");
     ButtonBarTexture = LoadTexture("resources/images/button_bar.png");
@@ -653,6 +657,14 @@ int shutdown(void)
 	}
 
 	/* Raylib de-initialisation */
+    UnloadTexture(KeyboardTexture);
+    UnloadTexture(DialogTexture);
+    UnloadTexture(TextInputTexture);
+    UnloadTexture(Text2chTexture);
+    UnloadTexture(Text5chTexture);
+    UnloadTexture(MainScreenTexture);
+    UnloadTexture(TopBarTexture);
+    UnloadTexture(ButtonBarTexture);
 	UnloadSpriteFont(font1);
 	UnloadTexture(Splash);
 	CloseWindow();        			// Close window and OpenGL context

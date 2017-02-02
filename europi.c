@@ -121,6 +121,8 @@ Texture2D Splash;	        // Splash screen texture
 Texture2D KeyboardTexture;  // Keyboard Overlay texture
 Texture2D DialogTexture;    // Common dialog control
 Texture2D TextInputTexture; // text input dialog box
+Texture2D Text2chTexture;   // 2 Character text box (used for Channel number, step number etc)
+Texture2D Text5chTexture;   // 5 Character text box 
 Texture2D TopBarTexture;    // Top (menu) bar texture
 Texture2D MainScreenTexture; // Main screen
 Texture2D ButtonBarTexture; // Soft-button graphic bar

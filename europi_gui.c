@@ -37,6 +37,8 @@ extern char input_txt[];
 extern Texture2D KeyboardTexture;
 extern Texture2D DialogTexture;
 extern Texture2D TextInputTexture;
+extern Texture2D Text2chTexture;
+extern Texture2D Text5chTexture;
 extern Texture2D MainScreenTexture;
 extern Texture2D TopBarTexture;
 extern Texture2D ButtonBarTexture; 
@@ -304,51 +306,92 @@ void ShowScreenOverlays(void){
     if(ScreenOverlays.SetLoop == 1){
         int track = 0;
         char str[80];
+        char strTrack[5];
+        char strLoop[5];
+        DrawTexture(TopBarTexture,0,0,WHITE);
+        DrawTexture(Text2chTexture,70,2,WHITE); // Box for Track Number
+        DrawTexture(Text2chTexture,155,2,WHITE); // Box for Step Number
+        DrawText("Track",5,5,20,DARKGRAY);
+        DrawText("Loop",105,5,20,DARKGRAY);
+        
         for(track = 0; track < MAX_TRACKS; track++) {
             if (Europi.tracks[track].selected == TRUE){
+                sprintf(strTrack,"%02d",track+1);
+                sprintf(strLoop,"%02d",Europi.tracks[track].last_step);
+                DrawText(strTrack,75,5,20,DARKGRAY);
+                DrawText(strLoop,160,5,20,DARKGRAY);
                 if(encoder_focus == track_select){
-                    sprintf(str,"Track: [%02d] Loop Point: %02d",track+1,Europi.tracks[track].last_step);
+                    DrawRectangleLines(71,3,30,22,RED);
+                    DrawRectangleLines(72,4,28,20,RED);
                 }
                 else if (encoder_focus == set_loop) {
-                    sprintf(str,"Track: %02d Loop Point: [%02d]",track+1,Europi.tracks[track].last_step);
+                    DrawRectangleLines(156,3,30,22,RED);
+                    DrawRectangleLines(157,4,28,20,RED);
                 }
-                DrawRectangle(20, 30, 250, 20, BLACK);
-                DrawText(str,25,35,10,WHITE);
             }
         }
     }
-        if(ScreenOverlays.SetPitch == 1){ 
+    if(ScreenOverlays.SetPitch == 1){ 
         int track = 0;
-        char str[80];
+        char strTrack[5];
+        char strStep[5];
+        char strPitch[9];
+        DrawTexture(TopBarTexture,0,0,WHITE);
+        DrawTexture(Text2chTexture,70,2,WHITE); // Box for Track Number
+        DrawTexture(Text2chTexture,155,2,WHITE); // Box for Step Number
+        DrawTexture(Text5chTexture,245,2,WHITE); // Box for Pitch Value
+        
+        DrawText("Track",5,5,20,DARKGRAY);
+        DrawText("Step",105,5,20,DARKGRAY);
+        DrawText("Pitch",190,5,20,DARKGRAY);
         for(track = 0; track < MAX_TRACKS; track++) {
             if (Europi.tracks[track].selected == TRUE){
+                sprintf(strTrack,"%02d",track+1);
+                sprintf(strStep,"%02d",Europi.tracks[track].current_step+1);
+                sprintf(strPitch,"%05d",Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);
+                DrawText(strTrack,75,5,20,DARKGRAY);
+                DrawText(strStep,160,5,20,DARKGRAY);
+                DrawText(strPitch,250,5,20,DARKGRAY);
                 if(encoder_focus == track_select){
-                    sprintf(str,"Track: [%02d] Step: %02d Pitch: %05d",track+1,Europi.tracks[track].current_step+1,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);
+                    DrawRectangleLines(71,3,30,22,RED);
+                    DrawRectangleLines(72,4,28,20,RED);
                 }
                 else if (encoder_focus == step_select) {
-                    sprintf(str,"Track: %02d Step: [%02d] Pitch: %05d",track+1,Europi.tracks[track].current_step+1,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);
+                    DrawRectangleLines(156,3,30,22,RED);
+                    DrawRectangleLines(157,4,28,20,RED);
                 }
                 else if (encoder_focus == set_pitch){
-                    sprintf(str,"Track: %02d Step: %02d Pitch: [%05d]",track+1,Europi.tracks[track].current_step+1,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);
+                    DrawRectangleLines(246,3,66,22,RED);
+                    DrawRectangleLines(247,4,64,20,RED);
                 }
-                DrawRectangle(20, 30, 250, 20, BLACK);
-                DrawText(str,25,35,10,WHITE);
             }
         }
     }
     if(ScreenOverlays.SetQuantise == 1){
         int track = 0;
         char str[80];
+        char strTrack[5];
+        char strScale[30];
+        DrawTexture(TopBarTexture,0,0,WHITE);
+        DrawTexture(Text2chTexture,70,2,WHITE); 
+        DrawTexture(TextInputTexture,103,2,WHITE);
+        DrawText("Track",5,5,20,DARKGRAY);
+        
         for(track = 0; track < MAX_TRACKS; track++) {
             if (Europi.tracks[track].selected == TRUE){
+                sprintf(strTrack,"%02d",track+1);
+                sprintf(strScale,"%s",scale_names[Europi.tracks[track].channels[CV_OUT].quantise]);
+                DrawText(strTrack,75,5,20,DARKGRAY);
+                DrawText(strScale,110,5,20,DARKGRAY);
                 if(encoder_focus == track_select){
-                    sprintf(str,"Track: [%02d] Quantisation: %s",track+1,scale_names[Europi.tracks[track].channels[CV_OUT].quantise]);
+                    DrawRectangleLines(71,3,30,22,RED);
+                    DrawRectangleLines(72,4,28,20,RED);
                 }
                 else if (encoder_focus == set_quantise) {
-                    sprintf(str,"Track: %02d Quantisation: [%s]",track+1,scale_names[Europi.tracks[track].channels[CV_OUT].quantise]);
+                    DrawRectangleLines(103,3,213,22,RED);
+                    DrawRectangleLines(104,4,211,20,RED);
+
                 }
-                DrawRectangle(20, 30, 250, 20, BLACK);
-                DrawText(str,25,35,10,WHITE);
             }
         }
     }
