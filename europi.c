@@ -48,7 +48,6 @@ int is_europi = FALSE;	/* whether we are running on Europi hardware - set to Tru
 int print_messages = TRUE; /* controls whether log_msg outputs to std_err or not */
 int debug = FALSE;		/* controls whether debug messages are printed to the main screen */
 int impersonate_hw = FALSE;	/* allows the software to bypass hardware checks (useful when testing sw without full hw ) */ 
-char debug_txt[100];	/* buffer for debug text messages */
 char input_txt[100];    /* buffer for capturing user input */
 int prog_running=0;		/* Setting this to 0 will force the prog to quit*/
 int run_stop=STOP;		/* 0=Stop 1=Run: Halts the main step generator */
@@ -114,6 +113,8 @@ char *kbd_chars[4][11] = {{"1","2","3","4","5","6","7","8","9","0","_"},
                         {"/","a","s","d","f","g","h","j","k","l","."},
                         {" "," ","z","x","c","v","b","n","m",",","]"}};
 int kbd_char_selected = 0;
+char debug_messages[10][80];
+int next_debug_slot = 0;
 
 /* Raylib-related stuff */
 SpriteFont font1;
@@ -143,6 +144,7 @@ menu mnu_seq_gridview = {0,0,dir_none,"Grid View",&seq_gridview,NULL};
 
 menu mnu_config_setzero = {0,0,dir_left,"Set Zero",&config_setzero,NULL};
 menu mnu_config_set10v = {0,0,dir_left,"Set 10 Volt",&config_setten,NULL};
+menu mnu_config_debug = {0,0,dir_left,"debug on/off",&config_debug,NULL};
 
 menu mnu_test_scalevalue = {0,0,dir_left,"Test scale value",&test_scalevalue,NULL};
 menu mnu_test_keyboard = {0,0,dir_left,"Test Keyboard",&test_keyboard,NULL};
@@ -152,7 +154,7 @@ menu sub_end = {0,0,dir_none,NULL,NULL,NULL}; //set of NULLs to mark the end of 
 menu Menu[]={
 	{0,1,dir_down,"File",NULL,{&mnu_file_open,&mnu_file_save,&mnu_file_saveas,&mnu_file_new,&mnu_file_quit,&sub_end}},
 	{0,0,dir_down,"Sequence",NULL,{&mnu_seq_setloop,&mnu_seq_setpitch,&mnu_seq_quantise,&mnu_seq_gridview,&mnu_seq_singlechnl,&mnu_seq_new,&sub_end}},
-	{0,0,dir_down,"Config",NULL,{&mnu_config_setzero,&mnu_config_set10v,&sub_end}},
+	{0,0,dir_down,"Config",NULL,{&mnu_config_setzero,&mnu_config_set10v,&mnu_config_debug,&sub_end}},
 	{0,0,dir_down,"Test",NULL,{&mnu_test_scalevalue,&mnu_config_setzero,&mnu_test_keyboard,&sub_end}},
 	{0,0,dir_down,"Play",NULL,{&sub_end}},
 	{0,0,dir_down,NULL,NULL,NULL}
@@ -259,11 +261,6 @@ while (prog_running == 1){
         }
     }
      */
-    if(debug == TRUE){
-        DrawRectangle(0,200,320,20,BLACK);
-        DrawText(debug_txt,5,205,10,WHITE);
-    }
-    
     if (currentGesture1 != GESTURE_NONE){ 
         DrawCircleV(touchPosition, 2, BLACK);
     }  

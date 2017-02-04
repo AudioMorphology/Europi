@@ -67,6 +67,8 @@
 #define EXT_CLK		1
 #define TRUE		1
 #define FALSE		0
+#define UP          1
+#define DOWN        -1
 
 /* Menu Constants */
 #define MENU_FONT_SIZE      20
@@ -116,25 +118,29 @@ enum encoder_focus_t {
 
 enum btnA_func_t {
     btnA_none,
-    btnA_quit
+    btnA_quit,
+    btnA_select
 };
 
 enum btnB_func_t {
     btnB_none,
     btnB_menu,
     btnB_open,
-    btnB_save
+    btnB_save,
+    btnB_val_down,
 };
 
 enum btnC_func_t {
     btnC_none,
     btnC_bpm_dn,
-    btnC_cancel
+    btnC_cancel,
+    btnC_val_up
 };
 
 enum btnD_func_t {
     btnD_none,
-    btnD_bpm_up
+    btnD_bpm_up,
+    btnD_done
 };
 
 enum slew_t {
@@ -202,6 +208,11 @@ void seq_singlechnl(void);
 void seq_gridview(void);
 void select_first_track(void);
 void select_track(int track);
+void select_next_track(int dir);
+void select_next_step(int dir);
+void set_loop_point(int dir);
+void select_next_quantisation(int dir);
+void set_step_pitch(int dir,int vel);
 void seq_new(void);
 void ClearScreenOverlays(void);
 int OverlayActive(void);
@@ -216,7 +227,8 @@ void file_saveas(void);
 void file_open(void); 
 void config_setzero(void);
 void config_setten(void);
-void config_calibtouch(void);
+void config_debug(void);
+//void config_calibtouch(void);
 void set_zero(int Track, long ZeroVal);
 void file_quit(void);
 void load_sequence(const char *filename);
@@ -235,6 +247,7 @@ void gui_SingleChannel(void);
 void gui_ButtonBar(void);
 void gui_MainMenu(void);
 void ShowScreenOverlays(void);
+void gui_debug(void);
 
 /* function prototypes in touch.c */
 //void *TouchThread(void *arg);

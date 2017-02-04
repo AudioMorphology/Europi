@@ -41,6 +41,7 @@
 
 extern int run_stop;
 extern int disp_menu;
+extern int debug;
 extern char *fbp; 
 extern char input_txt[];
 extern int selected_step;
@@ -188,13 +189,209 @@ void select_first_track(void){
 	}
 }
 /*
- * Select Track
+ * Select a specific Track - makes certain no others are selected
  */
 void select_track(int track){
     int ThisTrack;
     for(ThisTrack=0;ThisTrack<MAX_TRACKS;ThisTrack++){
         if(ThisTrack == track) Europi.tracks[ThisTrack].selected = TRUE;
         else Europi.tracks[ThisTrack].selected = FALSE;
+    }
+}
+/*
+ * Select Next Track - dir specifies whether to select next up or down
+ */
+void select_next_track(int dir){
+    if(dir == 1){
+        int track = 0;
+        int prev_selected;
+        int found_new = FALSE;
+        while(track < MAX_TRACKS){
+            if(Europi.tracks[track].selected == TRUE){
+                // deselect this track
+                prev_selected = track;
+                Europi.tracks[track].selected = FALSE;
+                GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x00);
+                // select the next enabled one
+                if(track < MAX_TRACKS - 1) track++;
+                while(track < MAX_TRACKS){
+                    if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE){
+                        Europi.tracks[track].selected = TRUE;
+                        found_new = TRUE;
+                        GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
+                        break;
+                    }
+                    track++;
+                }
+            }
+            track++;
+        }
+        // Didn't find a new one to select, so re-select the previous one
+        if (found_new == FALSE){
+            Europi.tracks[prev_selected].selected = TRUE;
+        }
+    }
+    else {
+        int track = MAX_TRACKS - 1;
+        int prev_selected;
+        int found_new = FALSE;
+        while(track >= 0){
+            if(Europi.tracks[track].selected == TRUE){
+                // deselect this track
+                prev_selected = track;
+                Europi.tracks[track].selected = FALSE;
+                GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x00);
+                // select the next enabled one
+                if(track > 0) track--;
+                while(track >= 0){
+                    if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE){
+                        Europi.tracks[track].selected = TRUE;
+                        found_new = TRUE;
+                        GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
+                        break;
+                    }
+                    track--;
+                }
+            }
+            track--;
+        }
+        // Didn't find a new one to select, so re-select the previous one
+        if (found_new == FALSE){
+            Europi.tracks[prev_selected].selected = TRUE;
+        }
+    }
+    
+}
+/*
+ * Select Next Step - Dir specifies next up or down
+ */
+void select_next_step(int dir){
+    int track = 0;
+    while (track < MAX_TRACKS){
+        if(Europi.tracks[track].selected == TRUE){
+            if (dir == 1) {
+                if (Europi.tracks[track].current_step < (Europi.tracks[track].last_step -1)) Europi.tracks[track].current_step++;
+            }
+            else {
+                if (Europi.tracks[track].current_step > 0) Europi.tracks[track].current_step--;
+            }
+            break;
+        }
+        track++;
+    }
+    /* Output the current value for this track / step, so we can hear what's going on */
+    DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);
+    // And turn the Gate output on
+    GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
+}
+/*
+ * Set Loop Point moves the current
+ * last step in a track one step up or down
+ */
+void set_loop_point(int dir){
+    if(dir == 1){
+        int track=0;
+        while(track < MAX_TRACKS){
+            if(Europi.tracks[track].selected == TRUE){
+                if(Europi.tracks[track].last_step < MAX_STEPS){
+                    Europi.tracks[track].last_step++;
+                }
+                break;
+            }
+            track++;
+        }
+    }
+    else {
+        int track=0;
+        while(track < MAX_TRACKS){
+            if(Europi.tracks[track].selected == TRUE){
+                if(Europi.tracks[track].last_step > 1){
+                    Europi.tracks[track].last_step--;
+                }
+                break;
+            }
+            track++;
+        }
+        
+    }
+}
+/*
+ * Select the next quantisation either up or down
+ */
+void select_next_quantisation(int dir){
+    int track = 0;
+    while (track < MAX_TRACKS){
+        if(Europi.tracks[track].selected == TRUE){
+            if (dir == 1) {
+                if (Europi.tracks[track].channels[CV_OUT].quantise < 47) Europi.tracks[track].channels[CV_OUT].quantise++;
+            }
+            else {
+                if (Europi.tracks[track].channels[CV_OUT].quantise > 0) Europi.tracks[track].channels[CV_OUT].quantise--;
+            }
+            // Re-Quantise track
+            quantize_track(track,Europi.tracks[track].channels[CV_OUT].quantise);
+            break;
+        }
+        track++;
+    }
+}
+void set_step_pitch(int dir, int vel){
+    int track = 0;
+    int raw_val;
+    int current;
+    int newpitch;
+    while (track < MAX_TRACKS){
+        if(Europi.tracks[track].selected == TRUE){
+            if(Europi.tracks[track].channels[CV_OUT].quantise > 0){
+                // track is quantised, so just use the direction to 
+                // move to the next note in the scale
+                if(dir == UP){
+                    // move the raw value of this step up until the next quantisation 
+                    // boundary is passed
+                    raw_val = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value;
+                    current = quantize(raw_val,Europi.tracks[track].channels[CV_OUT].quantise);
+                    newpitch = current;
+                    while((current == newpitch) && (raw_val <= 60000)){
+                        raw_val += 10;
+                        newpitch = quantize(raw_val,Europi.tracks[track].channels[CV_OUT].quantise);
+                    }
+                    if(raw_val > 60000) raw_val = 60000;
+                    // We've got a new raw value that returns a different quantised value
+                    Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value = raw_val;
+                    Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value = scale_value(track,raw_val);
+                }
+                else{
+                    raw_val = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value;
+                    current = quantize(raw_val,Europi.tracks[track].channels[CV_OUT].quantise);
+                    newpitch = current;
+                    while((current == newpitch) && (raw_val > 0)){
+                        raw_val -= 10;
+                        newpitch = quantize(raw_val,Europi.tracks[track].channels[CV_OUT].quantise);
+                    }
+                    if(raw_val < 0) raw_val = 0;
+                    // We've got a new raw value that returns a different quantised value
+                    Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value = raw_val;
+                    Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value = scale_value(track,raw_val);
+                }
+                Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value; //= (uint16_t)(output_scaling * quantized) + Europi.tracks[track].channels[CV_OUT].scale_zero;
+                DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
+            }
+            else {
+                // unquantised tracks use the velocity to move
+                // the pitch up or down as appropriate
+                if(vel > 3) vel *= 10;
+                if (dir == 1) {
+                    if (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value <= (60000 - vel)) Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value += vel;
+                }
+                else {
+                    if (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value >= vel) Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value -= vel;
+                }
+                Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value; //= (uint16_t)(output_scaling * quantized) + Europi.tracks[track].channels[CV_OUT].scale_zero;
+                DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
+            }            
+            break;
+        }
+        track++;
     }
 }
 /* 
@@ -205,6 +402,10 @@ void seq_quantise(void){
 	ScreenOverlays.SetQuantise = 1;
     ClearMenus();
     MenuSelectItem(0,0);
+    btnA_func = btnA_select;
+    btnB_func = btnB_val_down;
+    btnC_func = btnC_val_up;
+    btnD_func = btnD_done;    
 	encoder_focus = track_select;
 	select_first_track();
 }
@@ -216,6 +417,10 @@ void seq_setpitch(void){
 	ScreenOverlays.SetPitch = 1;
     ClearMenus();
     MenuSelectItem(0,0);
+    btnA_func = btnA_select;
+    btnB_func = btnB_val_down;
+    btnC_func = btnC_val_up;
+    btnD_func = btnD_done;    
 	encoder_focus = track_select;
 	run_stop = STOP;
 	select_first_track();
@@ -228,6 +433,10 @@ void seq_setloop(void){
 	ScreenOverlays.SetLoop = 1;
     ClearMenus();
     MenuSelectItem(0,0);
+    btnA_func = btnA_select;
+    btnB_func = btnB_val_down;
+    btnC_func = btnC_val_up;
+    btnD_func = btnD_done;    
 	encoder_focus = track_select;
 	select_first_track();
 }
@@ -240,6 +449,12 @@ void test_scalevalue(void){
 	run_stop = STOP;
 	ClearScreenOverlays();
 	ScreenOverlays.ScaleValue = 1;
+    ClearMenus();
+    MenuSelectItem(0,0);
+    btnA_func = btnA_none;
+    btnB_func = btnB_open;
+    btnC_func = btnC_cancel;
+    btnD_func = btnD_none;
 	encoder_focus = track_select;
 	/* Slight pause to give some threads time to exist */
 	sleep(2);
@@ -342,6 +557,17 @@ void config_setten(void){
 	}
 	select_first_track();
 }
+
+/*
+ * menu callback to set debug on/off
+ */
+ void config_debug(void){
+    if(debug == TRUE) debug = FALSE;
+    else debug = TRUE;
+    ClearMenus();
+    MenuSelectItem(0,0);
+    ScreenOverlays.MainMenu = 0;
+ }
 
 /* 
  * Set the zero volt level for the passed Track

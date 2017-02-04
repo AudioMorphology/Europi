@@ -52,7 +52,8 @@ extern char *fbp;
 extern char *kbfds;
 extern int impersonate_hw;
 extern int debug; 
-extern char debug_txt[];
+extern char debug_messages[10][80];
+extern int next_debug_slot;
 extern char input_txt[];  
 extern int kbfd;
 extern int prog_running;
@@ -702,7 +703,13 @@ void log_msg(const char* format, ...)
 	vsnprintf(buf, sizeof(buf), format, args);
 	
 	fprintf(stderr, "%s", buf);
-	if(debug == TRUE) sprintf(debug_txt, "%s\0", buf);
+	if(debug == TRUE) {
+        // Limited to around 50 chars on a single line
+        // so truncate the printed text
+        snprintf(debug_messages[next_debug_slot],50,"%s\0",buf);
+        next_debug_slot++;
+        if(next_debug_slot >= 10) next_debug_slot = 0;
+    }
 	va_end(args);
 	}
 }
@@ -843,91 +850,11 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 			}
 			break;
 		case track_select:
-			if(dir == 1){
-				int track = 0;
-				int prev_selected;
-				int found_new = FALSE;
-				while(track < MAX_TRACKS){
-					if(Europi.tracks[track].selected == TRUE){
-						// deselect this track
-						prev_selected = track;
-						Europi.tracks[track].selected = FALSE;
-						GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x00);
-						// select the next enabled one
-						if(track < MAX_TRACKS - 1) track++;
-						while(track < MAX_TRACKS){
-							if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE){
-								Europi.tracks[track].selected = TRUE;
-								found_new = TRUE;
-								GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
-								break;
-							}
-							track++;
-						}
-					}
-					track++;
-				}
-				// Didn't find a new one to select, so re-select the previous one
-				if (found_new == FALSE){
-					Europi.tracks[prev_selected].selected = TRUE;
-				}
-			}
-			else {
-				int track = MAX_TRACKS - 1;
-				int prev_selected;
-				int found_new = FALSE;
-				while(track >= 0){
-					if(Europi.tracks[track].selected == TRUE){
-						// deselect this track
-						prev_selected = track;
-						Europi.tracks[track].selected = FALSE;
-						GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x00);
-						// select the next enabled one
-						if(track > 0) track--;
-						while(track >= 0){
-							if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE){
-								Europi.tracks[track].selected = TRUE;
-								found_new = TRUE;
-								GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
-								break;
-							}
-							track--;
-						}
-					}
-					track--;
-				}
-				// Didn't find a new one to select, so re-select the previous one
-				if (found_new == FALSE){
-					Europi.tracks[prev_selected].selected = TRUE;
-				}
-			}
+            select_next_track(dir);
 			break;
 		case step_select:
-		{
-			int track = 0;
-			while (track < MAX_TRACKS){
-				if(Europi.tracks[track].selected == TRUE){
-					if (dir == 1) {
-						if (Europi.tracks[track].current_step < (Europi.tracks[track].last_step -1)) Europi.tracks[track].current_step++;
-					}
-					else {
-						if (Europi.tracks[track].current_step > 0) Europi.tracks[track].current_step--;
-					}
-					break;
-				}
-				track++;
-			}
-			/* Output the current value for this track / step, so we can hear what's going on */
-			//float output_scaling;
-			//uint16_t quantized;
-			//output_scaling = ((float)Europi.tracks[track].channels[CV_OUT].scale_max - (float)Europi.tracks[track].channels[CV_OUT].scale_zero) / (float)60000;
-			//quantized = quantize(Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value, Europi.tracks[track].channels[CV_OUT].quantise);
-			//Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value = (uint16_t)(output_scaling * quantized) + Europi.tracks[track].channels[CV_OUT].scale_zero;
-			DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);
-			// And turn the Gate output on
-			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
-			break;
-		}
+            select_next_step(dir);
+            break;
 		case set_zerolevel:
 				if(dir == 1){
 					int track=0;
@@ -987,79 +914,14 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 				}
 			break;
 		case set_loop:
-				if(dir == 1){
-					int track=0;
-					while(track < MAX_TRACKS){
-						if(Europi.tracks[track].selected == TRUE){
-							if(Europi.tracks[track].last_step < MAX_STEPS){
-								Europi.tracks[track].last_step++;
-							}
-							break;
-						}
-						track++;
-					}
-				}
-				else {
-					int track=0;
-					while(track < MAX_TRACKS){
-						if(Europi.tracks[track].selected == TRUE){
-							if(Europi.tracks[track].last_step > 1){
-								Europi.tracks[track].last_step--;
-							}
-							break;
-						}
-						track++;
-					}
-					
-				}
+            set_loop_point(dir);
 			break;
 		case set_pitch:
-		{
-			int track = 0;
-			while (track < MAX_TRACKS){
-				if(Europi.tracks[track].selected == TRUE){
-					if(vel > 3) vel *= 10;
-					if (dir == 1) {
-						if (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value <= (60000 - vel)) Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value += vel;
-					}
-					else {
-						if (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value >= vel) Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value -= vel;
-					}
-					// Quantise this and output it
-					//float output_scaling;
-					//uint16_t quantized;
-					//output_scaling = ((float)Europi.tracks[track].channels[CV_OUT].scale_max - (float)Europi.tracks[track].channels[CV_OUT].scale_zero) / (float)60000;
-					//quantized = quantize(Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value, Europi.tracks[track].channels[CV_OUT].quantise);
-					//Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value = (uint16_t)(output_scaling * quantized) + Europi.tracks[track].channels[CV_OUT].scale_zero;
-					Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value; //= (uint16_t)(output_scaling * quantized) + Europi.tracks[track].channels[CV_OUT].scale_zero;
-					DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
-					break;
-				}
-				track++;
-			}
-			
-			break;
-		}
+            set_step_pitch(dir,vel);
+            break;
 		case set_quantise:
-		{
-			int track = 0;
-			while (track < MAX_TRACKS){
-				if(Europi.tracks[track].selected == TRUE){
-					if (dir == 1) {
-						if (Europi.tracks[track].channels[CV_OUT].quantise < 47) Europi.tracks[track].channels[CV_OUT].quantise++;
-					}
-					else {
-						if (Europi.tracks[track].channels[CV_OUT].quantise > 0) Europi.tracks[track].channels[CV_OUT].quantise--;
-					}
-					// Re-Quantise track
-					quantize_track(track,Europi.tracks[track].channels[CV_OUT].quantise);
-					break;
-				}
-				track++;
-			}
-			
-			break;
-		}
+            select_next_quantisation(dir);
+            break;
 		case keyboard_input:
 		{
             if ((dir == 1) && (kbd_char_selected < KBD_ROWS * KBD_COLS)) {

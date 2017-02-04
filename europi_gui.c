@@ -43,6 +43,8 @@ extern Texture2D MainScreenTexture;
 extern Texture2D TopBarTexture;
 extern Texture2D ButtonBarTexture; 
 extern char *kbd_chars[4][11];
+extern char debug_messages[10][80];
+extern int next_debug_slot;
 extern int kbd_char_selected;
 extern enum encoder_focus_t encoder_focus;
 extern enum btnA_func_t btnA_func;
@@ -60,6 +62,7 @@ extern char **files;
 extern size_t file_count;                      
 extern int file_selected;
 extern int first_file;
+extern int debug;
 
 /*
  * GUI_8x8 Attempts to display more detail in a subset of tracks and steps
@@ -330,6 +333,25 @@ void ShowScreenOverlays(void){
                 }
             }
         }
+        // Check for Select button
+        if (btnA_state == 1){
+            btnA_state = 0;
+            if(encoder_focus == track_select) encoder_focus = set_loop;
+            else encoder_focus = track_select;
+        }
+        if (btnB_state == 1){
+            // Check for Val -
+            btnB_state = 0;
+            if(encoder_focus == track_select) select_next_track(DOWN);
+            else set_loop_point(DOWN);
+        }
+        if (btnC_state == 1){
+            // Check for Val +
+            btnC_state = 0;
+            if(encoder_focus == track_select) select_next_track(UP);
+            else set_loop_point(UP);
+        }
+
     }
     if(ScreenOverlays.SetPitch == 1){ 
         int track = 0;
@@ -366,6 +388,53 @@ void ShowScreenOverlays(void){
                 }
             }
         }
+         // Check for Select button
+        if (btnA_state == 1){
+            btnA_state = 0;
+            switch(encoder_focus){
+                case track_select:
+                    encoder_focus = step_select;
+                break;
+                case step_select:
+                    encoder_focus = set_pitch;
+                break;
+                case set_pitch:
+                default:
+                    encoder_focus = track_select;
+                break;
+            }
+        }
+        if (btnB_state == 1){
+            // Check for Val -
+            btnB_state = 0;
+            switch(encoder_focus){
+                case track_select:
+                    select_next_track(DOWN);
+                break;
+                case step_select:
+                    select_next_step(DOWN);
+                break;
+                case set_pitch:
+                    set_step_pitch(DOWN,1);  // no velocity available
+                break;
+            }
+        }
+        if (btnC_state == 1){
+            // Check for Val +
+            btnC_state = 0;
+            switch(encoder_focus){
+                case track_select:
+                    select_next_track(UP);
+                break;
+                case step_select:
+                    select_next_step(UP);
+                break;
+                case set_pitch:
+                    set_step_pitch(UP,1);  // no velocity available
+                break;
+            }
+        }
+       
     }
     if(ScreenOverlays.SetQuantise == 1){
         int track = 0;
@@ -394,7 +463,26 @@ void ShowScreenOverlays(void){
                 }
             }
         }
-    }
+        // Check for Select button
+        if (btnA_state == 1){
+            btnA_state = 0;
+            if(encoder_focus == track_select) encoder_focus = set_quantise;
+            else encoder_focus = track_select;
+        }
+        if (btnB_state == 1){
+            // Check for Val -
+            btnB_state = 0;
+            if(encoder_focus == track_select) select_next_track(DOWN);
+            else select_next_quantisation(DOWN);
+        }
+        if (btnC_state == 1){
+            // Check for Val +
+            btnC_state = 0;
+            if(encoder_focus == track_select) select_next_track(UP);
+            else select_next_quantisation(UP);
+        }
+ 
+   }
     
     
     if(ScreenOverlays.Keyboard == 1){
@@ -437,12 +525,6 @@ void ShowScreenOverlays(void){
         //currentGesture = GetGestureDetected();
         DrawTexture(DialogTexture,0,0,WHITE);
         DrawText("File Open",10,5,20,DARKGRAY);
-        // OK & Cancel buttons are handled by the 
-        // soft buttons
-        btnA_func = btnA_none;
-        btnB_func = btnB_open;
-        btnC_func = btnC_cancel;
-        btnD_func = btnD_none;
         // List the files
         int i;
         int j=0;
@@ -523,6 +605,7 @@ void ShowScreenOverlays(void){
     // The soft button function bar is always displayed 
     // at the bottom of the screen
     gui_ButtonBar();
+    gui_debug();
 }
 
 /*
@@ -552,7 +635,8 @@ void gui_ButtonBar(void){
             }
 
         break;
-
+        case btnA_select:
+            DrawText("SEL",17,217,20,DARKGRAY);
         case btnA_none:
         default:
         break;
@@ -607,7 +691,9 @@ void gui_ButtonBar(void){
                 }
             }
         break;
-
+        case btnB_val_down:
+            DrawText("Val -",95,217,20,DARKGRAY);
+        break;
         case btnB_none:
         default:
         break;
@@ -641,7 +727,8 @@ void gui_ButtonBar(void){
                 MenuSelectItem(0,0);
             }
         break;
-
+        case btnC_val_up:
+            DrawText("Val +",167,217,20,DARKGRAY);
         case btnC_none:
         default:
         break;
@@ -663,6 +750,16 @@ void gui_ButtonBar(void){
                 gpioHardwarePWM(MASTER_CLK,clock_freq,500000);
             }
         break;
+        case btnD_done:
+            DrawText("Done",257,217,20,DARKGRAY);
+            if (btnD_state == 1){
+                btnD_state = 0;
+                // Don't know what we're done doing, but don't care
+                ClearScreenOverlays();
+                buttonsDefault();
+                ClearMenus();
+                MenuSelectItem(0,0);
+            }
 
         case btnD_none:
         default:
@@ -754,3 +851,19 @@ void gui_MainMenu(void){
     }
 }
 
+/*
+* gui_debug()
+* if the global variable debug is set == TRUE
+* then this will display debug messages on top of
+* whatever else is going on on the screen
+*/
+void gui_debug(void){
+    if(debug == FALSE) return;
+    int i;
+    DrawRectangle(5,100,310,112,WHITE);
+    for(i = 0; i <10; i++){
+        // leave the next slot blank so that
+        // we can tell which is the latest message
+        if(i != next_debug_slot) DrawText(debug_messages[i],7,104+(i*11),10,BLACK);
+    }
+}
