@@ -44,6 +44,7 @@ extern int disp_menu;
 extern int debug;
 extern char *fbp; 
 extern char input_txt[];
+extern char current_filename[];
 extern int selected_step;
 extern struct europi Europi;
 extern struct screen_overlays ScreenOverlays;
@@ -354,11 +355,13 @@ void set_step_pitch(int dir, int vel){
                     while((current == newpitch) && (raw_val <= 60000)){
                         raw_val += 10;
                         newpitch = quantize(raw_val,Europi.tracks[track].channels[CV_OUT].quantise);
+                        log_msg("Raw: %d, Quant: %d\n",raw_val,newpitch);
                     }
                     if(raw_val > 60000) raw_val = 60000;
                     // We've got a new raw value that returns a different quantised value
-                    Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value = raw_val;
-                    Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value = scale_value(track,raw_val);
+                    log_msg("newpitch: %d\n",newpitch);
+                    Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value = newpitch;
+                    Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value = scale_value(track,newpitch);
                 }
                 else{
                     raw_val = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value;
@@ -367,11 +370,13 @@ void set_step_pitch(int dir, int vel){
                     while((current == newpitch) && (raw_val > 0)){
                         raw_val -= 10;
                         newpitch = quantize(raw_val,Europi.tracks[track].channels[CV_OUT].quantise);
+                        log_msg("Raw: %d, Quant: %d\n",raw_val,newpitch);
                     }
                     if(raw_val < 0) raw_val = 0;
                     // We've got a new raw value that returns a different quantised value
-                    Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value = raw_val;
-                    Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value = scale_value(track,raw_val);
+                    log_msg("newpitch: %d\n",newpitch);
+                    Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value = newpitch;
+                    Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value = scale_value(track,newpitch);
                 }
                 Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value; //= (uint16_t)(output_scaling * quantized) + Europi.tracks[track].channels[CV_OUT].scale_zero;
                 DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
@@ -481,6 +486,12 @@ void test_keyboard(void){
 void file_open(void){
     //run_stop = STOP;
     ClearScreenOverlays();
+    ClearMenus();
+    MenuSelectItem(0,0);
+    btnA_func = btnA_none;
+    btnB_func = btnB_open;
+    btnC_func = btnC_cancel;
+    btnD_func = btnD_none;
     ScreenOverlays.FileOpen = 1;
     encoder_focus = file_open_focus;
     // Read the list of files in the resources/sequences directory
@@ -496,11 +507,17 @@ void file_open(void){
 void file_save(void){
 	//run_stop = STOP;
 	ClearScreenOverlays();
-	FILE * file = fopen("resources/sequences/default.seq","wb");
+    ClearMenus();
+    MenuSelectItem(0,0);
+	FILE * file = fopen(current_filename,"wb");
 	if (file != NULL) {
 		fwrite(&Europi,sizeof(struct europi),1,file);
 		fclose(file);
+        log_msg("Saved as: %s\n",current_filename);
 	}
+    else{
+        log_msg("Error in file_save: %s",current_filename);
+    }
 }
 
 /*
@@ -593,11 +610,18 @@ void file_quit(void){
  * as our Europi Object?
  */
 void load_sequence(const char *filename){
+    sprintf(current_filename,"%s",filename);
 	FILE * file = fopen(filename,"rb");
 	if (file != NULL) {
 		fread(&Europi, sizeof(struct europi), 1, file);
 		fclose(file);
+        // note the file we've just opened
+        sprintf(current_filename,"%s",filename);
+        log_msg("Current: %s\n",current_filename);
 	}
+    else {
+        log_msg("Load Sequence error: %s",filename);
+    }
 }
 
 
@@ -693,30 +717,18 @@ void step_repeat(int dir, int vel){
 	}
 }
 
-void init_sequence_old1(void)
+void init_sequence(void)
 {
-	FILE * file = fopen("default.seq","rb");
+    sprintf(current_filename,"resources/sequences/default.seq");
+    log_msg("Init Seq: %s\n",current_filename);
+	FILE * file = fopen(current_filename,"rb");
 	if (file != NULL) {
 		fread(&Europi, sizeof(struct europi), 1, file);
 		fclose(file);
 	}
-	// Temp: Quantize all tracks to semitone scale
-	int track;
-	int step;
-//	for (track=0;track<MAX_TRACKS;track++){
-//		Europi.tracks[track].channels[CV_OUT].quantise = track;
-//	}
-	for (track = 1;track < 3; track++){
-		for (step = 0; step < MAX_STEPS; step++){
-			Europi.tracks[track].channels[CV_OUT].steps[step].slew_length = 0;
-			Europi.tracks[track].channels[CV_OUT].steps[step].slew_type = Off;
-			Europi.tracks[track].channels[GATE_OUT].steps[step].gate_value = 1;
-			Europi.tracks[track].channels[GATE_OUT].steps[step].retrigger = 1;
-		}
-	}
 }
 
-void init_sequence(void)
+void init_sequence_old1(void)
 {
 	int track,channel,step;
 	int raw;
@@ -1095,13 +1107,14 @@ void quantize_track(int track, int scale)
  * 
  * Takes a raw value on a 0 to 60,000 scale (10 Octaves) and,
  * given a Track number (and hence the values required to output
- * 0 and 10 volts) returns a value for output
+ * 0 and 10 volts) returns a quantised and scaled value for output
  */
 uint16_t scale_value(int track,uint16_t raw_value)
 {
 	float output_scaling;
+    int quantised_value = quantize(raw_value,Europi.tracks[track].channels[CV_OUT].quantise);
 	output_scaling = ((float)Europi.tracks[track].channels[CV_OUT].scale_max - (float)Europi.tracks[track].channels[CV_OUT].scale_zero) / (float)60000;
-	return (uint16_t)(output_scaling * raw_value) + Europi.tracks[track].channels[CV_OUT].scale_zero;
+	return (uint16_t)(output_scaling * quantised_value) + Europi.tracks[track].channels[CV_OUT].scale_zero;
 } 
 
 /*

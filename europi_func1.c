@@ -701,15 +701,12 @@ void log_msg(const char* format, ...)
 	va_list args;
 	va_start(args, format);
 	vsnprintf(buf, sizeof(buf), format, args);
-	
 	fprintf(stderr, "%s", buf);
-	if(debug == TRUE) {
-        // Limited to around 50 chars on a single line
-        // so truncate the printed text
-        snprintf(debug_messages[next_debug_slot],50,"%s\0",buf);
-        next_debug_slot++;
-        if(next_debug_slot >= 10) next_debug_slot = 0;
-    }
+    // Also logs messages to a circular buffer
+    // which holds the most recent 10 messages
+    snprintf(debug_messages[next_debug_slot],50,"%s\0",buf);
+    next_debug_slot++;
+    if(next_debug_slot >= 10) next_debug_slot = 0;
 	va_end(args);
 	}
 }
@@ -1529,12 +1526,12 @@ int quantize(int raw, int scale){
 	int i;
 	if(scale == 0) return raw;	// Scale = 0 => Quantization OFF
 	if(raw > 60000) return 60000;
-	while(raw > 6000){
+	while(raw >= 6000){
 		raw = raw - 6000;
 		octave++;
 	}
 	for(i=0;i<=12;i++){
-		if(raw >= lower_boundary[scale][i] && raw <= upper_boundary[scale][i]) return (scale_values[scale][i] + octave*6000);
+		if(raw >= lower_boundary[scale][i] && raw < upper_boundary[scale][i]) return (scale_values[scale][i] + octave*6000);
 	}
 };
 

@@ -34,6 +34,7 @@ extern int currentGesture1;
 extern int lastGesture;
 extern menu Menu[]; 
 extern char input_txt[]; 
+extern char current_filename[];
 extern Texture2D KeyboardTexture;
 extern Texture2D DialogTexture;
 extern Texture2D TextInputTexture;
@@ -551,9 +552,9 @@ void ShowScreenOverlays(void){
         if (btnB_state == 1){
             // Open Button Touched
             btnB_state = 0;
-            char filename[100]; 
-            snprintf(filename, sizeof(filename), "resources/sequences/%s", files[file_selected]);
-            load_sequence(filename);
+            //char filename[100]; 
+            snprintf(current_filename, 100, "resources/sequences/%s", files[file_selected]);
+            load_sequence(current_filename);
             ClearScreenOverlays();
             buttonsDefault();
         }
@@ -681,12 +682,15 @@ void gui_ButtonBar(void){
                     buttonsDefault();
                     ClearMenus();
                     MenuSelectItem(0,0);
-                    char *filename[80];
-                    sprintf(filename,"resources/sequences/%s",input_txt);
-                    FILE * file = fopen(filename,"wb");
+                    sprintf(current_filename,"resources/sequences/%s",input_txt);
+                    FILE * file = fopen(current_filename,"wb");
                     if (file != NULL) {
                         fwrite(&Europi,sizeof(struct europi),1,file);
                         fclose(file);
+                        log_msg("Saved as %s",current_filename);
+                    }
+                    else{
+                        log_msg("Error saving as: %s\n",current_filename);
                     }
                 }
             }
@@ -855,15 +859,18 @@ void gui_MainMenu(void){
 * gui_debug()
 * if the global variable debug is set == TRUE
 * then this will display debug messages on top of
-* whatever else is going on on the screen
+* whatever else is going on on the screen. This
+* starts at the oldest message (ie the one that
+* will be overwritten next) that way the most recent
+* message will always be at the bottom of the screen
 */
 void gui_debug(void){
     if(debug == FALSE) return;
     int i;
+    int current_row = next_debug_slot;
     DrawRectangle(5,100,310,112,WHITE);
     for(i = 0; i <10; i++){
-        // leave the next slot blank so that
-        // we can tell which is the latest message
-        if(i != next_debug_slot) DrawText(debug_messages[i],7,104+(i*11),10,BLACK);
+        DrawText(debug_messages[current_row++],7,104+(i*11),10,BLACK);
+        if(current_row >= 10) current_row = 0;
     }
 }

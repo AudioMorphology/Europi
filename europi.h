@@ -26,6 +26,7 @@
 #define EUROPI_H
 
 #include <pigpio.h>
+#include "slew_profiles.h"
 #include "quantizer_scales.h"
 
 /* GPIO Port Assignments 		*/

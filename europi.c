@@ -49,6 +49,7 @@ int print_messages = TRUE; /* controls whether log_msg outputs to std_err or not
 int debug = FALSE;		/* controls whether debug messages are printed to the main screen */
 int impersonate_hw = FALSE;	/* allows the software to bypass hardware checks (useful when testing sw without full hw ) */ 
 char input_txt[100];    /* buffer for capturing user input */
+char current_filename[100]; /* The File we have Open, which is used in File-Save */
 int prog_running=0;		/* Setting this to 0 will force the prog to quit*/
 int run_stop=STOP;		/* 0=Stop 1=Run: Halts the main step generator */
 int clock_counter = 95;	/* Main clock counter, tracks the 96 pulses per step */
@@ -183,7 +184,7 @@ int main(int argc, char* argv[])
 	//Temp for testing
 	//run_stop = STOP; 
 	//clock_source = INT_CLK;
-    
+    debug = TRUE;
     currentGesture1 = GESTURE_NONE;
     lastGesture = GESTURE_NONE;
     //SetGesturesEnabled(0b0000000011100011);   //None, tap & DoubleTap 
