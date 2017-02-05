@@ -268,9 +268,10 @@ void next_step(void)
 				struct slew sSlew;
 				struct ad sAD;
 				struct adsr sADSR;
-				
-				case Linear:
-				case Logarithmic:
+                
+                case Linear:
+                case Exponential:
+                case RevExp:
 					sAD.track = track;
 					sSlew.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
 					sSlew.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;

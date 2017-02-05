@@ -147,8 +147,8 @@ enum btnD_func_t {
 enum slew_t {
 	Off,
 	Linear,
-	Logarithmic,
-	Exponential,
+    Exponential,
+	RevExp,         // Reverse Exponential
 	ADSR,
 	AD
 };

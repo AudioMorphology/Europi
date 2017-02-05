@@ -24,8 +24,10 @@
 
 /*
 * Slew Profiles
-* These are a series of Integer arrays, which hold normalised values that 
-* can be scaled to apply various Slew profiles to CV transitions
+* These are a series of Float arrays, which hold normalised values that 
+* can be scaled to apply various Slew profiles to CV transitions.
+* 
+* These have been pre-calculated in order to save computational time
 */
 static float slew_profiles[6][101]={
 // Linear Rising

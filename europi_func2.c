@@ -638,12 +638,12 @@ void slew_adjust(int dir, int vel){
 					Europi.tracks[0].channels[0].steps[selected_step].slew_type = Linear;
 					break;
 				case Linear:
-					Europi.tracks[0].channels[0].steps[selected_step].slew_type = Logarithmic;
-					break;
-				case Logarithmic:
 					Europi.tracks[0].channels[0].steps[selected_step].slew_type = Exponential;
 					break;
 				case Exponential:
+					Europi.tracks[0].channels[0].steps[selected_step].slew_type = RevExp;
+					break;
+				case RevExp:
 					Europi.tracks[0].channels[0].steps[selected_step].slew_type = Off;
 					break;
 				default:
@@ -653,12 +653,12 @@ void slew_adjust(int dir, int vel){
 		else if (dir < 0) {
 			switch(Europi.tracks[0].channels[0].steps[selected_step].slew_type){
 				case Off:
+					Europi.tracks[0].channels[0].steps[selected_step].slew_type = RevExp;
+					break;
+				case RevExp:
 					Europi.tracks[0].channels[0].steps[selected_step].slew_type = Exponential;
 					break;
 				case Exponential:
-					Europi.tracks[0].channels[0].steps[selected_step].slew_type = Logarithmic;
-					break;
-				case Logarithmic:
 					Europi.tracks[0].channels[0].steps[selected_step].slew_type = Linear;
 					break;
 				case Linear:
