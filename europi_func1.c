@@ -56,6 +56,7 @@ extern char debug_messages[10][80];
 extern int next_debug_slot;
 extern char input_txt[];  
 extern int kbfd;
+extern int ThreadEnd;
 extern int prog_running;
 extern int run_stop; 
 extern int is_europi; 
@@ -113,6 +114,8 @@ extern struct MENU Menu[];
 extern pthread_attr_t detached_attr;		
 extern pthread_mutex_t mcp23008_lock;
 extern pthread_mutex_t pcf8574_lock;
+extern pthread_t midiThreadId[]; 
+extern int midiThreadLaunched[];
 extern uint8_t mcp23008_state[16];
 extern int test_v;
 pthread_t ThreadId; 		// Pointer to detatched Thread Ids (re-used by each/every detatched thread)
@@ -388,6 +391,13 @@ static void *SlewThread(void *arg)
 	uint16_t this_value = pSlew->start_value;
 	uint32_t start_tick = gpioTick();
 	int step_size;
+    int num_steps;
+    float profile_offset;
+    float profile_index;
+    float pitch_jump;
+    //float thispercent;
+    int slew_profile;
+    //if(pSlew->i2c_handle != 0) {free(pSlew); return(0);}
 	if (pSlew->slew_length == 0) {
 		// No slew length set, so just output this step and close the thread
 		DACSingleChannelWrite(pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, pSlew->end_value);
@@ -397,27 +407,83 @@ static void *SlewThread(void *arg)
 	
 	if ((pSlew->end_value > pSlew->start_value) && ((pSlew->slew_shape == Rising) || (pSlew->slew_shape == Both))) {
 		// Glide UP
-		step_size = (pSlew->end_value - pSlew->start_value) / (pSlew->slew_length / slew_interval);
-		if (step_size == 0) step_size = 1;
-		//log_msg("Step size up: %d\n",step_size);
+        switch(pSlew->slew_shape){
+            case Exponential:
+                slew_profile = 1;
+                break;
+            case RevExp:
+                slew_profile = 2;
+                break;
+            case Linear:
+            default:
+                slew_profile = 0;
+                break;
+        }
+        num_steps = pSlew->slew_length / slew_interval;
+        profile_index = (float)100 / (float)num_steps;
+		pitch_jump = pSlew->end_value - pSlew->start_value;
+        //step_size = (pSlew->end_value - pSlew->start_value) / (pSlew->slew_length / slew_interval);
+		//if (step_size == 0) step_size = 1;
+		//log_msg("index: %f steps: %d jump: %d\n",profile_index,num_steps,pitch_jump);
+        profile_offset = 0;
+        while((num_steps > 0) && (this_value <= pSlew->end_value)){
+            //thispercent = slew_profiles[slew_profile][(int)profile_offset];
+            //log_msg("This Percent %f\n",thispercent);
+            this_value = pSlew->start_value + ((slew_profiles[slew_profile][(int)profile_offset] / (float)100) * pitch_jump);
+			//log_msg("Start: %d end: %d this: %d Steps: %d\n",pSlew->start_value,pSlew->end_value,this_value,num_steps);
+            DACSingleChannelWrite(pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, this_value);
+			usleep(slew_interval / 2);		
+            profile_offset += profile_index;
+            num_steps--;
+        }
+        DACSingleChannelWrite(pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, pSlew->end_value);
+/*
 		while ((this_value <= pSlew->end_value) && (this_value < (60000 - step_size))){
 			DACSingleChannelWrite(pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, this_value);
 			this_value += step_size;
 			usleep(slew_interval / 2);		
-			if ((gpioTick() - start_tick) > step_ticks) break;	//We've been here too long
-		}
+			*/
 	}
 	else if ((pSlew->end_value < pSlew->start_value) && ((pSlew->slew_shape == Falling) || (pSlew->slew_shape == Both))){
 		// Glide Down
-		step_size = (pSlew->start_value - pSlew->end_value) / (pSlew->slew_length / slew_interval);
-		if (step_size == 0) step_size = 1;		
+		// Glide UP
+        switch(pSlew->slew_shape){
+            case Exponential:
+                slew_profile = 4;
+                break;
+            case RevExp:
+                slew_profile = 5;
+                break;
+            case Linear:
+            default:
+                slew_profile = 3;
+                break;
+        }
+        num_steps = pSlew->slew_length / slew_interval;
+        profile_index = (float)100 / (float)num_steps;
+		pitch_jump = pSlew->start_value - pSlew->end_value;
+		//step_size = (pSlew->start_value - pSlew->end_value) / (pSlew->slew_length / slew_interval);
+		//if (step_size == 0) step_size = 1;		
 		//log_msg("Step size Down: %d\n",step_size);
-		while ((this_value >= pSlew->end_value) && (this_value >= step_size)){
+        profile_offset = 0;
+        while((num_steps > 0) && (this_value >= pSlew->end_value)){
+            //thispercent = slew_profiles[slew_profile][(int)profile_offset];
+            //log_msg("This Percent %f\n",thispercent);
+            this_value = pSlew->end_value + ((slew_profiles[slew_profile][(int)profile_offset] / (float)100) * pitch_jump);
+			//log_msg("Start: %d end: %d this: %d Steps: %d\n",pSlew->start_value,pSlew->end_value,this_value,num_steps);
+            DACSingleChannelWrite(pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, this_value);
+			usleep(slew_interval / 2);		
+            profile_offset += profile_index;
+            num_steps--;
+        }
+        DACSingleChannelWrite(pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, pSlew->end_value);
+
+	/*	while ((this_value >= pSlew->end_value) && (this_value >= step_size)){
 			DACSingleChannelWrite(pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, this_value);
 			this_value -= step_size;
 			usleep(slew_interval / 2);
 			if ((gpioTick() - start_tick) > step_ticks) break;	//We've been here too long
-		} 
+		}*/ 
 	}
 	else {
 		// Slew set, but Rising or Falling are off, so just output the end value
@@ -472,7 +538,24 @@ static void *GateThread(void *arg)
     free(pGate);
 	return(0);
 }
-
+/*
+ * MIDI Thread - Joinable thread launched
+ * for each MIDI Minion (ie up to 4 of these
+ * ciould be running)
+ */
+static void *MidiThread(void *arg)
+{
+    struct midiChnl *pMidiChnl = (struct midiChnl *)arg;
+	int fd = pMidiChnl->i2c_handle;
+    int ret_val;
+    while (!ThreadEnd){
+        if(i2cReadByteData(fd,SC16IS750_RXLVL) > 0) {
+        ret_val = i2cReadByteData(fd,SC16IS750_RHR); 
+        log_msg("%x\n",ret_val);
+        }
+    }
+    return NULL;
+}
  int startup(void)
  {
 	 // Initial state of the Screen Elements (Menus etc)
@@ -481,6 +564,14 @@ static void *GateThread(void *arg)
 	 // Initialise the Deatched pThread attribute
 	int rc = pthread_attr_init(&detached_attr);
 	rc = pthread_attr_setdetachstate(&detached_attr, PTHREAD_CREATE_DETACHED);
+    // Make sure MIDI Listener threads aren't initialised
+    // they will be initialised when MIDI Minion(s) are detected
+    int i;
+    for(i=0;i<4;i++) {
+            midiThreadId[i] = NULL;
+            midiThreadLaunched[i] = FALSE;
+    }
+    
 	// establish a Mutex lock to protect the MCP23008
 	if (pthread_mutex_init(&mcp23008_lock, NULL) != 0){
         log_msg("MCP23008 mutex init failed\n");
@@ -631,8 +722,8 @@ static void *GateThread(void *arg)
 	run_stop = STOP;		/* master clock is running, but step generator is halted */
 	gpioHardwarePWM(MASTER_CLK,clock_freq,500000);
 	gpioSetAlertFunc(MASTER_CLK, master_clock);
-	
 	prog_running = 1;
+	
     return(0);
 }
 
@@ -1157,25 +1248,35 @@ int EuropiFinder()
  * Looks for an SC16IS750 on the passed address. If one
  * exists, then it should be safe to assume that this is 
  * a MidiMinion, in which case it is safe to pass back a handle
- * to the DAC8574
+ * to the DAC8574. The Sc16IS750 UART has an internal scratchpad
+ * register. By writing then checking a random value, we can 
+ * be pretty certain we've got a MIDI Minion. If so, we can 
+ * set the baud rate, clock divisor etc.
  */
 int MidiMinionFinder(unsigned address)
 {
-	int handle;
 	int retval;
+    uint8_t rnd_val;
+	uint8_t ret_val;
 	unsigned i2cAddr;
 	int mid_handle;
-	if((address > 8) || (address < 0)) return -1;
 	i2cAddr = MID_BASE_ADDR | (address & 0x7);
 	mid_handle = i2cOpen(1,i2cAddr,0);
-	if (handle < 0) return -1;
-	return handle;
+	if (mid_handle < 0) return -1;
+    /* just to make sure, write out something random
+     * to one of the user registers, and check that
+     * it is there, to prove we have an SC16IS750 present
+     */
+    rnd_val = rand() % 0xFFFF;
+	if(i2cWriteByteData(mid_handle,SC16IS750_SPR,rnd_val) !=0) return -1;   // Return on write failure
+    ret_val = i2cReadByteData(mid_handle,SC16IS750_SPR);
+    if(ret_val != rnd_val) return -1; else	return mid_handle;
 }
 
 /* 
  * Looks for an MCP23008 on the passed address. If one
  * exists, then it should be safe to assume that this is 
- * a Minion, in which case it is safe to pass back a handle
+1 * a Minion, in which case it is safe to pass back a handle
  * to the DAC8574
  */
 int MinionFinder(unsigned address)
@@ -1490,6 +1591,76 @@ void hardware_init(void)
 			}	
 		}
 	}
+    /* 
+     * Scan for MIDI Minions. There are 4 possible i2c addresses that 
+     * might have MIDI Minions on them: 52,
+     */
+    int i=0;
+    for (i=0;i<=3;i++){
+        switch(i){
+            case 0:
+                address=0x50;
+                break;
+            case 1:
+                address=0x51;
+                break;
+            case 2:
+                address=0x54;
+                break;
+            case 3:
+                address=0x55;
+                break;            
+        }
+        handle = MidiMinionFinder(address);
+		if(handle >= 0){
+			log_msg("MIDI Minion Found on Address %x handle = %d\n",address, handle);
+            // Set the Baud Rate divisor = 4
+            // Prescaler is set to 1, so Divisor = 2,000,000 / Baudrate * 16
+            // MIDI Baud Rate = 31,250 so Divisor = 4
+            i2cWriteByteData(handle,SC16IS750_MCR,0x00);    // Prescaler = 1
+            if(i2cWriteByteData(handle,SC16IS750_LCR,0x83) !=0) log_msg("UART Write Failure\n");	//Line Control with Divisor Latch enabled
+            i2cWriteByteData(handle,SC16IS750_DLH,0x00);
+            i2cWriteByteData(handle,SC16IS750_DLL,0x04);
+            i2cWriteByteData(handle,SC16IS750_LCR,0x03); 	//Clear Divisor Latch. 8,1,none
+            // IO Control - gpio[7:4] set to behave as IO pins. All inputs non-latching
+            i2cWriteByteData(handle,SC16IS750_IOCONTROL,0x00);
+            // Set IO Direction (all Output)
+            i2cWriteByteData(handle,SC16IS750_IODIR,0xFF);
+            // finally, set up the Track object for this MIDI channel
+            Europi.tracks[track].channels[CV_OUT].enabled = TRUE;
+            Europi.tracks[track].channels[CV_OUT].type = CHNL_TYPE_CV;
+            Europi.tracks[track].channels[CV_OUT].quantise = 0;			/* Quantization off by default */
+            Europi.tracks[track].channels[CV_OUT].i2c_handle = handle;			
+            Europi.tracks[track].channels[CV_OUT].i2c_device = DEV_DAC8574;
+            Europi.tracks[track].channels[CV_OUT].i2c_address = 0x08;
+            Europi.tracks[track].channels[CV_OUT].i2c_channel = 0;		
+            Europi.tracks[track].channels[CV_OUT].scale_zero = 280;		/* Value required to generate zero volt output */
+            Europi.tracks[track].channels[CV_OUT].scale_max = 63000;		/* Value required to generate maximum output voltage */
+            Europi.tracks[track].channels[CV_OUT].transpose = 0;			/* fixed (transpose) voltage offset applied to this channel */
+            Europi.tracks[track].channels[CV_OUT].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
+            Europi.tracks[track].channels[CV_OUT].vc_type = VOCT;
+            // Launch a listening Thread
+            
+          /*  					struct gate sGate;
+					sGate.track = track;
+					sGate.i2c_handle = Europi.tracks[0].channels[GATE_OUT].i2c_handle;
+					struct gate *pGate = malloc(sizeof(struct gate));
+					memcpy(pGate, &sGate, sizeof(struct gate));
+*/
+            
+            struct midiChnl sMidiChnl; 
+            sMidiChnl.i2c_handle = handle;
+            struct midiChnl *pMidiChnl = malloc(sizeof(struct midiChnl));
+            memcpy(pMidiChnl, &sMidiChnl, sizeof(struct midiChnl));
+            int error = pthread_create(&midiThreadId[i], NULL, MidiThread, pMidiChnl);
+            if (error != 0) log_msg("Error creating MIDI Listener thread\n");
+            else {
+                    log_msg("Midi Listener thread created\n"); 
+                    midiThreadLaunched[i] = TRUE;
+            }
+            track++;
+        }
+    }
 	/* All hardware identified - run through flashing each Gate just for fun */
 	if (is_europi == TRUE){
 		/* Track 0 Channel 1 will have the GPIO Handle for the PCF8574 channel 2 is Clock Out*/

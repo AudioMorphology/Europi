@@ -47,6 +47,29 @@
 #define RESET_IN	16	/* PIN 36	*/
 //#define TOUCH_INT	17	/* PIN 11	*/
 
+/* SC16IS750 UART register definitions */
+#define SC16IS750_RHR	0x00 << 3
+#define SC16IS750_THR	0x00 << 3
+#define SC16IS750_IER	0x01 << 3
+#define SC16IS750_FCR	0x02 << 3
+#define SC16IS750_IIR	0x02 << 3
+#define SC16IS750_LCR	0x03 << 3
+#define SC16IS750_MCR	0x04 << 3
+#define SC16IS750_LSR	0x05 << 3
+#define SC16IS750_MSR	0x06 << 3
+#define SC16IS750_SPR	0x07 << 3
+#define SC16IS750_TCR	0x06 << 3
+#define SC16IS750_TLR	0x07 << 3
+#define SC16IS750_TXLVL	0x08 << 3
+#define SC16IS750_RXLVL	0x09 << 3
+#define SC16IS750_IODIR	0x0A << 3
+#define SC16IS750_IOSTATE	0x0B << 3
+#define SC16IS750_IOINTENA	0x0C << 3
+#define SC16IS750_IOCONTROL	0x0E << 3
+#define SC16IS750_EFCR	0x0F << 3
+#define SC16IS750_DLL	0x00 << 3	//Divisor Latch low
+#define SC16IS750_DLH	0x01 << 3	//Divisor Latch high
+
 /* Hardware Address Constants */
 #define DAC_BASE_ADDR 	0x4C	/* Base i2c address	of DAC8574 */
 #define MCP_BASE_ADDR	0x20	/* Base i2c address of MCP23008 GPIO Expander */
@@ -58,6 +81,7 @@
 #define GATE_OUT	0x01		/* Europi and Minion */
 #define CLOCK_OUT	0x02		/* Europi only */
 #define STEP1_OUT	0x03		/* Europi only */
+#define MIDI_OUT    0x04        /* MIDI Minion only */
 
 /* Useful Logicals */
 #define RUN			1
@@ -66,6 +90,7 @@
 #define LOW			0
 #define INT_CLK		0
 #define EXT_CLK		1
+#define MIDI_CLK    2
 #define TRUE		1
 #define FALSE		0
 #define UP          1
@@ -93,7 +118,7 @@ enum device_t {
 //	CV_OUT,
 //	GATE_OUT,
 	MIDI_IN,
-	MIDI_OUT,
+//	MIDI_OUT,
 //	CLOCK_OUT,
 //		STEP1_OUT
 };
@@ -177,6 +202,28 @@ enum shot_type_t {
 	Repeat
 };
 
+enum MidiType {
+    InvalidType           = 0x00,    ///< For notifying errors
+    NoteOff               = 0x80,    ///< Note Off
+    NoteOn                = 0x90,    ///< Note On
+    AfterTouchPoly        = 0xA0,    ///< Polyphonic AfterTouch
+    ControlChange         = 0xB0,    ///< Control Change / Channel Mode
+    ProgramChange         = 0xC0,    ///< Program Change
+    AfterTouchChannel     = 0xD0,    ///< Channel (monophonic) AfterTouch
+    PitchBend             = 0xE0,    ///< Pitch Bend
+    SystemExclusive       = 0xF0,    ///< System Exclusive
+    TimeCodeQuarterFrame  = 0xF1,    ///< System Common - MIDI Time Code Quarter Frame
+    SongPosition          = 0xF2,    ///< System Common - Song Position Pointer
+    SongSelect            = 0xF3,    ///< System Common - Song Select
+    TuneRequest           = 0xF6,    ///< System Common - Tune Request
+    Clock                 = 0xF8,    ///< System Real Time - Timing Clock
+    Start                 = 0xFA,    ///< System Real Time - Start
+    Continue              = 0xFB,    ///< System Real Time - Continue
+    Stop                  = 0xFC,    ///< System Real Time - Stop
+    ActiveSensing         = 0xFE,    ///< System Real Time - Active Sensing
+    SystemReset           = 0xFF,    ///< System Real Time - System Reset
+};
+
 /* Function Prototypes in europi_func1 */
 int startup(void);
 int shutdown(void);
@@ -203,6 +250,7 @@ int quantize(int raw, int scale);
 static void *SlewThread(void *arg);
 static void *GateThread(void *arg);
 static void *AdThread(void *arg);
+static void *MidiThread(void *arg); 
 
 /* Function Prototypes in europi_func2 */ 
 void seq_singlechnl(void);
@@ -221,6 +269,7 @@ void buttonsDefault(void);
 void seq_quantise(void);
 void seq_setpitch(void);
 void seq_setloop(void);
+void seq_setslew(void);
 void test_scalevalue(void);
 void test_keyboard(void);
 void file_save(void);
@@ -309,6 +358,7 @@ void gui_debug(void);
 #define DEV_DAC8574 1
 #define DEV_RPI 2
 #define DEV_PCF8574 3
+#define DEV_SC16IS750 4
 
 /* Menu structures - Menus are defined using 
  * Arrays of structures containing the
@@ -346,6 +396,7 @@ enum display_page_t {
 	 int ScaleValue;
 	 int SetLoop;
 	 int SetPitch;
+     int SetSlew;
 	 int SetQuantise;
      int Keyboard;
      int FileOpen;
@@ -414,6 +465,9 @@ struct ad {
 	enum shot_type_t shot_type; /* One-shot or Repeat */
 };
 
+struct midiChnl {
+    int i2c_handle;
+};
 /* 
  * DEVICE records the physical configuration of 
  * the Europi system, including device handles,

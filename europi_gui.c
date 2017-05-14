@@ -354,6 +354,65 @@ void ShowScreenOverlays(void){
         }
 
     }
+    if(ScreenOverlays.SetSlew == 1){
+        //TODO: This isn't finished yet, and probably needs a 
+        //double-height control panel to get all the detail in 
+        int track = 0;
+        char strTrack[5];
+        char strStep[5];
+        char strSlew[9];
+        DrawTexture(TopBarTexture,0,0,WHITE);
+        DrawTexture(Text2chTexture,70,2,WHITE); // Box for Track Number
+        DrawTexture(Text2chTexture,155,2,WHITE); // Box for Step Number
+        DrawTexture(Text5chTexture,245,2,WHITE); // Box for Slew Value
+        
+        DrawText("Track",5,5,20,DARKGRAY);
+        DrawText("Step",105,5,20,DARKGRAY);
+        DrawText("Slew",190,5,20,DARKGRAY);
+        
+        for(track = 0; track < MAX_TRACKS; track++) {
+            if (Europi.tracks[track].selected == TRUE){
+                sprintf(strTrack,"%02d",track+1);
+                sprintf(strStep,"%02d",Europi.tracks[track].current_step+1);
+                sprintf(strSlew,"%05d",Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);
+                DrawText(strTrack,75,5,20,DARKGRAY);
+                DrawText(strStep,160,5,20,DARKGRAY);
+                DrawText(strSlew,250,5,20,DARKGRAY);
+                if(encoder_focus == track_select){
+                    DrawRectangleLines(71,3,30,22,RED);
+                    DrawRectangleLines(72,4,28,20,RED);
+                }
+                else if (encoder_focus == step_select) {
+                    DrawRectangleLines(156,3,30,22,RED);
+                    DrawRectangleLines(157,4,28,20,RED);
+                }
+                else if (encoder_focus == slew_type){
+                    DrawRectangleLines(246,3,66,22,RED);
+                    DrawRectangleLines(247,4,64,20,RED);
+                }
+            }
+        }
+        // Check for Select button
+        if (btnA_state == 1){
+            btnA_state = 0;
+            if(encoder_focus == track_select) encoder_focus = step_select;
+            else if(encoder_focus == step_select) encoder_focus = slew_type;
+            else encoder_focus = track_select;
+        }
+        if (btnB_state == 1){
+            // Check for Val -
+            btnB_state = 0;
+            if(encoder_focus == track_select) select_next_track(DOWN);
+            else set_loop_point(DOWN);
+        }
+        if (btnC_state == 1){
+            // Check for Val +
+            btnC_state = 0;
+            if(encoder_focus == track_select) select_next_track(UP);
+            else set_loop_point(UP);
+        }
+
+    }
     if(ScreenOverlays.SetPitch == 1){ 
         int track = 0;
         char strTrack[5];

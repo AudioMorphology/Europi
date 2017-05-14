@@ -125,6 +125,7 @@ void ClearScreenOverlays(void){
 	ScreenOverlays.ScaleValue = 0;
 	ScreenOverlays.SetLoop = 0;
 	ScreenOverlays.SetPitch = 0;
+    ScreenOverlays.SetSlew = 0;
 	ScreenOverlays.SetQuantise = 0;
     ScreenOverlays.Keyboard = 0;
     ScreenOverlays.FileOpen = 0;
@@ -144,6 +145,7 @@ int OverlayActive(void){
         (ScreenOverlays.ScaleValue == 1) ||
         (ScreenOverlays.SetLoop == 1) ||
         (ScreenOverlays.SetPitch == 1) ||
+        (ScreenOverlays.SetSlew == 1) ||
         (ScreenOverlays.SetQuantise == 1) ||
         (ScreenOverlays.Keyboard == 1) ||
         (ScreenOverlays.FileOpen == 1) ||
@@ -445,6 +447,24 @@ void seq_setloop(void){
 	encoder_focus = track_select;
 	select_first_track();
 }
+/*
+ * menu Callback to set Slew type for each step
+ */
+void seq_setslew(void){
+	run_stop = STOP;
+	ClearScreenOverlays();
+	ScreenOverlays.SetSlew = 1;
+    ClearMenus();
+    MenuSelectItem(0,0);
+    btnA_func = btnA_select;
+    btnB_func = btnB_val_down;
+    btnC_func = btnC_val_up;
+    btnD_func = btnD_done;    
+	encoder_focus = track_select;
+	select_first_track();
+}
+
+
 
 /*
  * menu callback for Test->Scale Value
@@ -717,7 +737,7 @@ void step_repeat(int dir, int vel){
 	}
 }
 
-void init_sequence(void)
+void init_sequence_old1(void)
 {
     sprintf(current_filename,"resources/sequences/default.seq");
     log_msg("Init Seq: %s\n",current_filename);
@@ -728,7 +748,7 @@ void init_sequence(void)
 	}
 }
 
-void init_sequence_old1(void)
+void init_sequence_old(void)
 {
 	int track,channel,step;
 	int raw;
@@ -926,7 +946,7 @@ void init_sequence_old1(void)
  * so that there is something there for testing
  * and instant gratification purposes
  */
-void init_sequence_old(void)
+void init_sequence(void)
 {
 	int track,channel,step;
 	int raw;

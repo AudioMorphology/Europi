@@ -51,6 +51,7 @@ int impersonate_hw = FALSE;	/* allows the software to bypass hardware checks (us
 char input_txt[100];    /* buffer for capturing user input */
 char current_filename[100]; /* The File we have Open, which is used in File-Save */
 int prog_running=0;		/* Setting this to 0 will force the prog to quit*/
+int ThreadEnd = FALSE; /* semaphore to shut down autonomous threads when the prog ends */
 int run_stop=STOP;		/* 0=Stop 1=Run: Halts the main step generator */
 int clock_counter = 95;	/* Main clock counter, tracks the 96 pulses per step */
 int clock_level = 0;	/* Master clock phase */
@@ -87,7 +88,9 @@ int encoder_vel;
 int disp_menu = 0;
 int touchStream = -1;                    // Touch device file descriptor
 int touchReady = FALSE;                 // Flag to know if touchscreen is present
-pthread_t touchThreadId;                 
+pthread_t touchThreadId;  
+pthread_t midiThreadId[3];              // 4 x Threads for potential MIDI Listeners 
+int midiThreadLaunched[3];             // flags to show whether the listener has launched or not              
 
 
 enum encoder_focus_t encoder_focus;
@@ -137,6 +140,7 @@ menu mnu_file_new = 	{0,0,dir_none,"New",NULL,NULL};
 menu mnu_file_quit = 	{0,0,dir_none,"Quit",&file_quit,NULL};
 
 menu mnu_seq_new = 		{0,0,dir_none,"New",&seq_new,NULL};
+menu mnu_seq_setslew =  {0,0,dir_none,"Set Slew for Step",&seq_setslew,NULL};
 menu mnu_seq_setloop =	{0,0,dir_none,"Set Loop Points",&seq_setloop,NULL};
 menu mnu_seq_setpitch = {0,0,dir_none,"Set pitch for step",&seq_setpitch,NULL};
 menu mnu_seq_quantise = {0,0,dir_none,"Set Quantization",&seq_quantise,NULL};
@@ -154,7 +158,7 @@ menu sub_end = {0,0,dir_none,NULL,NULL,NULL}; //set of NULLs to mark the end of 
 
 menu Menu[]={
 	{0,1,dir_down,"File",NULL,{&mnu_file_open,&mnu_file_save,&mnu_file_saveas,&mnu_file_new,&mnu_file_quit,&sub_end}},
-	{0,0,dir_down,"Sequence",NULL,{&mnu_seq_setloop,&mnu_seq_setpitch,&mnu_seq_quantise,&mnu_seq_gridview,&mnu_seq_singlechnl,&mnu_seq_new,&sub_end}},
+	{0,0,dir_down,"Sequence",NULL,{&mnu_seq_setslew,&mnu_seq_setloop,&mnu_seq_setpitch,&mnu_seq_quantise,&mnu_seq_gridview,&mnu_seq_singlechnl,&mnu_seq_new,&sub_end}},
 	{0,0,dir_down,"Config",NULL,{&mnu_config_setzero,&mnu_config_set10v,&mnu_config_debug,&sub_end}},
 	{0,0,dir_down,"Test",NULL,{&mnu_test_scalevalue,&mnu_config_setzero,&mnu_test_keyboard,&sub_end}},
 	{0,0,dir_down,"Play",NULL,{&sub_end}},
@@ -184,7 +188,7 @@ int main(int argc, char* argv[])
 	//Temp for testing
 	//run_stop = STOP; 
 	//clock_source = INT_CLK;
-    //debug = TRUE;
+    debug = TRUE;
     currentGesture1 = GESTURE_NONE;
     lastGesture = GESTURE_NONE;
     //SetGesturesEnabled(0b0000000011100011);   //None, tap & DoubleTap 
@@ -268,8 +272,13 @@ while (prog_running == 1){
     //UpdateGestures();
     usleep(100); 
 }
-
+    ThreadEnd = TRUE;
+    // Wait for various joinable threads to end
 	pthread_join(touchThreadId, NULL);
+    int i;
+    for(i=0;i<4;i++) {
+        if(midiThreadLaunched[i] == TRUE) pthread_join(midiThreadId[i], NULL);
+    }
 	shutdown();
 	return 0;
   
