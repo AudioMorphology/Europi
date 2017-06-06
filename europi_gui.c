@@ -187,7 +187,6 @@ void gui_SingleChannel(void){
     int step;
     int val;
     char track_no[20];
-    int txt_len;
     int row;
     Rectangle stepRectangle = {0,0,0,0};
     BeginDrawing();
@@ -195,8 +194,6 @@ void gui_SingleChannel(void){
     for (track = 0; track < MAX_TRACKS; track++){
         if (Europi.tracks[track].selected == TRUE){
             sprintf(track_no,"%d",track+1);
-            txt_len = MeasureText(track_no,10);
-            //DrawText(track_no,12-txt_len,220,10,DARKGRAY);
             for (step = 0; step < MAX_STEPS; step++){
                 row = step / 16;
                 if(step < Europi.tracks[track].last_step){
@@ -477,6 +474,8 @@ void ShowScreenOverlays(void){
                 case set_pitch:
                     set_step_pitch(DOWN,1);  // no velocity available
                 break;
+                default:
+                break;
             }
         }
         if (btnC_state == 1){
@@ -491,6 +490,8 @@ void ShowScreenOverlays(void){
                 break;
                 case set_pitch:
                     set_step_pitch(UP,1);  // no velocity available
+                break;
+                default:
                 break;
             }
         }

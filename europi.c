@@ -89,11 +89,11 @@ int encoder_level_B;
 int encoder_lastGpio;
 int encoder_vel;
 int disp_menu = 0;
-int touchStream = -1;                    // Touch device file descriptor
+int touchStream = -1;                   // Touch device file descriptor
 int touchReady = FALSE;                 // Flag to know if touchscreen is present
 pthread_t touchThreadId;  
-pthread_t midiThreadId[3];              // 4 x Threads for potential MIDI Listeners 
-int midiThreadLaunched[3];             // flags to show whether the listener has launched or not              
+pthread_t midiThreadId[4];              // 4 x Threads for potential MIDI Listeners 
+int midiThreadLaunched[4];             // flags to show whether the listener has launched or not              
 
 
 enum encoder_focus_t encoder_focus;
@@ -136,28 +136,28 @@ Texture2D MainScreenTexture; // Main screen
 Texture2D ButtonBarTexture; // Soft-button graphic bar
 
 /* declare and populate the menu structure */ 
-menu mnu_file_open = 	{0,0,dir_none,"Open",&file_open,NULL};
-menu mnu_file_save = 	{0,0,dir_none,"Save",&file_save,NULL};
-menu mnu_file_saveas = 	{0,0,dir_none,"Save As",&file_saveas,NULL};
-menu mnu_file_new = 	{0,0,dir_none,"New",NULL,NULL};
-menu mnu_file_quit = 	{0,0,dir_none,"Quit",&file_quit,NULL};
+menu mnu_file_open = 	{0,0,dir_none,"Open",&file_open,{NULL}};
+menu mnu_file_save = 	{0,0,dir_none,"Save",&file_save,{NULL}};
+menu mnu_file_saveas = 	{0,0,dir_none,"Save As",&file_saveas,{NULL}};
+menu mnu_file_new = 	{0,0,dir_none,"New",NULL,{NULL}};
+menu mnu_file_quit = 	{0,0,dir_none,"Quit",&file_quit,{NULL}};
 
-menu mnu_seq_new = 		{0,0,dir_none,"New",&seq_new,NULL};
-menu mnu_seq_setslew =  {0,0,dir_none,"Set Slew for Step",&seq_setslew,NULL};
-menu mnu_seq_setloop =	{0,0,dir_none,"Set Loop Points",&seq_setloop,NULL};
-menu mnu_seq_setpitch = {0,0,dir_none,"Set pitch for step",&seq_setpitch,NULL};
-menu mnu_seq_quantise = {0,0,dir_none,"Set Quantization",&seq_quantise,NULL};
-menu mnu_seq_singlechnl = {0,0,dir_none,"Single Channel View",&seq_singlechnl,NULL};
-menu mnu_seq_gridview = {0,0,dir_none,"Grid View",&seq_gridview,NULL};
+menu mnu_seq_new = 		{0,0,dir_none,"New",&seq_new,{NULL}};
+menu mnu_seq_setslew =  {0,0,dir_none,"Set Slew for Step",&seq_setslew,{NULL}};
+menu mnu_seq_setloop =	{0,0,dir_none,"Set Loop Points",&seq_setloop,{NULL}};
+menu mnu_seq_setpitch = {0,0,dir_none,"Set pitch for step",&seq_setpitch,{NULL}};
+menu mnu_seq_quantise = {0,0,dir_none,"Set Quantization",&seq_quantise,{NULL}};
+menu mnu_seq_singlechnl = {0,0,dir_none,"Single Channel View",&seq_singlechnl,{NULL}};
+menu mnu_seq_gridview = {0,0,dir_none,"Grid View",&seq_gridview,{NULL}};
 
-menu mnu_config_setzero = {0,0,dir_left,"Set Zero",&config_setzero,NULL};
-menu mnu_config_set10v = {0,0,dir_left,"Set 10 Volt",&config_setten,NULL};
-menu mnu_config_debug = {0,0,dir_left,"debug on/off",&config_debug,NULL};
+menu mnu_config_setzero = {0,0,dir_left,"Set Zero",&config_setzero,{NULL}};
+menu mnu_config_set10v = {0,0,dir_left,"Set 10 Volt",&config_setten,{NULL}};
+menu mnu_config_debug = {0,0,dir_left,"debug on/off",&config_debug,{NULL}};
 
-menu mnu_test_scalevalue = {0,0,dir_left,"Test scale value",&test_scalevalue,NULL};
-menu mnu_test_keyboard = {0,0,dir_left,"Test Keyboard",&test_keyboard,NULL};
+menu mnu_test_scalevalue = {0,0,dir_left,"Test scale value",&test_scalevalue,{NULL}};
+menu mnu_test_keyboard = {0,0,dir_left,"Test Keyboard",&test_keyboard,{NULL}};
 
-menu sub_end = {0,0,dir_none,NULL,NULL,NULL}; //set of NULLs to mark the end of a sub menu
+menu sub_end = {0,0,dir_none,NULL,NULL,{NULL}}; //set of NULLs to mark the end of a sub menu
 
 menu Menu[]={
 	{0,1,dir_down,"File",NULL,{&mnu_file_open,&mnu_file_save,&mnu_file_saveas,&mnu_file_new,&mnu_file_quit,&sub_end}},
@@ -165,7 +165,7 @@ menu Menu[]={
 	{0,0,dir_down,"Config",NULL,{&mnu_config_setzero,&mnu_config_set10v,&mnu_config_debug,&sub_end}},
 	{0,0,dir_down,"Test",NULL,{&mnu_test_scalevalue,&mnu_config_setzero,&mnu_test_keyboard,&sub_end}},
 	{0,0,dir_down,"Play",NULL,{&sub_end}},
-	{0,0,dir_down,NULL,NULL,NULL}
+	{0,0,dir_down,NULL,NULL,{NULL}}
 	};
 
 

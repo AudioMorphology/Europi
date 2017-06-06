@@ -125,7 +125,7 @@ enum device_t {
 
 enum encoder_focus_t {
 	none,
-	pitch_cv,
+	pitch_cv, 
 	slew_type,
 	gate_on_off,
 	repeat,
@@ -249,10 +249,10 @@ void GATESingleOutput(unsigned handle, uint8_t channel,int Device,int Value);
 void hardware_init(void); 
 int quantize(int raw, int scale);
 int pitch2midi(uint16_t voltage);
-static void *SlewThread(void *arg);
-static void *GateThread(void *arg);
-static void *AdThread(void *arg);
-static void *MidiThread(void *arg); 
+void *SlewThread(void *arg); 
+void *GateThread(void *arg);
+void *AdThread(void *arg); 
+void *MidiThread(void *arg); 
 
 /* Function Prototypes in europi_func2 */ 
 void seq_singlechnl(void);
@@ -284,6 +284,7 @@ void config_debug(void);
 void set_zero(int Track, long ZeroVal);
 void file_quit(void);
 void load_sequence(const char *filename);
+void slew_adjust(int dir, int vel);
 void step_repeat(int dir, int vel);
 void init_sequence(void);
 void quantize_track(int track, int scale);

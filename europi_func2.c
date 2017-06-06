@@ -22,7 +22,8 @@
 // 
 // See http://creativecommons.org/licenses/MIT/ for more information.
 
-#include <linux/input.h>
+//#include <linux/input.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -207,7 +208,7 @@ void select_track(int track){
 void select_next_track(int dir){
     if(dir == 1){
         int track = 0;
-        int prev_selected;
+        int prev_selected = 0;
         int found_new = FALSE;
         while(track < MAX_TRACKS){
             if(Europi.tracks[track].selected == TRUE){
@@ -236,7 +237,7 @@ void select_next_track(int dir){
     }
     else {
         int track = MAX_TRACKS - 1;
-        int prev_selected;
+        int prev_selected = MAX_TRACKS - 1;
         int found_new = FALSE;
         while(track >= 0){
             if(Europi.tracks[track].selected == TRUE){
@@ -552,7 +553,8 @@ void file_saveas(void){
     btnD_func = btnD_none;
     ScreenOverlays.FileSaveAs = 1;
     encoder_focus = keyboard_input;
-    sprintf(input_txt,"");
+    //sprintf(input_txt,"");
+    *input_txt = 0;
 }
 
 /*

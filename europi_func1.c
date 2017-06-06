@@ -22,7 +22,8 @@
 // 
 // See http://creativecommons.org/licenses/MIT/ for more information.
 
-#include <linux/input.h>
+//#include <linux/input.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -30,6 +31,7 @@
 #include <fcntl.h>
 #include <linux/fb.h>
 #include <sys/mman.h>
+#include <sys/ioctl.h>
 #include <linux/kd.h>
 #include <pigpio.h>
 #include <signal.h>
@@ -320,6 +322,9 @@ void next_step(void)
 					// Full ADSR ramp profile
 					
 				break;
+                case Off:
+                
+                break;
 			}
 		}
 	}
@@ -331,7 +336,7 @@ void next_step(void)
  * Attack-Decay thread.
  * Simple AD ramp, which can be set to OneShot or Repeat
  */
-static void *AdThread(void *arg)
+void *AdThread(void *arg)
 {
 	struct ad *pAD = (struct ad *)arg;
 	uint16_t this_value;
@@ -393,7 +398,7 @@ static void *AdThread(void *arg)
  * function lives just to perform the slew, then
  * ends itself
  */
-static void *SlewThread(void *arg)
+void *SlewThread(void *arg)
 {
 	struct slew *pSlew = (struct slew *)arg;
 	uint16_t this_value = pSlew->start_value;
@@ -415,7 +420,7 @@ static void *SlewThread(void *arg)
 	
 	if ((pSlew->end_value > pSlew->start_value) && ((pSlew->slew_shape == Rising) || (pSlew->slew_shape == Both))) {
 		// Glide UP
-        switch(pSlew->slew_shape){
+        switch(pSlew->slew_type){
             case Exponential:
                 slew_profile = 1;
                 break;
@@ -455,7 +460,7 @@ static void *SlewThread(void *arg)
 	else if ((pSlew->end_value < pSlew->start_value) && ((pSlew->slew_shape == Falling) || (pSlew->slew_shape == Both))){
 		// Glide Down
 		// Glide UP
-        switch(pSlew->slew_shape){
+        switch(pSlew->slew_type){
             case Exponential:
                 slew_profile = 4;
                 break;
@@ -507,7 +512,7 @@ static void *SlewThread(void *arg)
  * length of the pulse. The function lives just to perform 
  * the trigger, then ends itself
  */
-static void *GateThread(void *arg)
+void *GateThread(void *arg)
 {
 	struct gate *pGate = (struct gate *)arg;
 	uint32_t start_tick = gpioTick();
@@ -551,7 +556,7 @@ static void *GateThread(void *arg)
  * for each MIDI Minion (ie up to 4 of these
  * could be running)
  */
-static void *MidiThread(void *arg)
+void *MidiThread(void *arg)
 {
     struct midiChnl *pMidiChnl = (struct midiChnl *)arg;
 	int fd = pMidiChnl->i2c_handle;
@@ -594,13 +599,13 @@ static void *MidiThread(void *arg)
 	 ClearScreenOverlays();
 	 DisplayPage = GridView;
 	 // Initialise the Deatched pThread attribute
-	int rc = pthread_attr_init(&detached_attr);
-	rc = pthread_attr_setdetachstate(&detached_attr, PTHREAD_CREATE_DETACHED);
+	pthread_attr_init(&detached_attr);
+	pthread_attr_setdetachstate(&detached_attr, PTHREAD_CREATE_DETACHED);
     // Make sure MIDI Listener threads aren't initialised
     // they will be initialised when MIDI Minion(s) are detected
     int i;
     for(i=0;i<4;i++) {
-            midiThreadId[i] = NULL;
+            midiThreadId[i] = (pthread_t)NULL;
             midiThreadLaunched[i] = FALSE;
     }
     
@@ -828,7 +833,8 @@ void log_msg(const char* format, ...)
 	fprintf(stderr, "%s", buf);
     // Also logs messages to a circular buffer
     // which holds the most recent 10 messages
-    snprintf(debug_messages[next_debug_slot],50,"%s\0",buf);
+//    snprintf(debug_messages[next_debug_slot],50,"%s\0",buf);
+    snprintf(debug_messages[next_debug_slot],50,"%s",buf);
     next_debug_slot++;
     if(next_debug_slot >= 10) next_debug_slot = 0;
 	va_end(args);
@@ -1128,7 +1134,7 @@ void encoder_button(int gpio, int level, uint32_t tick)
                     row = kbd_char_selected / KBD_COLS;
                     col = kbd_char_selected % KBD_COLS;
                     //Add this to the input_txt buffer
-                    sprintf(input_txt,"%s%s\0", input_txt,kbd_chars[row][col]);
+                    sprintf(input_txt,"%s%s", input_txt,kbd_chars[row][col]);
             }
             break;
 		case step_select:
@@ -1344,13 +1350,25 @@ void MIDISingleChannelWrite(unsigned handle, uint8_t channel, uint8_t velocity, 
     uint8_t note;
 	if(impersonate_hw == TRUE) return;
     note = pitch2midi(voltage);
-    log_msg("Voltage: %d, MIDI Note: %d\n",voltage, note);
+    log_msg("Handle: %d, Chnl: %d, Velocity: %d, MIDI Note: %d\n",handle,channel,velocity,note);
     // Note On
     i2cWriteByteData(handle,SC16IS750_IOSTATE,0x00);
     i2cWriteByteData(handle,SC16IS750_RHR,0x90 || (channel && 0xF));
     i2cWriteByteData(handle,SC16IS750_RHR,note);
     i2cWriteByteData(handle,SC16IS750_RHR,velocity);
     i2cWriteByteData(handle,SC16IS750_IOSTATE,0xFF);
+    /*
+        i2cWriteByteData(handle,SC16IS750_RHR,0x90);
+        i2cWriteByteData(handle,SC16IS750_RHR,note);
+        i2cWriteByteData(handle,SC16IS750_RHR,0x64);
+        i2cWriteByteData(handle,SC16IS750_IOSTATE,0x00);
+        usleep(50000);
+        i2cWriteByteData(handle,SC16IS750_RHR,0x90);
+        i2cWriteByteData(handle,SC16IS750_RHR,note);
+        i2cWriteByteData(handle,SC16IS750_RHR,0x00);
+        i2cWriteByteData(handle,SC16IS750_IOSTATE,0xFF);
+    */
+    
 }
 
 /* 
@@ -1366,19 +1384,14 @@ void MIDISingleChannelWrite(unsigned handle, uint8_t channel, uint8_t velocity, 
  */
 void DACSingleChannelWrite(unsigned handle, uint8_t address, uint8_t channel, uint16_t voltage){
 	uint16_t v_out;
-	uint16_t v_sav;
 	uint8_t ctrl_reg;
-	int retval;
 	if(impersonate_hw == TRUE) return;
 	//log_msg("%d, %d, %d, %d\n",handle,address,channel,voltage);
 	ctrl_reg = (((address & 0xC) << 4) | 0x10) | ((channel << 1) & 0x06);
 	//log_msg("handle: %0x, address: %0x, channel: %d, ctrl_reg: %02x, Voltage: %d\n",handle, address, channel,ctrl_reg,voltage);
 	//swap MSB & LSB because i2cWriteWordData sends LSB first, but the DAC expects MSB first
-	v_sav = voltage;
 	v_out = ((voltage >> 8) & 0x00FF) | ((voltage << 8) & 0xFF00);
-	//log_msg("hdle: %0x, addr: %0x, chan: %d, ctrl: %02x, Volt: %d Vshift: %0x\n",handle, address, channel,ctrl_reg,v_sav,v_out);
-	retval = i2cWriteWordData(handle,ctrl_reg,v_out);
-	//log_msg("Ret: %d\n",retval);
+	i2cWriteWordData(handle,ctrl_reg,v_out);
 }
 /* 
  * GATEMultiOutput
@@ -1759,6 +1772,7 @@ int quantize(int raw, int scale){
 	for(i=0;i<=12;i++){
 		if(raw >= lower_boundary[scale][i] && raw < upper_boundary[scale][i]) return (scale_values[scale][i] + octave*6000);
 	}
+    return raw; //Default if it fails to quantise
 };
 
 /*
