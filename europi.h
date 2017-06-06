@@ -243,10 +243,12 @@ void next_step(void);
 int MidiMinonFinder(unsigned address);
 int MinonFinder(unsigned address);
 int EuropiFinder(void);
+void MIDISingleChannelWrite(unsigned handle, uint8_t channel, uint8_t velocity, uint16_t voltage);
 void DACSingleChannelWrite(unsigned handle, uint8_t address, uint8_t channel, uint16_t voltage);
 void GATESingleOutput(unsigned handle, uint8_t channel,int Device,int Value);
 void hardware_init(void); 
 int quantize(int raw, int scale);
+int pitch2midi(uint16_t voltage);
 static void *SlewThread(void *arg);
 static void *GateThread(void *arg);
 static void *AdThread(void *arg);
@@ -350,6 +352,7 @@ void gui_debug(void);
 #define CHNL_TYPE_CV 0
 #define CHNL_TYPE_GATE 1
 #define CHNL_TYPE_TRIGGER 2
+#define CHNL_TYPE_MIDI 3
 /* Voltage control type */
 #define VOCT 0				/* Volts per Octave */
 #define VHZ 1				/* Hertz per Volt */

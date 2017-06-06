@@ -60,6 +60,8 @@ extern int ThreadEnd;
 extern int prog_running;
 extern int run_stop; 
 extern int is_europi; 
+extern int midi_clock_counter;
+extern int midi_clock_divisor;
 extern int retrig_counter;
 extern int extclk_counter;
 extern int extclk_level;
@@ -73,6 +75,7 @@ extern int print_messages;
 //extern unsigned int sequence[6][32][3];
 //extern int current_step;
 //extern int last_step;
+extern int last_track;
 extern int selected_step;
 extern int step_one;
 extern int step_one_state;
@@ -210,7 +213,7 @@ void next_step(void)
 	int previous_step, channel, track;
 	/* look for something to do */
 	//for (track = 0;track < MAX_TRACKS; track++){
-	for (track = 0;track < MAX_TRACKS; track++){
+	for (track = 0;track < last_track; track++){
 		/* if this track is busy doing something else, then it won't advance to the next step */
 		if (Europi.tracks[track].track_busy == FALSE){
 			/* Each Track has its own end point */
@@ -239,9 +242,14 @@ void next_step(void)
 			}
 			
 			/* set the CV for each channel, BUT ONLY if slew is OFF */
-			if ((Europi.tracks[track].channels[CV_OUT].enabled == TRUE ) && (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type == Off)){
+			// Standard CV Channel
+            if ((Europi.tracks[track].channels[CV_OUT].type == CHNL_TYPE_CV) && (Europi.tracks[track].channels[CV_OUT].enabled == TRUE ) && (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type == Off)){
 				DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
 			}
+            // MIDI Channel
+            if ((Europi.tracks[track].channels[CV_OUT].type == CHNL_TYPE_MIDI) && (Europi.tracks[track].channels[CV_OUT].enabled == TRUE ) && (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type == Off)){
+                MIDISingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_channel, 0x40, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);   
+            }
 			/* set the Gate State for each channel */
 			if (Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ){
 				if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1){
@@ -541,7 +549,7 @@ static void *GateThread(void *arg)
 /*
  * MIDI Thread - Joinable thread launched
  * for each MIDI Minion (ie up to 4 of these
- * ciould be running)
+ * could be running)
  */
 static void *MidiThread(void *arg)
 {
@@ -550,8 +558,32 @@ static void *MidiThread(void *arg)
     int ret_val;
     while (!ThreadEnd){
         if(i2cReadByteData(fd,SC16IS750_RXLVL) > 0) {
-        ret_val = i2cReadByteData(fd,SC16IS750_RHR); 
-        log_msg("%x\n",ret_val);
+            ret_val = i2cReadByteData(fd,SC16IS750_RHR); 
+            switch(ret_val){
+                case Clock:
+                    if(run_stop == RUN){
+                        if(midi_clock_counter++ >= (midi_clock_divisor -1)){
+                            midi_clock_counter = 0;
+                            GATESingleOutput(Europi.tracks[0].channels[GATE_OUT].i2c_handle,CLOCK_OUT,DEV_PCF8574,HIGH);
+                            next_step();
+                        }
+                        if(midi_clock_counter == (midi_clock_divisor / 2)){
+                            GATESingleOutput(Europi.tracks[0].channels[GATE_OUT].i2c_handle,CLOCK_OUT,DEV_PCF8574,LOW);
+                        }
+                    }
+                break;
+                case Start:
+                    run_stop = RUN;
+                    step_one = TRUE;
+                    midi_clock_counter = 0;
+                break;
+                case Continue:
+                    run_stop = RUN;
+                break;
+                case Stop:
+                    run_stop = STOP;
+                break;
+            }
         }
     }
     return NULL;
@@ -1248,7 +1280,7 @@ int EuropiFinder()
  * Looks for an SC16IS750 on the passed address. If one
  * exists, then it should be safe to assume that this is 
  * a MidiMinion, in which case it is safe to pass back a handle
- * to the DAC8574. The Sc16IS750 UART has an internal scratchpad
+ * to the UART. The SC16IS750 UART has an internal scratchpad
  * register. By writing then checking a random value, we can 
  * be pretty certain we've got a MIDI Minion. If so, we can 
  * set the baud rate, clock divisor etc.
@@ -1301,6 +1333,24 @@ int MinionFinder(unsigned address)
 	 i2cAddr = DAC_BASE_ADDR | (address & 0x3);
 	 handle = i2cOpen(1,i2cAddr,0);
 	 return handle;
+}
+/*
+ * MIDI Single Channel Out.
+ * This takes a CV Value, Channel etc, same as a
+ * CV Output, though quantises the Note voltage
+ * to a MIDI Note value
+ */
+void MIDISingleChannelWrite(unsigned handle, uint8_t channel, uint8_t velocity, uint16_t voltage){
+    uint8_t note;
+	if(impersonate_hw == TRUE) return;
+    note = pitch2midi(voltage);
+    log_msg("Voltage: %d, MIDI Note: %d\n",voltage, note);
+    // Note On
+    i2cWriteByteData(handle,SC16IS750_IOSTATE,0x00);
+    i2cWriteByteData(handle,SC16IS750_RHR,0x90 || (channel && 0xF));
+    i2cWriteByteData(handle,SC16IS750_RHR,note);
+    i2cWriteByteData(handle,SC16IS750_RHR,velocity);
+    i2cWriteByteData(handle,SC16IS750_IOSTATE,0xFF);
 }
 
 /* 
@@ -1446,6 +1496,7 @@ void hardware_init(void)
 		Europi.tracks[track].channels[CV_OUT].enabled = FALSE;
 		Europi.tracks[track].channels[GATE_OUT].enabled = FALSE;
 	}
+    last_track = 0;
 	/*
 	 * If impersonate_hw is set to TRUE, then this bypasses the 
 	 * hardware checks, and pretends all hardware is present - this
@@ -1497,6 +1548,7 @@ void hardware_init(void)
 		if(pcf_handle >= 0) {
 			/* Gates off, LEDs off */
 			i2cWriteByte(pcf_handle, (unsigned)(0xF0));
+            log_msg("Europi PCF8574 Found on i2cAddress %d handle = %d\n",pcf_addr, pcf_handle);
 		}
 		Europi.tracks[track].channels[CV_OUT].enabled = TRUE;
 		Europi.tracks[track].channels[CV_OUT].type = CHNL_TYPE_CV;
@@ -1558,6 +1610,7 @@ void hardware_init(void)
 			if(gpio_handle >= 0) {
 				i2cWriteWordData(gpio_handle, 0x00, (unsigned)(0x0));
 				i2cWriteByteData(gpio_handle, 0x09, 0x0);
+                log_msg("Minion MCP23008 Found on i2cAddress %d handle = %d\n",mcp_addr, gpio_handle);
 				}
 			int i;
 			for(i=0;i<4;i++){
@@ -1628,11 +1681,11 @@ void hardware_init(void)
             i2cWriteByteData(handle,SC16IS750_IODIR,0xFF);
             // finally, set up the Track object for this MIDI channel
             Europi.tracks[track].channels[CV_OUT].enabled = TRUE;
-            Europi.tracks[track].channels[CV_OUT].type = CHNL_TYPE_CV;
+            Europi.tracks[track].channels[CV_OUT].type = CHNL_TYPE_MIDI;
             Europi.tracks[track].channels[CV_OUT].quantise = 0;			/* Quantization off by default */
             Europi.tracks[track].channels[CV_OUT].i2c_handle = handle;			
-            Europi.tracks[track].channels[CV_OUT].i2c_device = DEV_DAC8574;
-            Europi.tracks[track].channels[CV_OUT].i2c_address = 0x08;
+            Europi.tracks[track].channels[CV_OUT].i2c_device = DEV_SC16IS750;
+            Europi.tracks[track].channels[CV_OUT].i2c_address = address;
             Europi.tracks[track].channels[CV_OUT].i2c_channel = 0;		
             Europi.tracks[track].channels[CV_OUT].scale_zero = 280;		/* Value required to generate zero volt output */
             Europi.tracks[track].channels[CV_OUT].scale_max = 63000;		/* Value required to generate maximum output voltage */
@@ -1640,14 +1693,6 @@ void hardware_init(void)
             Europi.tracks[track].channels[CV_OUT].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
             Europi.tracks[track].channels[CV_OUT].vc_type = VOCT;
             // Launch a listening Thread
-            
-          /*  					struct gate sGate;
-					sGate.track = track;
-					sGate.i2c_handle = Europi.tracks[0].channels[GATE_OUT].i2c_handle;
-					struct gate *pGate = malloc(sizeof(struct gate));
-					memcpy(pGate, &sGate, sizeof(struct gate));
-*/
-            
             struct midiChnl sMidiChnl; 
             sMidiChnl.i2c_handle = handle;
             struct midiChnl *pMidiChnl = malloc(sizeof(struct midiChnl));
@@ -1661,6 +1706,9 @@ void hardware_init(void)
             track++;
         }
     }
+    /* The last_track global can be used instead of MAX_TRACKS to reduce the size of loops*/
+    last_track = track;
+    log_msg("Last Track: %d\n",last_track);
 	/* All hardware identified - run through flashing each Gate just for fun */
 	if (is_europi == TRUE){
 		/* Track 0 Channel 1 will have the GPIO Handle for the PCF8574 channel 2 is Clock Out*/
@@ -1679,6 +1727,12 @@ void hardware_init(void)
 					GATESingleOutput(Europi.tracks[track].channels[chnl].i2c_handle, Europi.tracks[track].channels[chnl].i2c_channel,Europi.tracks[track].channels[chnl].i2c_device,1);	
 					usleep(50000);
 					GATESingleOutput(Europi.tracks[track].channels[chnl].i2c_handle, Europi.tracks[track].channels[chnl].i2c_channel,Europi.tracks[track].channels[chnl].i2c_device,0);	
+				}
+				if (Europi.tracks[track].channels[chnl].type == CHNL_TYPE_MIDI){
+                    // This just flashes the MIDI Out LED on a MIDI Minion
+                    i2cWriteByteData(Europi.tracks[track].channels[chnl].i2c_handle,SC16IS750_IOSTATE,0x00);
+                    usleep(50000);
+                    i2cWriteByteData(Europi.tracks[track].channels[chnl].i2c_handle,SC16IS750_IOSTATE,0xFF);
 				}
 			}
 		}
@@ -1706,4 +1760,17 @@ int quantize(int raw, int scale){
 		if(raw >= lower_boundary[scale][i] && raw < upper_boundary[scale][i]) return (scale_values[scale][i] + octave*6000);
 	}
 };
+
+/*
+ * PITCH2MIDI
+ * 
+ * Takes a Note Voltage between 0 and 60000 and returns a MID Note number
+ * between 0 and 120 - NOTE that MIDI Note numbers should go as high as 127
+ * but, using 500/Semi-tone means 127 would be represented by 63,500 which
+ * is off the top of our scale
+ */
+int pitch2midi(uint16_t voltage){
+    if(voltage >= 60000) return(120);
+    return(voltage/500);
+}
 

@@ -53,12 +53,15 @@ char current_filename[100]; /* The File we have Open, which is used in File-Save
 int prog_running=0;		/* Setting this to 0 will force the prog to quit*/
 int ThreadEnd = FALSE; /* semaphore to shut down autonomous threads when the prog ends */
 int run_stop=STOP;		/* 0=Stop 1=Run: Halts the main step generator */
+int midi_clock_counter = 0; /* divides down the MIDI Clock into pulses per step */
+int midi_clock_divisor = 24; /* MIDI Clock pulses per step */
 int clock_counter = 95;	/* Main clock counter, tracks the 96 pulses per step */
 int clock_level = 0;	/* Master clock phase */
 int clock_source = INT_CLK;	/* INT_CLK = Internal, EXT_CLK = External Clock Source */
 int clock_freq=192;		/* speed of the main internal clock in Hz */
 uint8_t PCF8574_state=0xF0; /* current state of the PCF8574 Ports on the Europi */
 int led_on = 0;
+int last_track;         /* used to trim the for() loops when looping round all tracks */
 int step_one = TRUE;	/* used for resetting the sequence to start from the first step */
 int step_one_state = LOW; /*records whether the Step 1 pulse needs to be turned off */
 int selected_step = -1;	/* records the step that is currently selected. -1=Nothing selected */
