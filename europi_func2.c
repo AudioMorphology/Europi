@@ -128,6 +128,7 @@ void ClearScreenOverlays(void){
 	ScreenOverlays.SetPitch = 0;
     ScreenOverlays.SetSlew = 0;
 	ScreenOverlays.SetQuantise = 0;
+    ScreenOverlays.SetDirection = 0;
     ScreenOverlays.Keyboard = 0;
     ScreenOverlays.FileOpen = 0;
     ScreenOverlays.TextInput = 0;
@@ -148,6 +149,7 @@ int OverlayActive(void){
         (ScreenOverlays.SetPitch == 1) ||
         (ScreenOverlays.SetSlew == 1) ||
         (ScreenOverlays.SetQuantise == 1) ||
+        (ScreenOverlays.SetDirection == 1) ||
         (ScreenOverlays.Keyboard == 1) ||
         (ScreenOverlays.FileOpen == 1) ||
         (ScreenOverlays.TextInput == 1) ||
@@ -339,6 +341,56 @@ void select_next_quantisation(int dir){
         track++;
     }
 }
+
+/*
+ * Select the next direction either up or down
+ */
+void select_next_direction(int dir){
+    int track = 0;
+    while (track < MAX_TRACKS){
+        if(Europi.tracks[track].selected == TRUE){
+            if (dir == 1) {
+                switch (Europi.tracks[track].direction){
+                    case Forwards:
+                        Europi.tracks[track].direction = Backwards;
+                    break;
+                    case Backwards:
+                        Europi.tracks[track].direction = Pendulum_F;
+                    break;
+                    case Pendulum_F:
+                    case Pendulum_B:
+                        Europi.tracks[track].direction = Random;
+                    break;
+                    default:
+                    case Random:
+                        Europi.tracks[track].direction = Forwards;
+                    break;
+                }
+            }
+            else {
+                switch (Europi.tracks[track].direction){
+                    case Forwards:
+                        Europi.tracks[track].direction = Random;
+                    break;
+                    case Random:
+                        Europi.tracks[track].direction = Pendulum_F;
+                    break;
+                    case Pendulum_F:
+                    case Pendulum_B:
+                        Europi.tracks[track].direction = Backwards;
+                    break;
+                    default:
+                    case Backwards:
+                        Europi.tracks[track].direction = Forwards;
+                    break;
+                }
+            }
+            break;
+        }
+        track++;
+    }
+}
+
 void set_step_pitch(int dir, int vel){
     int track = 0;
     int raw_val;
@@ -408,6 +460,21 @@ void set_step_pitch(int dir, int vel){
 void seq_quantise(void){
 	ClearScreenOverlays();
 	ScreenOverlays.SetQuantise = 1;
+    ClearMenus();
+    MenuSelectItem(0,0);
+    btnA_func = btnA_select;
+    btnB_func = btnB_val_down;
+    btnC_func = btnC_val_up;
+    btnD_func = btnD_done;    
+	encoder_focus = track_select;
+	select_first_track();
+}
+/* 
+ * menu callback to set/display track direction
+ */
+void seq_setdir(void){
+	ClearScreenOverlays();
+	ScreenOverlays.SetDirection = 1;
     ClearMenus();
     MenuSelectItem(0,0);
     btnA_func = btnA_select;
@@ -758,6 +825,7 @@ void init_sequence_old(void)
 	//Temp - set all outputs to 0
 	for (track=0;track<MAX_TRACKS;track++){
 		Europi.tracks[track].track_busy = FALSE;
+		Europi.tracks[track].direction = Forwards;
 		Europi.tracks[track].last_step = rand() % 32;
 		if (Europi.tracks[track].channels[0].enabled == TRUE){
 			for (step=0;step<MAX_STEPS;step++){
@@ -957,6 +1025,7 @@ void init_sequence(void)
 	for (track=0;track<MAX_TRACKS;track++){
 		if (Europi.tracks[track].channels[0].enabled == TRUE){
 			Europi.tracks[track].track_busy = FALSE;
+            Europi.tracks[track].direction = Forwards;
 			Europi.tracks[track].last_step =  8; //rand() % 32;
 			Europi.tracks[track].channels[CV_OUT].scale_zero = 0;
 			Europi.tracks[track].channels[CV_OUT].scale_max = 60000;

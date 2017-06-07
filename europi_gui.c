@@ -544,6 +544,69 @@ void ShowScreenOverlays(void){
         }
  
    }
+
+    if(ScreenOverlays.SetDirection == 1){   // track Direction
+        int track = 0;
+        char str[80];
+        char strTrack[5];
+        char strDirection[20];
+        DrawTexture(TopBarTexture,0,0,WHITE);
+        DrawTexture(Text2chTexture,70,2,WHITE); 
+        DrawTexture(TextInputTexture,103,2,WHITE);
+        DrawText("Track",5,5,20,DARKGRAY);
+        for(track = 0; track < MAX_TRACKS; track++) {
+            if (Europi.tracks[track].selected == TRUE){
+                sprintf(strTrack,"%02d",track+1);
+                DrawText(strTrack,75,5,20,DARKGRAY);
+                switch (Europi.tracks[track].direction){
+                    default:
+                    case Forwards:
+                        DrawText("Forwards",110,5,20,DARKGRAY);
+                    break;
+                    case Backwards:
+                        DrawText("Backwards",110,5,20,DARKGRAY);
+                    break;
+                    case Pendulum_F:
+                    case Pendulum_B:
+                        DrawText("Pendulum",110,5,20,DARKGRAY);
+                    break;
+                    case Random:
+                        DrawText("Random",110,5,20,DARKGRAY);
+                    break;
+                    
+                }
+                if(encoder_focus == track_select){
+                    DrawRectangleLines(71,3,30,22,RED);
+                    DrawRectangleLines(72,4,28,20,RED);
+                }
+                else if (encoder_focus == set_direction) {
+                    DrawRectangleLines(103,3,213,22,RED);
+                    DrawRectangleLines(104,4,211,20,RED);
+
+                }
+            }
+        }
+        // Check for Select button
+        if (btnA_state == 1){
+            btnA_state = 0;
+            if(encoder_focus == track_select) encoder_focus = set_direction;
+            else encoder_focus = track_select;
+        }
+        if (btnB_state == 1){
+            // Check for Val -
+            btnB_state = 0;
+            if(encoder_focus == track_select) select_next_track(DOWN);
+            else select_next_direction(DOWN);
+        }
+        if (btnC_state == 1){
+            // Check for Val +
+            btnC_state = 0;
+            if(encoder_focus == track_select) select_next_track(UP);
+            else select_next_direction(UP);
+        }
+ 
+   }
+
     
     
     if(ScreenOverlays.Keyboard == 1){

@@ -145,7 +145,8 @@ menu mnu_file_quit = 	{0,0,dir_none,"Quit",&file_quit,{NULL}};
 menu mnu_seq_new = 		{0,0,dir_none,"New",&seq_new,{NULL}};
 menu mnu_seq_setslew =  {0,0,dir_none,"Set Slew for Step",&seq_setslew,{NULL}};
 menu mnu_seq_setloop =	{0,0,dir_none,"Set Loop Points",&seq_setloop,{NULL}};
-menu mnu_seq_setpitch = {0,0,dir_none,"Set pitch for step",&seq_setpitch,{NULL}};
+menu mnu_seq_setpitch = {0,0,dir_none,"Set Pitch for step",&seq_setpitch,{NULL}};
+menu mnu_seq_setdir =   {0,0,dir_none,"Set Track Direction",&seq_setdir,{NULL}};
 menu mnu_seq_quantise = {0,0,dir_none,"Set Quantization",&seq_quantise,{NULL}};
 menu mnu_seq_singlechnl = {0,0,dir_none,"Single Channel View",&seq_singlechnl,{NULL}};
 menu mnu_seq_gridview = {0,0,dir_none,"Grid View",&seq_gridview,{NULL}};
@@ -161,7 +162,7 @@ menu sub_end = {0,0,dir_none,NULL,NULL,{NULL}}; //set of NULLs to mark the end o
 
 menu Menu[]={
 	{0,1,dir_down,"File",NULL,{&mnu_file_open,&mnu_file_save,&mnu_file_saveas,&mnu_file_new,&mnu_file_quit,&sub_end}},
-	{0,0,dir_down,"Sequence",NULL,{&mnu_seq_setslew,&mnu_seq_setloop,&mnu_seq_setpitch,&mnu_seq_quantise,&mnu_seq_gridview,&mnu_seq_singlechnl,&mnu_seq_new,&sub_end}},
+	{0,0,dir_down,"Sequence",NULL,{&mnu_seq_setslew,&mnu_seq_setloop,&mnu_seq_setpitch,&mnu_seq_setdir,&mnu_seq_quantise,&mnu_seq_gridview,&mnu_seq_singlechnl,&mnu_seq_new,&sub_end}},
 	{0,0,dir_down,"Config",NULL,{&mnu_config_setzero,&mnu_config_set10v,&mnu_config_debug,&sub_end}},
 	{0,0,dir_down,"Test",NULL,{&mnu_test_scalevalue,&mnu_config_setzero,&mnu_test_keyboard,&sub_end}},
 	{0,0,dir_down,"Play",NULL,{&sub_end}},
@@ -191,7 +192,7 @@ int main(int argc, char* argv[])
 	//Temp for testing
 	//run_stop = STOP; 
 	//clock_source = INT_CLK;
-    debug = TRUE;
+    //debug = TRUE;
     currentGesture1 = GESTURE_NONE;
     lastGesture = GESTURE_NONE;
     //SetGesturesEnabled(0b0000000011100011);   //None, tap & DoubleTap 

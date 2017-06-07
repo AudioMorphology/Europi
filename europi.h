@@ -106,6 +106,14 @@
 /* Typedefs */
 typedef unsigned char     uint8_t;  		/*unsigned 8 bit definition */
 
+enum track_dir_t {
+    Forwards,
+    Backwards,
+    Pendulum_F,
+    Pendulum_B,
+    Random
+};
+
 enum direction_t {
     dir_none,
     dir_up,
@@ -138,6 +146,7 @@ enum encoder_focus_t {
 	set_loop,
 	set_pitch,
 	set_quantise,
+    set_direction,
     keyboard_input,
     file_open_focus
 };
@@ -263,12 +272,14 @@ void select_next_track(int dir);
 void select_next_step(int dir);
 void set_loop_point(int dir);
 void select_next_quantisation(int dir);
+void select_next_direction(int dir);
 void set_step_pitch(int dir,int vel);
 void seq_new(void);
 void ClearScreenOverlays(void);
 int OverlayActive(void);
 void buttonsDefault(void);
 void seq_quantise(void);
+void seq_setdir(void);
 void seq_setpitch(void);
 void seq_setloop(void);
 void seq_setslew(void);
@@ -375,7 +386,7 @@ typedef struct MENU{
     enum direction_t direction;     // which direction branches from this leaf open
 	const char *name;				// Menu display text
 	void (*funcPtr)();				// Handler for this leaf node (Optionally NULL)
-	struct MENU *child[8];			// Pointer to child submenu (Optionally NULL)
+	struct MENU *child[9];			// Pointer to child submenu (Optionally NULL)
 }menu;
 
 /* Display Pages - only one sort of 
@@ -402,6 +413,7 @@ enum display_page_t {
 	 int SetPitch;
      int SetSlew;
 	 int SetQuantise;
+     int SetDirection;
      int Keyboard;
      int FileOpen;
      int TextInput;
@@ -538,10 +550,11 @@ struct channel {
  */
 struct track{
 	struct channel channels[MAX_CHANNELS];	/* a TRACK contains an array of CHANNELs */
-	int selected;			/* Track is selected for some sort of operation */
-	int track_busy;			/* If TRUE then this Track won't advance to the next step */
-	int current_step;		/* Tracks where this track is going next */
-	int last_step;			/* sets the end step for a particular track */
+	int selected;			    /* Track is selected for some sort of operation */
+	int track_busy;			    /* If TRUE then this Track won't advance to the next step */
+	int current_step;		    /* Tracks where this track is going next */
+	int last_step;			    /* sets the end step for a particular track */
+    enum track_dir_t direction; /* Forwards, Backwards, Pendulum, Random */
 };
 /*
  * Europi is the main Container structure for the Hardware
