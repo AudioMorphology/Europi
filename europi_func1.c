@@ -275,7 +275,7 @@ void next_step(void)
                 break;
                 case Pendulum_F:
                     /* Advances forwards until it reaches the last step */
-                    if (Europi.tracks[track].current_step++ >= Europi.tracks[track].last_step && step_one == FALSE){
+                    if (++Europi.tracks[track].current_step >= Europi.tracks[track].last_step && step_one == FALSE){
                         Europi.tracks[track].current_step--;
                         Europi.tracks[track].direction = Pendulum_B;
                     }
@@ -302,11 +302,8 @@ void next_step(void)
                     }
                 break;
                 case Pendulum_B:
-                    if(Europi.tracks[track].current_step == 0 && step_one == FALSE){
-                        Europi.tracks[track].current_step++;
+                    if(Europi.tracks[track].current_step == 0 || step_one == TRUE){
                         Europi.tracks[track].direction = Pendulum_F;
-                    }
-                    else if (Europi.tracks[track].current_step == 1 || step_one == TRUE){
                         Europi.tracks[track].current_step = 0;
                         /* IF we've got Europi hardware, trigger the Step 1 pulse as Track 0 passes through Step 0 */
                         if ((is_europi == TRUE) && (track == 0)){
