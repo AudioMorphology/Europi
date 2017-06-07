@@ -192,7 +192,7 @@ int main(int argc, char* argv[])
 	//Temp for testing
 	//run_stop = STOP; 
 	//clock_source = INT_CLK;
-    //debug = TRUE;
+    debug = TRUE;
     currentGesture1 = GESTURE_NONE;
     lastGesture = GESTURE_NONE;
     //SetGesturesEnabled(0b0000000011100011);   //None, tap & DoubleTap 

@@ -358,7 +358,7 @@ void next_step(void)
 				DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
 			}
             // MIDI Channel
-            if ((Europi.tracks[track].channels[CV_OUT].type == CHNL_TYPE_MIDI) && (Europi.tracks[track].channels[CV_OUT].enabled == TRUE ) && (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type == Off)){
+            if ((Europi.tracks[track].channels[CV_OUT].type == CHNL_TYPE_MIDI) && (Europi.tracks[track].channels[CV_OUT].enabled == TRUE)){
                 MIDISingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_channel, 0x40, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);   
             }
 			/* set the Gate State for each channel */
@@ -380,61 +380,63 @@ void next_step(void)
 					}
 				}
 			}
-			/* Is there a Slew, AD, ADSR set on this step */
-			switch (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type){
-				// launch a thread to handle the slew for this Channel / Step
-				// Note that this is created as a Detached, rather than Joinable
-				// thread, because otherwise the memory consumed by the thread
-				// won't be recovered when the thread exits, leading to memory
-				// leaks
-				struct slew sSlew;
-				struct ad sAD;
-				struct adsr sADSR;
-                
-                case Linear:
-                case Exponential:
-                case RevExp:
-					sAD.track = track;
-					sSlew.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
-					sSlew.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;
-					sSlew.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
-					sSlew.start_value = Europi.tracks[track].channels[CV_OUT].steps[previous_step].scaled_value;
-					sSlew.end_value = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value;
-					sSlew.slew_length = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_length;
-					sSlew.slew_type = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type;
-					sSlew.slew_shape = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_shape;
-					struct slew *pSlew = malloc(sizeof(struct slew));
-					memcpy(pSlew, &sSlew, sizeof(struct slew));
-					if(pthread_create(&ThreadId, &detached_attr, &SlewThread, pSlew)){
-						log_msg("Slew thread creation error\n");
-					}
-				break;
-				case AD:
-					// Attack - Decay ramp
-					sAD.track = track;
-					sAD.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
-					sAD.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;
-					sAD.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
-					sAD.a_start_value = 0;	
-					sAD.a_end_value = 30000;	//5v	
-					sAD.a_length = 000;		
-					sAD.d_end_value = 0;	
-					sAD.d_length = 20000;
-					sAD.shot_type = Repeat;
-					struct ad *pAD = malloc(sizeof(struct ad));
-					memcpy(pAD, &sAD, sizeof(struct ad));
-					if(pthread_create(&ThreadId, &detached_attr, &AdThread, pAD)){
-						log_msg("Attack-Decay thread creation error\n");
-					}
-				break;
-				case ADSR:
-					// Full ADSR ramp profile
-					
-				break;
-                case Off:
-                
-                break;
-			}
+            if (Europi.tracks[track].channels[CV_OUT].type == CHNL_TYPE_CV) {
+                /* Is there a Slew, AD, ADSR set on this step */
+                switch (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type){
+                    // launch a thread to handle the slew for this Channel / Step
+                    // Note that this is created as a Detached, rather than Joinable
+                    // thread, because otherwise the memory consumed by the thread
+                    // won't be recovered when the thread exits, leading to memory
+                    // leaks
+                    struct slew sSlew;
+                    struct ad sAD;
+                    struct adsr sADSR;
+                    
+                    case Linear:
+                    case Exponential:
+                    case RevExp:
+                        sAD.track = track;
+                        sSlew.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
+                        sSlew.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;
+                        sSlew.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
+                        sSlew.start_value = Europi.tracks[track].channels[CV_OUT].steps[previous_step].scaled_value;
+                        sSlew.end_value = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value;
+                        sSlew.slew_length = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_length;
+                        sSlew.slew_type = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type;
+                        sSlew.slew_shape = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_shape;
+                        struct slew *pSlew = malloc(sizeof(struct slew));
+                        memcpy(pSlew, &sSlew, sizeof(struct slew));
+                        if(pthread_create(&ThreadId, &detached_attr, &SlewThread, pSlew)){
+                            log_msg("Slew thread creation error\n");
+                        }
+                    break;
+                    case AD:
+                        // Attack - Decay ramp
+                        sAD.track = track;
+                        sAD.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
+                        sAD.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;
+                        sAD.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
+                        sAD.a_start_value = 0;	
+                        sAD.a_end_value = 30000;	//5v	
+                        sAD.a_length = 000;		
+                        sAD.d_end_value = 0;	
+                        sAD.d_length = 20000;
+                        sAD.shot_type = Repeat;
+                        struct ad *pAD = malloc(sizeof(struct ad));
+                        memcpy(pAD, &sAD, sizeof(struct ad));
+                        if(pthread_create(&ThreadId, &detached_attr, &AdThread, pAD)){
+                            log_msg("Attack-Decay thread creation error\n");
+                        }
+                    break;
+                    case ADSR:
+                        // Full ADSR ramp profile
+                        
+                    break;
+                    case Off:
+                    
+                    break;
+                }
+            }
 		}
 	}
 	/* anything that needed resetting back to step 1 will have done so */
@@ -673,6 +675,7 @@ void *MidiThread(void *arg)
     while (!ThreadEnd){
         if(i2cReadByteData(fd,SC16IS750_RXLVL) > 0) {
             ret_val = i2cReadByteData(fd,SC16IS750_RHR); 
+            log_msg("Rx: %x\n",ret_val);
             switch(ret_val){
                 case Clock:
                     if(run_stop == RUN){
@@ -1416,6 +1419,7 @@ int MidiMinionFinder(unsigned address)
 	int mid_handle;
 	i2cAddr = MID_BASE_ADDR | (address & 0x7);
 	mid_handle = i2cOpen(1,i2cAddr,0);
+    log_msg("MINION Addr: %x, Handle: %d\n",i2cAddr, mid_handle);
 	if (mid_handle < 0) return -1;
     /* just to make sure, write out something random
      * to one of the user registers, and check that
@@ -1424,7 +1428,13 @@ int MidiMinionFinder(unsigned address)
     rnd_val = rand() % 0xFFFF;
 	if(i2cWriteByteData(mid_handle,SC16IS750_SPR,rnd_val) !=0) return -1;   // Return on write failure
     ret_val = i2cReadByteData(mid_handle,SC16IS750_SPR);
-    if(ret_val != rnd_val) return -1; else	return mid_handle;
+    if(ret_val != rnd_val) {
+        i2cClose(mid_handle);
+        return -1;    
+    }
+    else {
+        return mid_handle;  
+    }	
 }
 
 /* 
@@ -1469,7 +1479,7 @@ void MIDISingleChannelWrite(unsigned handle, uint8_t channel, uint8_t velocity, 
     log_msg("Handle: %d, Chnl: %d, Velocity: %d, MIDI Note: %d\n",handle,channel,velocity,note);
     // Note On
     i2cWriteByteData(handle,SC16IS750_IOSTATE,0x00);
-    i2cWriteByteData(handle,SC16IS750_RHR,0x90 || (channel && 0xF));
+    i2cWriteByteData(handle,SC16IS750_RHR,(0x90 | (channel & 0x0F)));
     i2cWriteByteData(handle,SC16IS750_RHR,note);
     i2cWriteByteData(handle,SC16IS750_RHR,velocity);
     i2cWriteByteData(handle,SC16IS750_IOSTATE,0xFF);
@@ -1822,6 +1832,8 @@ void hardware_init(void)
             Europi.tracks[track].channels[CV_OUT].transpose = 0;			/* fixed (transpose) voltage offset applied to this channel */
             Europi.tracks[track].channels[CV_OUT].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
             Europi.tracks[track].channels[CV_OUT].vc_type = VOCT;
+            // No Gate channel on a MIDI Minion:
+            Europi.tracks[track].channels[GATE_OUT].enabled = FALSE;
             // Launch a listening Thread
             struct midiChnl sMidiChnl; 
             sMidiChnl.i2c_handle = handle;
