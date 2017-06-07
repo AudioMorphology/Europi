@@ -675,31 +675,35 @@ void *MidiThread(void *arg)
     while (!ThreadEnd){
         if(i2cReadByteData(fd,SC16IS750_RXLVL) > 0) {
             ret_val = i2cReadByteData(fd,SC16IS750_RHR); 
-            log_msg("Rx: %x\n",ret_val);
-            switch(ret_val){
-                case Clock:
-                    if(run_stop == RUN){
-                        if(midi_clock_counter++ >= (midi_clock_divisor -1)){
-                            midi_clock_counter = 0;
-                            GATESingleOutput(Europi.tracks[0].channels[GATE_OUT].i2c_handle,CLOCK_OUT,DEV_PCF8574,HIGH);
-                            next_step();
+            /* Only react to MIDI Clock etc if Clock Source is External */
+            if (clock_source == EXT_CLK) {
+                switch(ret_val){
+                    case Clock:
+                        if(run_stop == RUN){
+                            if(midi_clock_counter++ >= (midi_clock_divisor -1)){
+                                midi_clock_counter = 0;
+                                GATESingleOutput(Europi.tracks[0].channels[GATE_OUT].i2c_handle,CLOCK_OUT,DEV_PCF8574,HIGH);
+                                next_step();
+                            }
+                            if(midi_clock_counter == (midi_clock_divisor / 2)){
+                                GATESingleOutput(Europi.tracks[0].channels[GATE_OUT].i2c_handle,CLOCK_OUT,DEV_PCF8574,LOW);
+                            }
                         }
-                        if(midi_clock_counter == (midi_clock_divisor / 2)){
-                            GATESingleOutput(Europi.tracks[0].channels[GATE_OUT].i2c_handle,CLOCK_OUT,DEV_PCF8574,LOW);
-                        }
-                    }
-                break;
-                case Start:
-                    run_stop = RUN;
-                    step_one = TRUE;
-                    midi_clock_counter = 0;
-                break;
-                case Continue:
-                    run_stop = RUN;
-                break;
-                case Stop:
-                    run_stop = STOP;
-                break;
+                    break;
+                    case Start:
+                        /* MIDI Start re-starts the sequence from Step One */
+                        run_stop = RUN;
+                        step_one = TRUE;
+                        midi_clock_counter = 0;
+                        next_step();
+                    break;
+                    case Continue:
+                        run_stop = RUN;
+                    break;
+                    case Stop:
+                        run_stop = STOP;
+                    break;
+                }
             }
         }
     }
@@ -1476,25 +1480,13 @@ void MIDISingleChannelWrite(unsigned handle, uint8_t channel, uint8_t velocity, 
     uint8_t note;
 	if(impersonate_hw == TRUE) return;
     note = pitch2midi(voltage);
-    log_msg("Handle: %d, Chnl: %d, Velocity: %d, MIDI Note: %d\n",handle,channel,velocity,note);
+    // log_msg("Handle: %d, Chnl: %d, Velocity: %d, MIDI Note: %d\n",handle,channel,velocity,note);
     // Note On
     i2cWriteByteData(handle,SC16IS750_IOSTATE,0x00);
     i2cWriteByteData(handle,SC16IS750_RHR,(0x90 | (channel & 0x0F)));
     i2cWriteByteData(handle,SC16IS750_RHR,note);
     i2cWriteByteData(handle,SC16IS750_RHR,velocity);
     i2cWriteByteData(handle,SC16IS750_IOSTATE,0xFF);
-    /*
-        i2cWriteByteData(handle,SC16IS750_RHR,0x90);
-        i2cWriteByteData(handle,SC16IS750_RHR,note);
-        i2cWriteByteData(handle,SC16IS750_RHR,0x64);
-        i2cWriteByteData(handle,SC16IS750_IOSTATE,0x00);
-        usleep(50000);
-        i2cWriteByteData(handle,SC16IS750_RHR,0x90);
-        i2cWriteByteData(handle,SC16IS750_RHR,note);
-        i2cWriteByteData(handle,SC16IS750_RHR,0x00);
-        i2cWriteByteData(handle,SC16IS750_IOSTATE,0xFF);
-    */
-    
 }
 
 /* 
@@ -1814,7 +1806,8 @@ void hardware_init(void)
             if(i2cWriteByteData(handle,SC16IS750_LCR,0x83) !=0) log_msg("UART Write Failure\n");	//Line Control with Divisor Latch enabled
             i2cWriteByteData(handle,SC16IS750_DLH,0x00);
             i2cWriteByteData(handle,SC16IS750_DLL,0x04);
-            i2cWriteByteData(handle,SC16IS750_LCR,0x03); 	//Clear Divisor Latch. 8,1,none
+            i2cWriteByteData(handle,SC16IS750_LCR,0x03); 	// Clear Divisor Latch. 8,1,none
+            i2cWriteByteData(handle,SC16IS750_FCR,0x01);    // Enable TX & Rx FIFO
             // IO Control - gpio[7:4] set to behave as IO pins. All inputs non-latching
             i2cWriteByteData(handle,SC16IS750_IOCONTROL,0x00);
             // Set IO Direction (all Output)
