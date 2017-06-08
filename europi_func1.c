@@ -61,6 +61,7 @@ extern int kbfd;
 extern int ThreadEnd;
 extern int prog_running;
 extern int run_stop; 
+extern int save_run_stop;
 extern int is_europi; 
 extern int midi_clock_counter;
 extern int midi_clock_divisor;

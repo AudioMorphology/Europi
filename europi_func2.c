@@ -41,6 +41,7 @@
 #include "../raylib/release/rpi/raylib.h"
 
 extern int run_stop;
+extern int save_run_stop;
 extern int disp_menu;
 extern int debug;
 extern char *fbp; 
@@ -458,6 +459,7 @@ void set_step_pitch(int dir, int vel){
  * menu callback to set/display track quantisation
  */
 void seq_quantise(void){
+    save_run_stop = run_stop;
 	ClearScreenOverlays();
 	ScreenOverlays.SetQuantise = 1;
     ClearMenus();
@@ -473,6 +475,7 @@ void seq_quantise(void){
  * menu callback to set/display track direction
  */
 void seq_setdir(void){
+    save_run_stop = run_stop;
 	ClearScreenOverlays();
 	ScreenOverlays.SetDirection = 1;
     ClearMenus();
@@ -488,6 +491,8 @@ void seq_setdir(void){
  * menu callback to set the pitch for each step 
  */
 void seq_setpitch(void){
+    save_run_stop = run_stop;
+	run_stop = STOP;
 	ClearScreenOverlays();
 	ScreenOverlays.SetPitch = 1;
     ClearMenus();
@@ -497,13 +502,13 @@ void seq_setpitch(void){
     btnC_func = btnC_val_up;
     btnD_func = btnD_done;    
 	encoder_focus = track_select;
-	run_stop = STOP;
 	select_first_track();
 }
 /*
  * menu callback for Sequence -> Set Loop Points
  */
 void seq_setloop(void){
+    save_run_stop = run_stop;
 	ClearScreenOverlays();
 	ScreenOverlays.SetLoop = 1;
     ClearMenus();
@@ -519,6 +524,7 @@ void seq_setloop(void){
  * menu Callback to set Slew type for each step
  */
 void seq_setslew(void){
+    save_run_stop = run_stop;
 	run_stop = STOP;
 	ClearScreenOverlays();
 	ScreenOverlays.SetSlew = 1;
@@ -539,6 +545,7 @@ void seq_setslew(void){
  */
 void test_scalevalue(void){
 	int track;
+    save_run_stop = run_stop;
 	run_stop = STOP;
 	ClearScreenOverlays();
 	ScreenOverlays.ScaleValue = 1;
@@ -564,6 +571,7 @@ void test_scalevalue(void){
  * Menu callback for test->Keyboard
  */
 void test_keyboard(void){
+    save_run_stop = run_stop;
     ClearScreenOverlays();
     ScreenOverlays.Keyboard = 1;
     encoder_focus = keyboard_input;
@@ -572,6 +580,7 @@ void test_keyboard(void){
  * menu callback for File->Open
  */
 void file_open(void){
+    save_run_stop = run_stop;
     //run_stop = STOP;
     ClearScreenOverlays();
     ClearMenus();
@@ -593,6 +602,7 @@ void file_open(void){
  * menu callback for File->Save
  */
 void file_save(void){
+    save_run_stop = run_stop;
 	//run_stop = STOP;
 	ClearScreenOverlays();
     ClearMenus();
@@ -612,6 +622,7 @@ void file_save(void){
  * menu callback for File->SaveAs
  */
 void file_saveas(void){
+    save_run_stop = run_stop;
 	//run_stop = STOP;
 	ClearScreenOverlays();
     btnA_func = btnA_none;
@@ -629,6 +640,7 @@ void file_saveas(void){
  */
 void config_setzero(void){
 	int track;
+    save_run_stop = run_stop;
 	run_stop = STOP;
 	ClearScreenOverlays();
 	ScreenOverlays.SetZero = 1;
@@ -649,6 +661,7 @@ void config_setzero(void){
  */
 void config_setten(void){
 	int track;
+    save_run_stop = run_stop;
 	run_stop = STOP;
 	ClearScreenOverlays();
 	ScreenOverlays.SetTen = 1;
@@ -668,6 +681,7 @@ void config_setten(void){
  * menu callback to set debug on/off
  */
  void config_debug(void){
+    save_run_stop = run_stop;
     if(debug == TRUE) debug = FALSE;
     else debug = TRUE;
     ClearMenus();

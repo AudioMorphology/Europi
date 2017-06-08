@@ -29,6 +29,8 @@
 
 extern int clock_freq;
 extern int prog_running;
+extern int run_stop; 
+extern int save_run_stop;
 extern Vector2 touchPosition;
 extern int currentGesture1;
 extern int lastGesture;
@@ -183,6 +185,72 @@ void gui_grid(void){
  * selected channel on a page of its own
  */
 void gui_SingleChannel(void){
+    int track;
+    int step;
+    int val;
+    char track_no[20];
+    int row;
+    Rectangle stepRectangle = {0,0,0,0};
+    BeginDrawing();
+    DrawTexture(MainScreenTexture,0,0,WHITE);
+    for (track = 0; track < MAX_TRACKS; track++){
+        if (Europi.tracks[track].selected == TRUE){
+            sprintf(track_no,"%d",track+1);
+            for (step = 0; step < MAX_STEPS; step++){
+                row = step / 16;
+                if(step < Europi.tracks[track].last_step){
+                    int Octave = (int)((float)Europi.tracks[track].channels[CV_OUT].steps[step].scaled_value / (float)6000);
+                    val = (int)(((float)Europi.tracks[track].channels[CV_OUT].steps[step].scaled_value - (Octave * 6000)) / (float)60);
+                    stepRectangle.x = ((step-(row*16)) * 18)+20;
+                    stepRectangle.y = ((row+1) * 100)-val;
+                    /* Width of the bar is the Octave */
+                    stepRectangle.width = Octave+5;
+                    stepRectangle.height = val;
+                    if(step == Europi.tracks[track].current_step){
+                        DrawRectangleRec(stepRectangle,MAROON);
+                    }
+                    else{
+                        DrawRectangleRec(stepRectangle,LIME);
+                    }
+/*                    // Gate State
+                    if (Europi.tracks[track].channels[GATE_OUT].steps[step].gate_value == 1){
+                        sprintf(track_no,"%d",Europi.tracks[track].channels[GATE_OUT].steps[step].retrigger);
+                        DrawText(track_no,15 + (step*9),220,10,DARKGRAY);
+                    }
+                    // Slew
+                    if (Europi.tracks[track].channels[CV_OUT].steps[step].slew_type != Off){
+                        switch (Europi.tracks[track].channels[CV_OUT].steps[step].slew_shape){
+                            case Both:
+                                DrawText("V",15 + (step*9),230,10,DARKGRAY);
+                            break;
+                            case Rising:
+                                DrawText("/",15 + (step*9),230,10,DARKGRAY);
+                            break;
+                            case Falling:
+                                DrawText("\\",15 + (step*9),230,10,DARKGRAY);
+                            break;
+                        }
+                    } */
+                }
+                /* Draws a block to show the last step (provided it's less than MAX_STEPS) */
+                if(step == Europi.tracks[track].last_step - 1) {
+                    val = (int)(((float)Europi.tracks[track].channels[CV_OUT].steps[step].scaled_value / (float)10000) * 100);
+                    stepRectangle.x += 18;
+                    stepRectangle.y = ((row+1) * 100)-val;
+                    stepRectangle.width = 5;
+                    stepRectangle.height = val;
+                    DrawRectangleRec(stepRectangle,BLACK);
+                }
+            }
+        }
+    }
+    // Handle any screen overlays - these need to 
+    // be added within the Drawing loop
+    ShowScreenOverlays();
+    EndDrawing();
+}
+
+void gui_SingleChannel_old1(void){
     int track;
     int step;
     int val;
@@ -886,6 +954,7 @@ void gui_ButtonBar(void){
                 buttonsDefault();
                 ClearMenus();
                 MenuSelectItem(0,0);
+                run_stop = save_run_stop;   // Restores the previous run_stop state
             }
 
         case btnD_none:

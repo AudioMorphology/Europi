@@ -53,6 +53,7 @@ char current_filename[100]; /* The File we have Open, which is used in File-Save
 int prog_running=0;		/* Setting this to 0 will force the prog to quit*/
 int ThreadEnd = FALSE; /* semaphore to shut down autonomous threads when the prog ends */
 int run_stop=STOP;		/* 0=Stop 1=Run: Halts the main step generator */
+int save_run_stop;      /* somewhere to store the stop/run state */
 int midi_clock_counter = 0; /* divides down the MIDI Clock into pulses per step */
 int midi_clock_divisor = 24; /* MIDI Clock pulses per step */
 int clock_counter = 95;	/* Main clock counter, tracks the 96 pulses per step */
