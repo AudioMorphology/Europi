@@ -45,6 +45,9 @@ extern Texture2D Text5chTexture;
 extern Texture2D MainScreenTexture;
 extern Texture2D TopBarTexture;
 extern Texture2D ButtonBarTexture; 
+extern Texture2D VerticalScrollBarTexture;
+extern Texture2D ScrollHandleTexture;
+extern int VerticalScrollPercent;
 extern char *kbd_chars[4][11];
 extern char debug_messages[10][80];
 extern int next_debug_slot;
@@ -89,7 +92,7 @@ void gui_8x8(void){
         sprintf(txt,"%d",offset);
         txt_len = MeasureText(txt,20);
         DrawText(txt,20-txt_len,10+(track * 25),20,DARKGRAY);
-        // Check for doube-tap on the Track Number
+        // Check for double-tap on the Track Number
         stepRectangle.x = 20-txt_len;
         stepRectangle.y = 10+(track * 25);
         stepRectangle.width = txt_len; 
@@ -130,6 +133,8 @@ void gui_8x8(void){
             } 
         }        
     }
+    // !!!!
+    ScreenOverlays.VerticalScrollBar = 1;
     // Handle any screen overlays - these need to 
     // be added within the Drawing loop
     ShowScreenOverlays();
@@ -794,6 +799,34 @@ void ShowScreenOverlays(void){
             }
         }       
     }
+    if(ScreenOverlays.VerticalScrollBar == 1){
+        // Vertical scroll bar on RHS of screen
+        DrawTexture(VerticalScrollBarTexture,303,4,WHITE);
+        int ScrollHandlePosn = (((VERTICAL_SCROLL_MAX-VERTICAL_SCROLL_MIN) * VerticalScrollPercent) / 100) + VERTICAL_SCROLL_MIN;
+        DrawTexture(ScrollHandleTexture,304,ScrollHandlePosn,WHITE);
+        // test rectangles for buttons
+        Rectangle scrollUpButton = {303,4,13,15};
+        Rectangle scrollDownButton = {303,198,13,15};
+        Rectangle scrollHandleRec = {303,ScrollHandlePosn-2,14,15}; //note: setting the collision box a couple of pixels above the actual button makes it easier to drag upwards!!
+        if (CheckCollisionPointRec(touchPosition, scrollUpButton) && (currentGesture1 != GESTURE_NONE)){
+            DrawRectangleLines(304, 4, 12, 14, CLR_DARKBLUE);
+            DrawRectangleLines(305, 5, 10, 12, CLR_DARKBLUE);
+            if(VerticalScrollPercent >= 1) VerticalScrollPercent--;
+        }
+        if (CheckCollisionPointRec(touchPosition, scrollDownButton) && (currentGesture1 != GESTURE_NONE)){
+            DrawRectangleLines(304, 199, 12, 14, CLR_DARKBLUE); 
+            DrawRectangleLines(305, 200, 10, 12, CLR_DARKBLUE); 
+            if(VerticalScrollPercent <= 99) VerticalScrollPercent++;
+        }
+        
+        if (CheckCollisionPointRec(touchPosition, scrollHandleRec) && (currentGesture1 == GESTURE_DRAG)){
+            DrawRectangleLines(303, ScrollHandlePosn, 14, 13, CLR_DARKBLUE);
+            DrawRectangleLines(304, ScrollHandlePosn+1, 12, 11, CLR_DARKBLUE);
+            if((touchPosition.y >= (float)VERTICAL_SCROLL_MIN) && (touchPosition.y <= (float)VERTICAL_SCROLL_MAX)) {
+                VerticalScrollPercent = (int)(((touchPosition.y - (float)VERTICAL_SCROLL_MIN) / (float)(VERTICAL_SCROLL_MAX - VERTICAL_SCROLL_MIN)) * 100);
+            }
+        }
+    }
     // The soft button function bar is always displayed 
     // at the bottom of the screen
     gui_ButtonBar();
@@ -858,10 +891,6 @@ void gui_ButtonBar(void){
         break;
         case btnB_open:
             DrawText("Open",95,217,20,DARKGRAY);
-            if (btnB_state == 1){
-                btnB_state = 0;
-
-            }
         break;
         case btnB_save:
             DrawText("Save",95,217,20,DARKGRAY);

@@ -83,6 +83,7 @@ float scaleXvalue, scaleYvalue;
 int rawX, rawY, rawPressure, scaledX, scaledY;
 int Xaverage = 0;
 int Yaverage = 0;
+int VerticalScrollPercent = 0;          // How far down the vertical scroll bar the handle is
 int sample = 0;
 int touched = 0;
 int encoder_level_A;
@@ -126,15 +127,18 @@ int next_debug_slot = 0;
 
 /* Raylib-related stuff */
 SpriteFont font1;
-Texture2D Splash;	        // Splash screen texture
-Texture2D KeyboardTexture;  // Keyboard Overlay texture
-Texture2D DialogTexture;    // Common dialog control
-Texture2D TextInputTexture; // text input dialog box
-Texture2D Text2chTexture;   // 2 Character text box (used for Channel number, step number etc)
-Texture2D Text5chTexture;   // 5 Character text box 
-Texture2D TopBarTexture;    // Top (menu) bar texture
-Texture2D MainScreenTexture; // Main screen
-Texture2D ButtonBarTexture; // Soft-button graphic bar
+Texture2D Splash;	                // Splash screen texture
+Texture2D KeyboardTexture;          // Keyboard Overlay texture
+Texture2D DialogTexture;            // Common dialog control
+Texture2D TextInputTexture;         // text input dialog box
+Texture2D Text2chTexture;           // 2 Character text box (used for Channel number, step number etc)
+Texture2D Text5chTexture;           // 5 Character text box 
+Texture2D TopBarTexture;            // Top (menu) bar texture
+Texture2D MainScreenTexture;        // Main screen
+Texture2D ButtonBarTexture;         // Soft-button graphic bar
+Texture2D VerticalScrollBarTexture; // Vertical scroll bar for RHS of screen
+Texture2D ScrollHandleTexture;      // Scroll handle for Vewrtical Scroll Bar
+
 
 /* declare and populate the menu structure */ 
 menu mnu_file_open = 	{0,0,dir_none,"Open",&file_open,{NULL}};

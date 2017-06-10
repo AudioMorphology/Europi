@@ -135,6 +135,8 @@ extern Texture2D Text5chTexture;
 extern Texture2D MainScreenTexture;
 extern Texture2D TopBarTexture;
 extern Texture2D ButtonBarTexture; 
+extern Texture2D VerticalScrollBarTexture;
+extern Texture2D ScrollHandleTexture;
 extern int disp_menu;	
 extern char **files;
 extern char *kbd_chars[4][11];
@@ -851,6 +853,9 @@ void *MidiThread(void *arg)
     MainScreenTexture = LoadTexture("resources/images/main_screen.png");
     TopBarTexture = LoadTexture("resources/images/top_bar.png");
     ButtonBarTexture = LoadTexture("resources/images/button_bar.png");
+    VerticalScrollBarTexture = LoadTexture("resources/images/vertical_scroll_bar.png");
+    ScrollHandleTexture = LoadTexture("resources/images/scroll_handle.png");
+
 	//Splash screen
 	Splash = LoadTexture("resources/images/splash_screen.png");
 	BeginDrawing();
@@ -904,6 +909,8 @@ int shutdown(void)
 	}
 
 	/* Raylib de-initialisation */
+    UnloadTexture(VerticalScrollBarTexture);
+    UnloadTexture(ScrollHandleTexture);
     UnloadTexture(KeyboardTexture);
     UnloadTexture(DialogTexture);
     UnloadTexture(TextInputTexture);

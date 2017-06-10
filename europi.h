@@ -318,7 +318,6 @@ void gui_debug(void);
 //void InitTouch(void);
 
 /* Global Constants */
-// Some global variables that we'll need all over the place
 #define X_MAX 320 
 #define Y_MAX 240
 #define KBD_GRID_TL_X 0
@@ -332,6 +331,9 @@ void gui_debug(void);
 #define KBD_ROWS 4
 #define KBD_COLS 11
 #define DLG_ROWS 9
+#define VERTICAL_SCROLL_MAX 187
+#define VERTICAL_SCROLL_MIN 18
+
 // Two shades of BLUE used in menus etc.
 #define CLR_DARKBLUE (Color){ 153, 181, 208, 255 } 
 #define CLR_LIGHTBLUE (Color){ 186, 212, 238, 255 } 
@@ -418,6 +420,7 @@ enum display_page_t {
      int FileOpen;
      int TextInput;
      int FileSaveAs;
+     int VerticalScrollBar;
  };
  
 /*
