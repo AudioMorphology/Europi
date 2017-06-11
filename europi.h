@@ -163,13 +163,15 @@ enum btnB_func_t {
     btnB_open,
     btnB_save,
     btnB_val_down,
+    btnB_prev
 };
 
 enum btnC_func_t {
     btnC_none,
     btnC_bpm_dn,
     btnC_cancel,
-    btnC_val_up
+    btnC_val_up,
+    btnC_next
 };
 
 enum btnD_func_t {
@@ -306,6 +308,7 @@ int cstring_cmp(const void *a, const void *b);
 
 /* function prototypes in europi_gui.c */
 void gui_8x8(void);
+void gui_singlestep(void);
 void gui_grid(void);
 void gui_SingleChannel(void);
 void gui_ButtonBar(void);
@@ -399,7 +402,8 @@ typedef struct MENU{
  */
 enum display_page_t {
 	GridView,
-	SingleChannel
+	SingleChannel,
+    SingleStep
 };
 
 /* Overlays are things such as Menus, 
@@ -421,6 +425,7 @@ enum display_page_t {
      int TextInput;
      int FileSaveAs;
      int VerticalScrollBar;
+     int SingleStep;
  };
  
 /*

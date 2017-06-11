@@ -62,6 +62,8 @@ extern int btnA_state;
 extern int btnB_state;
 extern int btnC_state;
 extern int btnD_state;
+extern int edit_track;
+extern int edit_step;
 extern struct screen_overlays ScreenOverlays;
 extern enum display_page_t DisplayPage;
 extern struct europi Europi;
@@ -85,9 +87,11 @@ void gui_8x8(void){
      */
     if(last_track > 8){
         start_track = ((last_track-8) * VerticalScrollPercent) / 100;
+        ScreenOverlays.VerticalScrollBar = 1;
     }
     else {
         start_track = 0;
+        ScreenOverlays.VerticalScrollBar = 0;
     }
     BeginDrawing();
     DrawTexture(MainScreenTexture,0,0,WHITE);
@@ -111,7 +115,7 @@ void gui_8x8(void){
         stepRectangle.y = 10+(start_track+track * 25);
         stepRectangle.width = txt_len; 
         stepRectangle.height = 20;
-        if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture1 == GESTURE_TAP)){
+/*        if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture1 == GESTURE_TAP)){
             
             //if (currentGesture != lastGesture){
                 // Open this Track in isolation
@@ -120,7 +124,7 @@ void gui_8x8(void){
                 DisplayPage = SingleChannel;
                 select_track(track);
             //}
-        }
+        } */
         for(column=0;column<8;column++){
             stepRectangle.x = 50 + (column * 25);
             stepRectangle.y = 10 + (track * 25);
@@ -128,8 +132,18 @@ void gui_8x8(void){
             stepRectangle.height = 22;
             // Check gesture collision
             if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture1 != GESTURE_NONE)){
-                // Paint this step Blue
-                DrawRectangleRec(stepRectangle, BLUE); 
+                // Open this step in the Single Step editor
+                edit_track = start_track+track;
+                edit_step = (offset*8)+column+1;
+                ClearScreenOverlays();
+                DisplayPage = SingleStep;
+                ScreenOverlays.SingleStep = 1;
+                encoder_focus = none;
+                btnA_func = btnA_none;
+                btnB_func = btnB_prev;
+                btnC_func = btnC_next;
+                btnD_func = btnD_done; 
+                save_run_stop = run_stop;
             }
             else {
                 if((offset*8)+column == Europi.tracks[start_track+track].last_step){
@@ -147,13 +161,41 @@ void gui_8x8(void){
             } 
         }        
     }
-    // !!!!
-    ScreenOverlays.VerticalScrollBar = 1;
     // Handle any screen overlays - these need to 
     // be added within the Drawing loop
     ShowScreenOverlays();
     EndDrawing();
 }
+/*
+ * GUI_SINGLESTEP enables editing of all params 
+ * to do with a single step
+ */
+void gui_singlestep(void){
+    BeginDrawing();
+    DrawTexture(MainScreenTexture,0,0,WHITE);
+    // Items to cover:
+    // Track Type (CV / MIDI)
+    // Quantization
+    // Pitch
+    // Gate / Trigger
+    // Slew
+    // Step Repeat
+    DrawRectangle(6,29, 308, 183, CLR_LIGHTBLUE);  
+    DrawText("Quantization:",8,31,20,DARKGRAY);
+    DrawText(scale_names[Europi.tracks[edit_track].channels[CV_OUT].quantise],140,31,20,DARKGRAY);
+    DrawText("Gate Type:",26,51,20,DARKGRAY);
+    DrawTexture(Text5chTexture, 140,51,WHITE);
+    DrawText("Slew Type:",30,71,20,DARKGRAY);
+    DrawTexture(Text5chTexture, 140,71,WHITE);
+    DrawText("Slew Shape:",20,91,20,DARKGRAY);
+    DrawTexture(Text5chTexture, 140,91,WHITE);
+    
+    // Handle any screen overlays - these need to 
+    // be added within the Drawing loop
+    ShowScreenOverlays();
+    EndDrawing();
+}
+
 
 /*
  * GUI_GRID Displays a grid of 32 steps by 24 channels - a bit
@@ -841,6 +883,34 @@ void ShowScreenOverlays(void){
             }
         }
     }
+    if(ScreenOverlays.SingleStep == 1){
+            char strTrack[5];
+            char strStep[5];
+            DrawTexture(TopBarTexture,0,0,WHITE);
+            DrawTexture(Text2chTexture,75,2,WHITE); // Box for Track Number
+            DrawTexture(Text2chTexture,180,2,WHITE); // Box for Step Number
+            DrawText("Track:",5,5,20,DARKGRAY);
+            DrawText("Step:",125,5,20,DARKGRAY);
+            sprintf(strTrack,"%02d",edit_track+1);
+            sprintf(strStep,"%02d",edit_step);
+            DrawText(strTrack,80,5,20,DARKGRAY);
+            DrawText(strStep,185,5,20,DARKGRAY);
+            if (btnB_state == 1){
+                // Check for Prev
+                btnB_state = 0;
+                if(--edit_step == 0){
+                    edit_step=Europi.tracks[edit_track-1].last_step;
+                }
+            }
+            if (btnC_state == 1){
+                // Check for Next
+                if(++edit_step > Europi.tracks[edit_track-1].last_step){
+                    edit_step=1;
+                }
+                btnC_state = 0;
+            }
+
+    }
     // The soft button function bar is always displayed 
     // at the bottom of the screen
     gui_ButtonBar();
@@ -932,6 +1002,9 @@ void gui_ButtonBar(void){
         case btnB_val_down:
             DrawText("Val -",95,217,20,DARKGRAY);
         break;
+        case btnB_prev:
+            DrawText("Prev",95,217,20,DARKGRAY);
+        break;
         case btnB_none:
         default:
         break;
@@ -967,6 +1040,10 @@ void gui_ButtonBar(void){
         break;
         case btnC_val_up:
             DrawText("Val +",167,217,20,DARKGRAY);
+        break;
+        case btnC_next:
+            DrawText("Next",178,217,20,DARKGRAY);
+        break;
         case btnC_none:
         default:
         break;
@@ -993,6 +1070,7 @@ void gui_ButtonBar(void){
             if (btnD_state == 1){
                 btnD_state = 0;
                 // Don't know what we're done doing, but don't care
+                if(DisplayPage == SingleStep) DisplayPage = GridView;
                 ClearScreenOverlays();
                 buttonsDefault();
                 ClearMenus();

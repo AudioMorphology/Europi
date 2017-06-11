@@ -66,6 +66,8 @@ int last_track;         /* used to trim the for() loops when looping round all t
 int step_one = TRUE;	/* used for resetting the sequence to start from the first step */
 int step_one_state = LOW; /*records whether the Step 1 pulse needs to be turned off */
 int selected_step = -1;	/* records the step that is currently selected. -1=Nothing selected */
+int edit_track = 1;     /* Track being edited */
+int edit_step = 1;      /* step being edited */
 uint32_t step_tick = 0;	/* used to record the start point of each step in ticks */
 uint32_t step_ticks = 250000;	/* Records the length of each step in ticks (used to limit slew length) Init value of 250000 is so it doesn't go nuts */
 uint32_t slew_interval = 1000; /* number of microseconds between each sucessive level change during a slew */
@@ -210,6 +212,9 @@ while (prog_running == 1){
     switch(DisplayPage){
         case GridView:
             gui_8x8();
+        break;
+        case SingleStep:
+            gui_singlestep();
         break;
         case SingleChannel:
             gui_SingleChannel();
