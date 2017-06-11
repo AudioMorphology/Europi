@@ -44,6 +44,7 @@ extern int run_stop;
 extern int save_run_stop;
 extern int disp_menu;
 extern int debug;
+extern int VerticalScrollPercent;
 extern char *fbp; 
 extern char input_txt[];
 extern char current_filename[];
@@ -81,6 +82,7 @@ void seq_singlechnl(void) {
  * menu callback for Grid Channel view
  */
 void seq_gridview(void) {
+    VerticalScrollPercent = 0;
 	ClearScreenOverlays();
 	DisplayPage = GridView;
     encoder_focus = none;

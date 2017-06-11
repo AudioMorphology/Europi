@@ -31,6 +31,7 @@ extern int clock_freq;
 extern int prog_running;
 extern int run_stop; 
 extern int save_run_stop;
+extern int last_track;
 extern Vector2 touchPosition;
 extern int currentGesture1;
 extern int lastGesture;
@@ -76,25 +77,38 @@ extern int debug;
  */
 void gui_8x8(void){
     Rectangle stepRectangle = {0,0,0,0};
-    int track, column;
+    int start_track,track, column;
     int step, offset, txt_len;
     char txt[20]; 
-
+    /* Depending on the total number of tracks, and the position 
+     * of the vertical scroll bar, the starting track will vary
+     */
+    if(last_track > 8){
+        start_track = ((last_track-8) * VerticalScrollPercent) / 100;
+    }
+    else {
+        start_track = 0;
+    }
     BeginDrawing();
     DrawTexture(MainScreenTexture,0,0,WHITE);
     for(track = 0; track < 8; track++){
+        // Can only display 8 tracks, so need to know which
+        // track we are starting with, and display the next 7
+        sprintf(txt,"%02d:",start_track+track+1);
+        txt_len = MeasureText(txt,20);
+        DrawText(txt,40-txt_len,10+(track * 25),20,DARKGRAY);
         // for each track, we need to know where the 
         // current step in the sequence is for that
         // particular track, and display the appropriate
         // 8 steps that contain the current step
-        offset = Europi.tracks[track].current_step / 8;
+        offset = Europi.tracks[start_track+track].current_step / 8;
         // Display the step offset at the start of each track
-        sprintf(txt,"%d",offset);
-        txt_len = MeasureText(txt,20);
-        DrawText(txt,20-txt_len,10+(track * 25),20,DARKGRAY);
+//        sprintf(txt,"%d",offset);
+//        txt_len = MeasureText(txt,20);
+//        DrawText(txt,40-txt_len,10+(track * 25),20,DARKGRAY);
         // Check for double-tap on the Track Number
         stepRectangle.x = 20-txt_len;
-        stepRectangle.y = 10+(track * 25);
+        stepRectangle.y = 10+(start_track+track * 25);
         stepRectangle.width = txt_len; 
         stepRectangle.height = 20;
         if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture1 == GESTURE_TAP)){
@@ -108,7 +122,7 @@ void gui_8x8(void){
             //}
         }
         for(column=0;column<8;column++){
-            stepRectangle.x = 30 + (column * 25);
+            stepRectangle.x = 50 + (column * 25);
             stepRectangle.y = 10 + (track * 25);
             stepRectangle.width = 22;
             stepRectangle.height = 22;
@@ -118,11 +132,11 @@ void gui_8x8(void){
                 DrawRectangleRec(stepRectangle, BLUE); 
             }
             else {
-                if((offset*8)+column == Europi.tracks[track].last_step){
+                if((offset*8)+column == Europi.tracks[start_track+track].last_step){
                     // Paint last step
                     DrawRectangleRec(stepRectangle, BLACK); 
                 }
-                else if((offset*8)+column == Europi.tracks[track].current_step){
+                else if((offset*8)+column == Europi.tracks[start_track+track].current_step){
                     // Paint current step
                     DrawRectangleRec(stepRectangle, LIME);   
                 }
