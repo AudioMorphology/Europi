@@ -98,35 +98,12 @@ void gui_8x8(void){
     for(track = 0; track < 8; track++){
         // Can only display 8 tracks, so need to know which
         // track we are starting with, and display the next 7
-        sprintf(txt,"%02d:",start_track+track+1);
-        txt_len = MeasureText(txt,20);
-        DrawText(txt,40-txt_len,10+(track * 25),20,DARKGRAY);
-        // for each track, we need to know where the 
-        // current step in the sequence is for that
-        // particular track, and display the appropriate
-        // 8 steps that contain the current step
         offset = Europi.tracks[start_track+track].current_step / 8;
-        // Display the step offset at the start of each track
-//        sprintf(txt,"%d",offset);
-//        txt_len = MeasureText(txt,20);
-//        DrawText(txt,40-txt_len,10+(track * 25),20,DARKGRAY);
-        // Check for double-tap on the Track Number
-        stepRectangle.x = 20-txt_len;
-        stepRectangle.y = 10+(start_track+track * 25);
-        stepRectangle.width = txt_len; 
-        stepRectangle.height = 20;
-/*        if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture1 == GESTURE_TAP)){
-            
-            //if (currentGesture != lastGesture){
-                // Open this Track in isolation
-                //currentGesture = GESTURE_NONE;
-                ClearScreenOverlays();
-                DisplayPage = SingleChannel;
-                select_track(track);
-            //}
-        } */
+        sprintf(txt,"%02d-%d:",start_track+track+1,(offset * 8)+1);
+        txt_len = MeasureText(txt,20);
+        DrawText(txt,68-txt_len,12+(track * 25),20,DARKGRAY);
         for(column=0;column<8;column++){
-            stepRectangle.x = 50 + (column * 25);
+            stepRectangle.x = 70 + (column * 25);
             stepRectangle.y = 10 + (track * 25);
             stepRectangle.width = 22;
             stepRectangle.height = 22;
@@ -134,7 +111,7 @@ void gui_8x8(void){
             if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture1 != GESTURE_NONE)){
                 // Open this step in the Single Step editor
                 edit_track = start_track+track;
-                edit_step = (offset*8)+column+1;
+                edit_step = (offset*8)+column;
                 ClearScreenOverlays();
                 DisplayPage = SingleStep;
                 ScreenOverlays.SingleStep = 1;
@@ -159,7 +136,11 @@ void gui_8x8(void){
                     DrawRectangleRec(stepRectangle, MAROON); 
                 }
             } 
-        }        
+        }  
+        // Print the end-step number at the RHS of eaqch row
+        sprintf(txt,":%d",(offset * 8)+8);
+        DrawText(txt,270,12+(track * 25),20,DARKGRAY);
+
     }
     // Handle any screen overlays - these need to 
     // be added within the Drawing loop
@@ -171,6 +152,9 @@ void gui_8x8(void){
  * to do with a single step
  */
 void gui_singlestep(void){
+    int column, offset, txt_len;
+    char txt[20]; 
+    Rectangle stepRectangle = {0,0,0,0};
     BeginDrawing();
     DrawTexture(MainScreenTexture,0,0,WHITE);
     // Items to cover:
@@ -181,14 +165,61 @@ void gui_singlestep(void){
     // Slew
     // Step Repeat
     DrawRectangle(6,29, 308, 183, CLR_LIGHTBLUE);  
-    DrawText("Quantization:",8,31,20,DARKGRAY);
-    DrawText(scale_names[Europi.tracks[edit_track].channels[CV_OUT].quantise],140,31,20,DARKGRAY);
-    DrawText("Gate Type:",26,51,20,DARKGRAY);
-    DrawTexture(Text5chTexture, 140,51,WHITE);
-    DrawText("Slew Type:",30,71,20,DARKGRAY);
-    DrawTexture(Text5chTexture, 140,71,WHITE);
-    DrawText("Slew Shape:",20,91,20,DARKGRAY);
-    DrawTexture(Text5chTexture, 140,91,WHITE);
+    // Draw the current Track 8-Step segement
+    offset = Europi.tracks[edit_track].current_step / 8;
+    sprintf(txt,"%02d-%d:",edit_track+1,(offset * 8)+1);
+    txt_len = MeasureText(txt,20);
+    DrawText(txt,68-txt_len,34,20,DARKGRAY);
+    for(column=0;column<8;column++){
+        stepRectangle.x = 70 + (column * 25);
+        stepRectangle.y = 33;
+        stepRectangle.width = 22;
+        stepRectangle.height = 22;
+        // Check gesture collision
+        if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture1 != GESTURE_NONE)){
+            // Open this step in the Single Step editor
+            edit_step = (offset*8)+column;
+            ClearScreenOverlays();
+            DisplayPage = SingleStep;
+            ScreenOverlays.SingleStep = 1;
+            encoder_focus = none;
+            btnA_func = btnA_none;
+            btnB_func = btnB_prev;
+            btnC_func = btnC_next;
+            btnD_func = btnD_done; 
+            save_run_stop = run_stop;
+        }
+        else {
+            if((offset*8)+column == Europi.tracks[edit_track].last_step){
+                // Paint last step
+                DrawRectangleRec(stepRectangle, BLACK); 
+            }
+            else if((offset*8)+column == Europi.tracks[edit_track].current_step){
+                // Paint current step
+                DrawRectangleRec(stepRectangle, LIME);   
+            }
+            else if((offset*8)+column == edit_step){
+                // Paint step currently being edited
+                DrawRectangleRec(stepRectangle, YELLOW);   
+            }
+            else {
+                // paint blank step
+                DrawRectangleRec(stepRectangle, MAROON); 
+            }
+        } 
+    }  
+    // Print the end-step number at the RHS of eaqch row
+    sprintf(txt,":%d",(offset * 8)+8);
+    DrawText(txt,270,34,20,DARKGRAY);
+    
+    DrawText("Quantization:",8,56,20,DARKGRAY);
+    DrawText(scale_names[Europi.tracks[edit_track].channels[CV_OUT].quantise],140,56,20,DARKGRAY);
+    DrawText("Gate Type:",26,76,20,DARKGRAY);
+    DrawTexture(Text5chTexture, 140,76,WHITE);
+    DrawText("Slew Type:",30,96,20,DARKGRAY);
+    DrawTexture(Text5chTexture, 140,96,WHITE);
+    DrawText("Slew Shape:",20,116,20,DARKGRAY);
+    DrawTexture(Text5chTexture, 140,116,WHITE);
     
     // Handle any screen overlays - these need to 
     // be added within the Drawing loop
@@ -892,20 +923,23 @@ void ShowScreenOverlays(void){
             DrawText("Track:",5,5,20,DARKGRAY);
             DrawText("Step:",125,5,20,DARKGRAY);
             sprintf(strTrack,"%02d",edit_track+1);
-            sprintf(strStep,"%02d",edit_step);
+            sprintf(strStep,"%02d",edit_step+1);
             DrawText(strTrack,80,5,20,DARKGRAY);
             DrawText(strStep,185,5,20,DARKGRAY);
             if (btnB_state == 1){
                 // Check for Prev
                 btnB_state = 0;
-                if(--edit_step == 0){
-                    edit_step=Europi.tracks[edit_track-1].last_step;
+                if(edit_step <= 0){
+                    edit_step=Europi.tracks[edit_track].last_step-1;
+                }
+                else {
+                    edit_step--;
                 }
             }
             if (btnC_state == 1){
                 // Check for Next
-                if(++edit_step > Europi.tracks[edit_track-1].last_step){
-                    edit_step=1;
+                if(++edit_step >= Europi.tracks[edit_track].last_step){
+                    edit_step=0;
                 }
                 btnC_state = 0;
             }
