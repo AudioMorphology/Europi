@@ -208,7 +208,7 @@ void gui_singlestep(void){
             }
         } 
     }  
-    // Print the end-step number at the RHS of eaqch row
+    // Print the end-step number at the RHS of each row
     sprintf(txt,":%d",(offset * 8)+8);
     DrawText(txt,270,34,20,DARKGRAY);
     
@@ -220,7 +220,33 @@ void gui_singlestep(void){
     DrawTexture(Text5chTexture, 140,96,WHITE);
     DrawText("Slew Shape:",20,116,20,DARKGRAY);
     DrawTexture(Text5chTexture, 140,116,WHITE);
-    
+    // Draw the Pitch 'Bar Graph' display
+    DrawRectangleLines(280,76,20,120,BLACK);
+    int Octave,Partial,Pitch,i;
+    Octave = Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].scaled_value / 6000;
+    Partial = Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].scaled_value % 6000;
+    sprintf(txt,"%d, %d, %d",Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].scaled_value, Octave, Partial);
+    DrawText(txt,10,180,20,DARKGRAY);    
+    for(i=0;i<10;i++){
+        DrawRectangleLines(260,(i*12)+78,15,10,BLACK);
+        if((9-i) == Octave){
+            // Colour the current Octave
+            DrawRectangle(261,(i*12)+78+1,13,8,RED);
+        }
+        //Check for collision within the Octave Bar
+        stepRectangle.x = 260;
+        stepRectangle.y = (i*12)+78;
+        stepRectangle.width = 15;
+        stepRectangle.height = 10;
+        if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture1 != GESTURE_NONE)){
+            // Set the Octave for this Step
+            Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].scaled_value = (6000 * (9-i)) + Partial;
+        }
+    }
+    // Fill the partial column = this is the percentage of an 
+    // Octave, so 6000 would == 120 pixels
+    Pitch = (Partial * 120) / 6000;
+    DrawRectangle(281,76+120-Pitch-1,18,Pitch,BLUE);    
     // Handle any screen overlays - these need to 
     // be added within the Drawing loop
     ShowScreenOverlays();
@@ -471,23 +497,23 @@ void ShowScreenOverlays(void){
         char strLoop[5];
         DrawTexture(TopBarTexture,0,0,WHITE);
         DrawTexture(Text2chTexture,70,2,WHITE); // Box for Track Number
-        DrawTexture(Text2chTexture,155,2,WHITE); // Box for Step Number
+        DrawTexture(Text2chTexture,185,2,WHITE); // Box for Step Number
         DrawText("Track",5,5,20,DARKGRAY);
-        DrawText("Loop",105,5,20,DARKGRAY);
+        DrawText("Length",112,5,20,DARKGRAY);
         
         for(track = 0; track < MAX_TRACKS; track++) {
             if (Europi.tracks[track].selected == TRUE){
                 sprintf(strTrack,"%02d",track+1);
                 sprintf(strLoop,"%02d",Europi.tracks[track].last_step);
                 DrawText(strTrack,75,5,20,DARKGRAY);
-                DrawText(strLoop,160,5,20,DARKGRAY);
+                DrawText(strLoop,190,5,20,DARKGRAY);
                 if(encoder_focus == track_select){
                     DrawRectangleLines(71,3,30,22,RED);
                     DrawRectangleLines(72,4,28,20,RED);
                 }
                 else if (encoder_focus == set_loop) {
-                    DrawRectangleLines(156,3,30,22,RED);
-                    DrawRectangleLines(157,4,28,20,RED);
+                    DrawRectangleLines(186,3,30,22,RED);
+                    DrawRectangleLines(187,4,28,20,RED);
                 }
             }
         }

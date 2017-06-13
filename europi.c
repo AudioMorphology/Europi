@@ -151,7 +151,7 @@ menu mnu_file_quit = 	{0,0,dir_none,"Quit",&file_quit,{NULL}};
 
 menu mnu_seq_new = 		{0,0,dir_none,"New",&seq_new,{NULL}};
 menu mnu_seq_setslew =  {0,0,dir_none,"Set Slew for Step",&seq_setslew,{NULL}};
-menu mnu_seq_setloop =	{0,0,dir_none,"Set Loop Points",&seq_setloop,{NULL}};
+menu mnu_seq_setloop =	{0,0,dir_none,"Set Track Length",&seq_setloop,{NULL}};
 menu mnu_seq_setpitch = {0,0,dir_none,"Set Pitch for step",&seq_setpitch,{NULL}};
 menu mnu_seq_setdir =   {0,0,dir_none,"Set Track Direction",&seq_setdir,{NULL}};
 menu mnu_seq_quantise = {0,0,dir_none,"Set Quantization",&seq_quantise,{NULL}};
