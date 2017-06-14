@@ -79,6 +79,7 @@ extern int debug;
  */
 void gui_8x8(void){
     Rectangle stepRectangle = {0,0,0,0};
+    Rectangle trackRectangle = {0,0,0,0};
     int start_track,track, column;
     int step, offset, txt_len;
     char txt[20]; 
@@ -102,40 +103,56 @@ void gui_8x8(void){
         sprintf(txt,"%02d-%d:",start_track+track+1,(offset * 8)+1);
         txt_len = MeasureText(txt,20);
         DrawText(txt,68-txt_len,12+(track * 25),20,DARKGRAY);
+        DrawRectangleLines(4,8+(track * 25),67,26,DARKGRAY);
+        // Check for Track select
+        trackRectangle.x = 4;
+        trackRectangle.y = 8 + (track * 25);
+        trackRectangle.width = 67;
+        trackRectangle.height = 26;
+        if(ScreenOverlays.MainMenu == 0){
+            // Only if no menus or overlays active
+            if (CheckCollisionPointRec(touchPosition, trackRectangle) && (currentGesture1 != GESTURE_NONE)){
+                // Open this track in a single view
+                Europi.tracks[start_track+track].selected = TRUE;
+                ClearScreenOverlays();
+                DisplayPage = SingleChannel;
+            }
+        }
         for(column=0;column<8;column++){
             stepRectangle.x = 70 + (column * 25);
             stepRectangle.y = 10 + (track * 25);
             stepRectangle.width = 22;
             stepRectangle.height = 22;
             // Check gesture collision
-            if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture1 != GESTURE_NONE)){
-                // Open this step in the Single Step editor
-                edit_track = start_track+track;
-                edit_step = (offset*8)+column;
-                ClearScreenOverlays();
-                DisplayPage = SingleStep;
-                ScreenOverlays.SingleStep = 1;
-                encoder_focus = none;
-                btnA_func = btnA_none;
-                btnB_func = btnB_prev;
-                btnC_func = btnC_next;
-                btnD_func = btnD_done; 
-                save_run_stop = run_stop;
+            if(ScreenOverlays.MainMenu == 0){
+                // Only if no Menus or Overlays active
+                if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture1 != GESTURE_NONE)){
+                    // Open this step in the Single Step editor
+                    edit_track = start_track+track;
+                    edit_step = (offset*8)+column;
+                    ClearScreenOverlays();
+                    DisplayPage = SingleStep;
+                    ScreenOverlays.SingleStep = 1;
+                    encoder_focus = none;
+                    btnA_func = btnA_none;
+                    btnB_func = btnB_prev;
+                    btnC_func = btnC_next;
+                    btnD_func = btnD_done; 
+                    save_run_stop = run_stop;
+                }
+            }
+            if((offset*8)+column == Europi.tracks[start_track+track].last_step){
+                // Paint last step
+                DrawRectangleRec(stepRectangle, BLACK); 
+            }
+            else if((offset*8)+column == Europi.tracks[start_track+track].current_step){
+                // Paint current step
+                DrawRectangleRec(stepRectangle, LIME);   
             }
             else {
-                if((offset*8)+column == Europi.tracks[start_track+track].last_step){
-                    // Paint last step
-                    DrawRectangleRec(stepRectangle, BLACK); 
-                }
-                else if((offset*8)+column == Europi.tracks[start_track+track].current_step){
-                    // Paint current step
-                    DrawRectangleRec(stepRectangle, LIME);   
-                }
-                else {
-                    // paint blank step
-                    DrawRectangleRec(stepRectangle, MAROON); 
-                }
-            } 
+                // paint blank step
+                DrawRectangleRec(stepRectangle, MAROON); 
+            }
         }  
         // Print the end-step number at the RHS of eaqch row
         sprintf(txt,":%d",(offset * 8)+8);
@@ -223,9 +240,25 @@ void gui_singlestep(void){
     // Draw the Pitch 'Bar Graph' display
     DrawRectangleLines(280,76,20,120,BLACK);
     int Octave,Partial,Pitch,i;
-    Octave = Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].scaled_value / 6000;
-    Partial = Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].scaled_value % 6000;
-    sprintf(txt,"%d, %d, %d",Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].scaled_value, Octave, Partial);
+    Octave = Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].raw_value / 6000;
+    Partial = Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].raw_value % 6000;
+    //Check for collision within the Partial bar
+    stepRectangle.x = 280;
+    stepRectangle.y = 76;
+    stepRectangle.width = 20;
+    stepRectangle.height = 120;
+    if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture1 != GESTURE_NONE)){
+        // Work out how far up the Partial bar we are
+        if((touchPosition.y >= (float)76) && (touchPosition.y <= (float)(76+120))) {
+            Partial = (int)(((120-(touchPosition.y - (float)76)) / (float)(120)) * 5999);
+            int newpitch = quantize((6000 * Octave) + Partial,Europi.tracks[edit_track].channels[CV_OUT].quantise);
+            Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].raw_value = newpitch;
+            // Update scaled value 
+            Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].scaled_value = scale_value(edit_track,newpitch);
+        }
+    }
+
+    sprintf(txt,"%d, %d, %d",Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].raw_value, Octave, Partial);
     DrawText(txt,10,180,20,DARKGRAY);    
     for(i=0;i<10;i++){
         DrawRectangleLines(260,(i*12)+78,15,10,BLACK);
@@ -239,14 +272,18 @@ void gui_singlestep(void){
         stepRectangle.width = 15;
         stepRectangle.height = 10;
         if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture1 != GESTURE_NONE)){
-            // Set the Octave for this Step
-            Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].scaled_value = (6000 * (9-i)) + Partial;
+            // Set the Octave for this Step & Quantize the RAW value
+            int newpitch = quantize((6000 * (9-i)) + Partial,Europi.tracks[edit_track].channels[CV_OUT].quantise);
+            Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].raw_value = newpitch;
+            // Update scaled value 
+            Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].scaled_value = scale_value(edit_track,newpitch);
         }
     }
     // Fill the partial column = this is the percentage of an 
     // Octave, so 6000 would == 120 pixels
     Pitch = (Partial * 120) / 6000;
-    DrawRectangle(281,76+120-Pitch-1,18,Pitch,BLUE);    
+    DrawRectangle(281,76+120-Pitch-1,18,Pitch,BLUE); 
+   
     // Handle any screen overlays - these need to 
     // be added within the Drawing loop
     ShowScreenOverlays();
@@ -303,6 +340,79 @@ void gui_grid(void){
  * selected channel on a page of its own
  */
 void gui_SingleChannel(void){
+    int track;
+    int step;
+    int val;
+    char track_no[20];
+    int row;
+    Rectangle stepRectangle = {0,0,0,0};
+    BeginDrawing();
+    DrawTexture(MainScreenTexture,0,0,WHITE);
+    for (track = 0; track < MAX_TRACKS; track++){
+        if (Europi.tracks[track].selected == TRUE){
+            sprintf(track_no,"%d",track+1);
+            for (step = 0; step < MAX_STEPS; step++){
+                row = step / 16;
+                if(step < Europi.tracks[track].last_step){
+
+
+                    int Octave = (int)((float)Europi.tracks[track].channels[CV_OUT].steps[step].scaled_value / (float)6000);
+                    val = (int)(((float)Europi.tracks[track].channels[CV_OUT].steps[step].scaled_value - (Octave * 6000)) / (float)60);
+                    stepRectangle.x = ((step-(row*16)) * 18)+20;
+                    stepRectangle.y = ((row+1) * 100)-val;
+                    /* Width of the bar is the Octave */
+                    stepRectangle.width = Octave+5;
+                    stepRectangle.height = val;
+                    if(step == Europi.tracks[track].current_step){
+                        DrawRectangleRec(stepRectangle,MAROON);
+                    }
+                    else{
+                        DrawRectangleRec(stepRectangle,LIME);
+                    }
+/*                    // Gate State
+                    if (Europi.tracks[track].channels[GATE_OUT].steps[step].gate_value == 1){
+                        sprintf(track_no,"%d",Europi.tracks[track].channels[GATE_OUT].steps[step].retrigger);
+                        DrawText(track_no,15 + (step*9),220,10,DARKGRAY);
+                    }
+                    // Slew
+                    if (Europi.tracks[track].channels[CV_OUT].steps[step].slew_type != Off){
+                        switch (Europi.tracks[track].channels[CV_OUT].steps[step].slew_shape){
+                            case Both:
+                                DrawText("V",15 + (step*9),230,10,DARKGRAY);
+                            break;
+                            case Rising:
+                                DrawText("/",15 + (step*9),230,10,DARKGRAY);
+                            break;
+                            case Falling:
+                                DrawText("\\",15 + (step*9),230,10,DARKGRAY);
+                            break;
+                        }
+                    } */
+                }
+                /* Draws a block to show the last step (provided it's less than MAX_STEPS) */
+                if(step == Europi.tracks[track].last_step - 1) {
+                    val = (int)(((float)Europi.tracks[track].channels[CV_OUT].steps[step].scaled_value / (float)10000) * 100);
+                    stepRectangle.x += 18;
+                    stepRectangle.y = ((row+1) * 100)-val;
+                    stepRectangle.width = 5;
+                    stepRectangle.height = val;
+                    DrawRectangleRec(stepRectangle,BLACK);
+                }
+            }
+        }
+    }
+    // Handle any screen overlays - these need to 
+    // be added within the Drawing loop
+    ShowScreenOverlays();
+    EndDrawing();
+}
+
+
+/*
+ * gui_SingleChannel displays just the currently
+ * selected channel on a page of its own
+ */
+void gui_SingleChannel_old2(void){
     int track;
     int step;
     int val;
