@@ -130,6 +130,7 @@ void gui_8x8(void){
                     // Open this step in the Single Step editor
                     edit_track = start_track+track;
                     edit_step = (offset*8)+column;
+                    Europi.tracks[start_track+track].selected = TRUE;
                     ClearScreenOverlays();
                     DisplayPage = SingleStep;
                     ScreenOverlays.SingleStep = 1;
@@ -337,66 +338,75 @@ void gui_grid(void){
 }
 /*
  * gui_SingleChannel displays just the currently
- * selected channel on a page of its own
+ * selected channel on a page of its own, but only
+ * in blocks of 8 steps
  */
 void gui_SingleChannel(void){
-    int track;
-    int step;
-    int val;
+    Rectangle touchRectangle = {0,0,0,0};
+    int track, step, column, i;
+    int offset = 0;
+    int Octave, Partial, Pitch;
     char track_no[20];
     int row;
     Rectangle stepRectangle = {0,0,0,0};
     BeginDrawing();
     DrawTexture(MainScreenTexture,0,0,WHITE);
-    for (track = 0; track < MAX_TRACKS; track++){
-        if (Europi.tracks[track].selected == TRUE){
-            sprintf(track_no,"%d",track+1);
-            for (step = 0; step < MAX_STEPS; step++){
-                row = step / 16;
-                if(step < Europi.tracks[track].last_step){
-
-
-                    int Octave = (int)((float)Europi.tracks[track].channels[CV_OUT].steps[step].scaled_value / (float)6000);
-                    val = (int)(((float)Europi.tracks[track].channels[CV_OUT].steps[step].scaled_value - (Octave * 6000)) / (float)60);
-                    stepRectangle.x = ((step-(row*16)) * 18)+20;
-                    stepRectangle.y = ((row+1) * 100)-val;
-                    /* Width of the bar is the Octave */
-                    stepRectangle.width = Octave+5;
-                    stepRectangle.height = val;
-                    if(step == Europi.tracks[track].current_step){
-                        DrawRectangleRec(stepRectangle,MAROON);
+    for(track = 0; track < last_track; track++){
+        if(Europi.tracks[track].selected == TRUE){
+            for(column = 0; column < 8; column++){
+                Octave = Europi.tracks[track].channels[CV_OUT].steps[offset+column].raw_value / 6000;
+                Partial = Europi.tracks[track].channels[CV_OUT].steps[offset+column].raw_value % 6000;
+                //Check for collision within the Partial bar
+                touchRectangle.x = 22+(column*39);
+                touchRectangle.y = 30;
+                touchRectangle.width = 18;
+                touchRectangle.height = 120;
+                if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+                    // Work out how far up the Partial bar we are
+                    if((touchPosition.y >= (float)30) && (touchPosition.y <= (float)(30+120))) {
+                        Partial = (int)(((120-(touchPosition.y - (float)30)) / (float)(120)) * 5999);
+                        int newpitch = quantize((6000 * Octave) + Partial,Europi.tracks[track].channels[CV_OUT].quantise);
+                        Europi.tracks[track].channels[CV_OUT].steps[offset+column].raw_value = newpitch;
+                        // Update scaled value 
+                        Europi.tracks[track].channels[CV_OUT].steps[offset+column].scaled_value = scale_value(track,newpitch);
                     }
-                    else{
-                        DrawRectangleRec(stepRectangle,LIME);
-                    }
-/*                    // Gate State
-                    if (Europi.tracks[track].channels[GATE_OUT].steps[step].gate_value == 1){
-                        sprintf(track_no,"%d",Europi.tracks[track].channels[GATE_OUT].steps[step].retrigger);
-                        DrawText(track_no,15 + (step*9),220,10,DARKGRAY);
-                    }
-                    // Slew
-                    if (Europi.tracks[track].channels[CV_OUT].steps[step].slew_type != Off){
-                        switch (Europi.tracks[track].channels[CV_OUT].steps[step].slew_shape){
-                            case Both:
-                                DrawText("V",15 + (step*9),230,10,DARKGRAY);
-                            break;
-                            case Rising:
-                                DrawText("/",15 + (step*9),230,10,DARKGRAY);
-                            break;
-                            case Falling:
-                                DrawText("\\",15 + (step*9),230,10,DARKGRAY);
-                            break;
-                        }
-                    } */
                 }
-                /* Draws a block to show the last step (provided it's less than MAX_STEPS) */
-                if(step == Europi.tracks[track].last_step - 1) {
-                    val = (int)(((float)Europi.tracks[track].channels[CV_OUT].steps[step].scaled_value / (float)10000) * 100);
-                    stepRectangle.x += 18;
-                    stepRectangle.y = ((row+1) * 100)-val;
-                    stepRectangle.width = 5;
-                    stepRectangle.height = val;
-                    DrawRectangleRec(stepRectangle,BLACK);
+                //Column of Octave buttons
+                for(i=0;i<10;i++){
+                    DrawRectangleLines(6+(column*39),(i*12)+32,15,10,BLACK);
+                    if((9-i) == Octave){
+                        // Colour the current Octave
+                        if(offset+column == Europi.tracks[track].current_step){
+                            DrawRectangle(6+(column*39)+1,(i*12)+32+1,13,8,LIME);
+                        }
+                        else{
+                            DrawRectangle(6+(column*39)+1,(i*12)+32+1,13,8,RED);
+                        }
+                    }
+                    //Check for collision within the Octave Bar
+                    touchRectangle.x = 6+(column*39);
+                    touchRectangle.y = (i*12)+32;
+                    touchRectangle.width = 15;
+                    touchRectangle.height = 10;
+                    if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+                        // Set the Octave for this Step & Quantize the RAW value
+                        int newpitch = quantize((6000 * (9-i)) + Partial,Europi.tracks[track].channels[CV_OUT].quantise);
+                        Europi.tracks[track].channels[CV_OUT].steps[offset+column].raw_value = newpitch;
+                        // Update scaled value 
+                        Europi.tracks[track].channels[CV_OUT].steps[offset+column].scaled_value = scale_value(track,newpitch);
+                    }
+
+                }
+                //Partial bar
+                DrawRectangleLines(22+(column*39),29,18,121,BLACK);
+                // Fill the partial column = this is the percentage of an 
+                // Octave, so 6000 would == 120 pixels
+                Pitch = (Partial * 120) / 6000;
+                if(offset+column == Europi.tracks[track].current_step){
+                    DrawRectangle(22+(column*39)+1,30+120-Pitch-1,16,Pitch,LIME); 
+                }
+                else {
+                    DrawRectangle(22+(column*39)+1,30+120-Pitch-1,16,Pitch,BLUE); 
                 }
             }
         }
