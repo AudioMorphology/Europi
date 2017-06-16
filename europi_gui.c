@@ -155,7 +155,7 @@ void gui_8x8(void){
                 DrawRectangleRec(stepRectangle, MAROON); 
             }
         }  
-        // Print the end-step number at the RHS of eaqch row
+        // Print the end-step number at the RHS of each row
         sprintf(txt,":%d",(offset * 8)+8);
         DrawText(txt,270,12+(track * 25),20,DARKGRAY);
 
@@ -284,7 +284,7 @@ void gui_singlestep(void){
     // Octave, so 6000 would == 120 pixels
     Pitch = (Partial * 120) / 6000;
     DrawRectangle(281,76+120-Pitch-1,18,Pitch,BLUE); 
-   
+    
     // Handle any screen overlays - these need to 
     // be added within the Drawing loop
     ShowScreenOverlays();
@@ -347,6 +347,8 @@ void gui_SingleChannel(void){
     int offset = 0;
     int Octave, Partial, Pitch;
     char track_no[20];
+    char step_no[5];
+    int txt_len;
     int row;
     Rectangle stepRectangle = {0,0,0,0};
     BeginDrawing();
@@ -397,17 +399,45 @@ void gui_SingleChannel(void){
                     }
 
                 }
-                //Partial bar
-                DrawRectangleLines(22+(column*39),29,18,121,BLACK);
                 // Fill the partial column = this is the percentage of an 
                 // Octave, so 6000 would == 120 pixels
                 Pitch = (Partial * 120) / 6000;
                 if(offset+column == Europi.tracks[track].current_step){
-                    DrawRectangle(22+(column*39)+1,30+120-Pitch-1,16,Pitch,LIME); 
+                    DrawRectangle(22+(column*39)+1,30+120-Pitch,16,Pitch,LIME); 
                 }
                 else {
-                    DrawRectangle(22+(column*39)+1,30+120-Pitch-1,16,Pitch,BLUE); 
+                    DrawRectangle(22+(column*39)+1,30+120-Pitch,16,Pitch,BLUE); 
                 }
+                //Fill the column THEN draw the Partial bar, though I actually
+                //prefer the display without this box round the partial bar, hence
+                //why it is commented out.
+                /*DrawRectangleLines(22+(column*39),30,18,120,BLACK);*/
+                //Step number boxes
+                DrawRectangleLines(6+(column*39),152,33,20,BLACK);
+                // Centre the Step Number in the box
+                sprintf(step_no,"%d",offset+column+1);
+                txt_len = MeasureText(step_no,20);
+                DrawText(step_no,22+(column*39)-(txt_len/2),153,20,DARKGRAY);
+                //Check for tap within the Step Number box
+                touchRectangle.x = 6+(column*39);
+                touchRectangle.y = 160; //Ignores touches in the top few pixels, as it's close to the Partial bar
+                touchRectangle.width = 33;
+                touchRectangle.height = 12;
+                if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+                    //Open this Step in the Single Step editor
+                    edit_track = track;
+                    edit_step = offset+column;
+                    ClearScreenOverlays();
+                    DisplayPage = SingleStep;
+                    ScreenOverlays.SingleStep = 1;
+                    encoder_focus = none;
+                    btnA_func = btnA_none;
+                    btnB_func = btnB_prev;
+                    btnC_func = btnC_next;
+                    btnD_func = btnD_done; 
+                    save_run_stop = run_stop;
+                }
+                
             }
         }
     }
