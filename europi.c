@@ -68,6 +68,7 @@ int step_one_state = LOW; /*records whether the Step 1 pulse needs to be turned 
 int selected_step = -1;	/* records the step that is currently selected. -1=Nothing selected */
 int edit_track = 1;     /* Track being edited */
 int edit_step = 1;      /* step being edited */
+int SingleChannelOffset = 0; /* first step displayed in Single Channel View */
 uint32_t step_tick = 0;	/* used to record the start point of each step in ticks */
 uint32_t step_ticks = 250000;	/* Records the length of each step in ticks (used to limit slew length) Init value of 250000 is so it doesn't go nuts */
 uint32_t slew_interval = 1000; /* number of microseconds between each sucessive level change during a slew */

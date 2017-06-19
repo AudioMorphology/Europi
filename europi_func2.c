@@ -138,6 +138,7 @@ void ClearScreenOverlays(void){
     ScreenOverlays.FileSaveAs = 0;
     ScreenOverlays.VerticalScrollBar = 0;
     ScreenOverlays.SingleStep = 0;
+    ScreenOverlays.SingleChannel = 0;
 }
 
 /*
@@ -160,7 +161,8 @@ int OverlayActive(void){
         (ScreenOverlays.TextInput == 1) ||
         (ScreenOverlays.FileSaveAs == 1) ||
         (ScreenOverlays.VerticalScrollBar == 1)||
-        (ScreenOverlays.SingleStep == 1)
+        (ScreenOverlays.SingleStep == 1) ||
+        (ScreenOverlays.SingleChannel == 1)
         ) return 1;
     else return 0;        
 }

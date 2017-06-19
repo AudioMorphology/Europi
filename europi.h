@@ -410,6 +410,8 @@ enum display_page_t {
  * which can be overlaid on top of whatever
  * page is currently being displayed
  */ 
+ 
+ //To Do: This needs to be a bitwise field, rather than a sstructure of Ints !!!
  struct screen_overlays{
 	 int MainMenu;
 	 int SetZero;
@@ -426,6 +428,7 @@ enum display_page_t {
      int FileSaveAs;
      int VerticalScrollBar;
      int SingleStep;
+     int SingleChannel;
  };
  
 /*

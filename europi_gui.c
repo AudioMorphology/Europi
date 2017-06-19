@@ -32,6 +32,7 @@ extern int prog_running;
 extern int run_stop; 
 extern int save_run_stop;
 extern int last_track;
+extern int SingleChannelOffset;
 extern Vector2 touchPosition;
 extern int currentGesture1;
 extern int lastGesture;
@@ -112,10 +113,19 @@ void gui_8x8(void){
         if(ScreenOverlays.MainMenu == 0){
             // Only if no menus or overlays active
             if (CheckCollisionPointRec(touchPosition, trackRectangle) && (currentGesture1 != GESTURE_NONE)){
-                // Open this track in a single view
+                // Open this track in a Single Channel view
                 Europi.tracks[start_track+track].selected = TRUE;
                 ClearScreenOverlays();
                 DisplayPage = SingleChannel;
+                ScreenOverlays.SingleChannel = 1;
+                SingleChannelOffset = 0;
+                encoder_focus = none;
+                btnA_func = btnA_none;
+                btnB_func = btnB_none;
+                btnC_func = btnC_none;
+                btnD_func = btnD_done; 
+                save_run_stop = run_stop;
+
             }
         }
         for(column=0;column<8;column++){
@@ -344,7 +354,6 @@ void gui_grid(void){
 void gui_SingleChannel(void){
     Rectangle touchRectangle = {0,0,0,0};
     int track, step, column, i;
-    int offset = 0;
     int Octave, Partial, Pitch;
     char track_no[20];
     char step_no[5];
@@ -356,8 +365,8 @@ void gui_SingleChannel(void){
     for(track = 0; track < last_track; track++){
         if(Europi.tracks[track].selected == TRUE){
             for(column = 0; column < 8; column++){
-                Octave = Europi.tracks[track].channels[CV_OUT].steps[offset+column].raw_value / 6000;
-                Partial = Europi.tracks[track].channels[CV_OUT].steps[offset+column].raw_value % 6000;
+                Octave = Europi.tracks[track].channels[CV_OUT].steps[SingleChannelOffset+column].raw_value / 6000;
+                Partial = Europi.tracks[track].channels[CV_OUT].steps[SingleChannelOffset+column].raw_value % 6000;
                 //Check for collision within the Partial bar
                 touchRectangle.x = 22+(column*39);
                 touchRectangle.y = 30;
@@ -368,9 +377,9 @@ void gui_SingleChannel(void){
                     if((touchPosition.y >= (float)30) && (touchPosition.y <= (float)(30+120))) {
                         Partial = (int)(((120-(touchPosition.y - (float)30)) / (float)(120)) * 5999);
                         int newpitch = quantize((6000 * Octave) + Partial,Europi.tracks[track].channels[CV_OUT].quantise);
-                        Europi.tracks[track].channels[CV_OUT].steps[offset+column].raw_value = newpitch;
+                        Europi.tracks[track].channels[CV_OUT].steps[SingleChannelOffset+column].raw_value = newpitch;
                         // Update scaled value 
-                        Europi.tracks[track].channels[CV_OUT].steps[offset+column].scaled_value = scale_value(track,newpitch);
+                        Europi.tracks[track].channels[CV_OUT].steps[SingleChannelOffset+column].scaled_value = scale_value(track,newpitch);
                     }
                 }
                 //Column of Octave buttons
@@ -378,7 +387,7 @@ void gui_SingleChannel(void){
                     DrawRectangleLines(6+(column*39),(i*12)+32,15,10,BLACK);
                     if((9-i) == Octave){
                         // Colour the current Octave
-                        if(offset+column == Europi.tracks[track].current_step){
+                        if(SingleChannelOffset+column == Europi.tracks[track].current_step){
                             DrawRectangle(6+(column*39)+1,(i*12)+32+1,13,8,LIME);
                         }
                         else{
@@ -393,16 +402,16 @@ void gui_SingleChannel(void){
                     if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
                         // Set the Octave for this Step & Quantize the RAW value
                         int newpitch = quantize((6000 * (9-i)) + Partial,Europi.tracks[track].channels[CV_OUT].quantise);
-                        Europi.tracks[track].channels[CV_OUT].steps[offset+column].raw_value = newpitch;
+                        Europi.tracks[track].channels[CV_OUT].steps[SingleChannelOffset+column].raw_value = newpitch;
                         // Update scaled value 
-                        Europi.tracks[track].channels[CV_OUT].steps[offset+column].scaled_value = scale_value(track,newpitch);
+                        Europi.tracks[track].channels[CV_OUT].steps[SingleChannelOffset+column].scaled_value = scale_value(track,newpitch);
                     }
 
                 }
                 // Fill the partial column = this is the percentage of an 
                 // Octave, so 6000 would == 120 pixels
                 Pitch = (Partial * 120) / 6000;
-                if(offset+column == Europi.tracks[track].current_step){
+                if(SingleChannelOffset+column == Europi.tracks[track].current_step){
                     DrawRectangle(22+(column*39)+1,30+120-Pitch,16,Pitch,LIME); 
                 }
                 else {
@@ -414,8 +423,10 @@ void gui_SingleChannel(void){
                 /*DrawRectangleLines(22+(column*39),30,18,120,BLACK);*/
                 //Step number boxes
                 DrawRectangleLines(6+(column*39),152,33,20,BLACK);
+                //DrawTexture(Text2chTexture,7+(column*39),180,WHITE); // Box for Step Number
+
                 // Centre the Step Number in the box
-                sprintf(step_no,"%d",offset+column+1);
+                sprintf(step_no,"%d",SingleChannelOffset+column+1);
                 txt_len = MeasureText(step_no,20);
                 DrawText(step_no,22+(column*39)-(txt_len/2),153,20,DARKGRAY);
                 //Check for tap within the Step Number box
@@ -426,7 +437,7 @@ void gui_SingleChannel(void){
                 if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
                     //Open this Step in the Single Step editor
                     edit_track = track;
-                    edit_step = offset+column;
+                    edit_step = SingleChannelOffset+column;
                     ClearScreenOverlays();
                     DisplayPage = SingleStep;
                     ScreenOverlays.SingleStep = 1;
@@ -436,10 +447,42 @@ void gui_SingleChannel(void){
                     btnC_func = btnC_next;
                     btnD_func = btnD_done; 
                     save_run_stop = run_stop;
+
                 }
                 
             }
+            // Draw all 32 Steps along the bottom of the screen
+            int x = 14;
+            for(step = 0; step<MAX_STEPS; step++){
+                if(step == SingleChannelOffset){
+                    //Highlight behind current block of 8 steps
+                    touchRectangle.x = x+1;
+                    touchRectangle.y = 202;
+                    touchRectangle.width = 8*9+1;
+                    touchRectangle.height = 10;
+                    DrawRectangleRec(touchRectangle,DARKGRAY);
+                    x += 2;
+                }
+                if (step == SingleChannelOffset+8) x+= 2;
+                touchRectangle.x = x;
+                touchRectangle.y = 203;
+                touchRectangle.width = 8;
+                touchRectangle.height = 8;
+                if(step == Europi.tracks[track].current_step){
+                    DrawRectangleRec(touchRectangle,LIME);
+                }
+                else{
+                    DrawRectangleRec(touchRectangle,RED);
+                }
+                if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+                    //Move the displayed 8-step segment to this position
+                    if(step <= 24) SingleChannelOffset = step;
+                    else SingleChannelOffset = 24;
+                }
+                x += 9;
+            }
         }
+        
     }
     // Handle any screen overlays - these need to 
     // be added within the Drawing loop
@@ -1281,6 +1324,7 @@ void gui_ButtonBar(void){
                 btnD_state = 0;
                 // Don't know what we're done doing, but don't care
                 if(DisplayPage == SingleStep) DisplayPage = GridView;
+                if(DisplayPage == SingleChannel) DisplayPage = GridView;
                 ClearScreenOverlays();
                 buttonsDefault();
                 ClearMenus();
