@@ -163,7 +163,8 @@ enum btnB_func_t {
     btnB_open,
     btnB_save,
     btnB_val_down,
-    btnB_prev
+    btnB_prev,
+    btnB_tr_minus
 };
 
 enum btnC_func_t {
@@ -171,7 +172,8 @@ enum btnC_func_t {
     btnC_bpm_dn,
     btnC_cancel,
     btnC_val_up,
-    btnC_next
+    btnC_next,
+    btnC_tr_plus
 };
 
 enum btnD_func_t {

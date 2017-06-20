@@ -114,15 +114,16 @@ void gui_8x8(void){
             // Only if no menus or overlays active
             if (CheckCollisionPointRec(touchPosition, trackRectangle) && (currentGesture1 != GESTURE_NONE)){
                 // Open this track in a Single Channel view
-                Europi.tracks[start_track+track].selected = TRUE;
+                edit_track = start_track+track;
+                select_track(start_track+track);
                 ClearScreenOverlays();
                 DisplayPage = SingleChannel;
                 ScreenOverlays.SingleChannel = 1;
                 SingleChannelOffset = 0;
                 encoder_focus = none;
                 btnA_func = btnA_none;
-                btnB_func = btnB_none;
-                btnC_func = btnC_none;
+                btnB_func = btnB_tr_minus;
+                btnC_func = btnC_tr_plus;
                 btnD_func = btnD_done; 
                 save_run_stop = run_stop;
 
@@ -140,7 +141,7 @@ void gui_8x8(void){
                     // Open this step in the Single Step editor
                     edit_track = start_track+track;
                     edit_step = (offset*8)+column;
-                    Europi.tracks[start_track+track].selected = TRUE;
+                    select_track(start_track+track);
                     ClearScreenOverlays();
                     DisplayPage = SingleStep;
                     ScreenOverlays.SingleStep = 1;
@@ -449,11 +450,55 @@ void gui_SingleChannel(void){
                     save_run_stop = run_stop;
 
                 }
+                //Draw the gate lane for this Step
+                touchRectangle.y = 175;
+                touchRectangle.width = 8;
+                touchRectangle.height = 8;
+                touchRectangle.x = 6+(column*39);
+                Color gate_colour;
+                if(SingleChannelOffset+column == Europi.tracks[track].current_step){
+                    gate_colour = LIME;
+                }
+                else{
+                    gate_colour = BLUE;
+                }
+                switch(Europi.tracks[track].channels[GATE_OUT].steps[SingleChannelOffset+column].retrigger){
+                    case 1:
+                        DrawRectangleRec(touchRectangle,gate_colour);
+                    break;
+                    case 2:
+                        DrawRectangleRec(touchRectangle,gate_colour);
+                        touchRectangle.x += 9;
+                        DrawRectangleRec(touchRectangle,gate_colour);
+                    break;
+                    case 3:
+                        DrawRectangleRec(touchRectangle,gate_colour);
+                        touchRectangle.x += 9;
+                        DrawRectangleRec(touchRectangle,gate_colour);
+                        touchRectangle.x += 9;
+                        DrawRectangleRec(touchRectangle,gate_colour);
+                    break;
+                    case 4:
+                        DrawRectangleRec(touchRectangle,gate_colour);
+                        touchRectangle.x += 9;
+                        DrawRectangleRec(touchRectangle,gate_colour);
+                        touchRectangle.x += 9;
+                        DrawRectangleRec(touchRectangle,gate_colour);
+                        touchRectangle.x += 9;
+                        DrawRectangleRec(touchRectangle,gate_colour);
+                    break;
+                    default:
+                        // No re-trigger count, so if the Gate is On,
+                        // then just draw horizontal line
+                        
+                    
+                    break;
+                }
                 
             }
-            // Draw all 32 Steps along the bottom of the screen
+            // Draw all Steps in the track along the bottom of the screen
             int x = 14;
-            for(step = 0; step<MAX_STEPS; step++){
+            for(step = 0; step<Europi.tracks[track].last_step; step++){
                 if(step == SingleChannelOffset){
                     //Highlight behind current block of 8 steps
                     touchRectangle.x = x+1;
@@ -476,8 +521,10 @@ void gui_SingleChannel(void){
                 }
                 if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
                     //Move the displayed 8-step segment to this position
-                    if(step <= 24) SingleChannelOffset = step;
-                    else SingleChannelOffset = 24;
+                    if(Europi.tracks[track].last_step >= 8){
+                        if(step <= (Europi.tracks[track].last_step - 8)) SingleChannelOffset = step;
+                        else SingleChannelOffset = Europi.tracks[track].last_step - 8;
+                    }
                 }
                 x += 9;
             }
@@ -1164,6 +1211,36 @@ void ShowScreenOverlays(void){
             }
 
     }
+    if(ScreenOverlays.SingleChannel == 1){
+            char strTrack[5];
+            DrawTexture(TopBarTexture,0,0,WHITE);
+            DrawTexture(Text2chTexture,75,2,WHITE); // Box for Track Number
+            DrawText("Track:",5,5,20,DARKGRAY);
+            sprintf(strTrack,"%02d",edit_track+1);
+            DrawText(strTrack,80,5,20,DARKGRAY);
+            if (btnB_state == 1){
+                // Check for Prev
+                btnB_state = 0;
+                if(edit_track <= 0){
+                    edit_track = last_track-1;
+                }
+                else {
+                    edit_track--;
+                }
+                SingleChannelOffset = 0;
+                select_track(edit_track);
+            }
+            if (btnC_state == 1){
+                // Check for Next
+                if(++edit_track >= last_track){
+                    edit_track=0;
+                }
+                btnC_state = 0;
+                SingleChannelOffset = 0;
+                select_track(edit_track);
+            }
+
+    }
     // The soft button function bar is always displayed 
     // at the bottom of the screen
     gui_ButtonBar();
@@ -1258,6 +1335,9 @@ void gui_ButtonBar(void){
         case btnB_prev:
             DrawText("Prev",95,217,20,DARKGRAY);
         break;
+        case btnB_tr_minus:
+            DrawText("Trk-",95,217,20,DARKGRAY);
+        break;
         case btnB_none:
         default:
         break;
@@ -1296,6 +1376,9 @@ void gui_ButtonBar(void){
         break;
         case btnC_next:
             DrawText("Next",178,217,20,DARKGRAY);
+        break;
+        case btnC_tr_plus:
+            DrawText("Trk+",178,217,20,DARKGRAY);
         break;
         case btnC_none:
         default:
