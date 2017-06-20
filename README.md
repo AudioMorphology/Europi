@@ -85,7 +85,7 @@ As the Minion header mirrors the first 6 pins of the Raspberry Pi header, Minion
 
 The Minion address is set using a 3-way DIP switch, using standard binary addressing: 000, 001, 010 .... 111 The address is read by the Minion when power is applied, so a Minion's address should never be changed whilst power is connected.
 
-The MIDI Minion uses 2 separate jumpers to set one of 8 possible addresses, so 8 MIDI Minions can be connected to a Europi.
+The MIDI Minion uses 2 separate jumpers to set one of 4 possible addresses, so 4 MIDI Minions can be connected to a Europi.
 
 During startup, the Europi will scan the I2C bus looking for attached Minions, and will assign blocks of 4 Tracks to each Minion as it finds them. I2C address scanning starts from 000 so the Minion with the lowest address will be found first, and the highest last. Minion addresses do not have to be consecutive, just unique.
 
