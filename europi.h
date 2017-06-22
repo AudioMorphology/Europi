@@ -198,16 +198,13 @@ enum slew_shape_t {
 };
 
 enum gate_type_t {
-	GateOff,
-	Trigger,
-	ReTrigger,
-	Gate,
-    Gate_0,     // Off (ie no Gate)
+	Gate_Off,    // no gate On
+    Gate_On,     // no gate Off
+	Trigger,    // 10ms Pulse
     Gate_25,    // Gate on for 25% of step length
     Gate_50,
     Gate_75,
-    Gate_95,
-    Gate_100    // Gate on (ie no gate off)
+    Gate_95
 };
 
 enum shot_type_t {
@@ -457,9 +454,8 @@ struct gate {
 	int i2c_address;		/* Address of this device on the i2c Bus - address need to match the physical A3-A0 pins */
 	int i2c_channel;		/* Individual channel (on multi-channel i2c devices) */
 	int i2c_device;			/* Type of device (needed for Gate / Trigger outputs */
-	uint32_t gate_length;	/* Gate ON period (in microseconds) */
 	enum gate_type_t gate_type;   /* Off, Trigger, Gate */
-	int retrigger_count;	/* How many times to re-trigger during the step */
+	int ratchets;	        /* How many times to re-trigger during the step */
 };
 
 struct adsr {
@@ -518,21 +514,22 @@ struct device {
 
 /*
  * STEP is an individual step in a sequence. Steps
- * are unique to a particular track. Steps contain
- * the output voltage, gate state etc for a Step
+ * are unique to a particular track & channel. Steps contain
+ * the output voltage, gate state etc for a Step.
  * 
  */
 struct step {
+    // Applicable to steps within a CV Channel
 	int raw_value;			/* Non-scaled value to output on a 6000 step/Octave scale*/
 	uint16_t scaled_value; 	/* Scaled / Quantised value to output */
 	enum slew_t slew_type;	/* Off, Linear, Logarithmic, Exponential, AD, ADSR */
 	enum slew_shape_t slew_shape;	/* Both, Rising, Falling*/
 	uint32_t slew_length; 	/* Slew length (in microseconds) */
-	int retrigger;			/* Number of times to retrigger this step - permitted values are 0,2,3 or 4 */
-	int ratchet;			/* Ratchet fits the repeats into this beat */
-	int gate_type;			/* Type of gate output (GATE or TRIGGER) */
-	int step_type;			/* ON, SKIP (missed out) or EXTEND (carries on the previous step) */
-	int gate_value;			/* 0 = Off, 1 = ON */
+	// Applicable to steps within a GATE Channel
+    enum gate_type_t gate_type;
+	int ratchets;		    /* Number or ratchets to fit into this Step */
+    int repetitions;        /* Number of times to repeat this step */
+    int repeat_counter;     /* Counter within the step itself to track step repeats */
 };
 
 /* 

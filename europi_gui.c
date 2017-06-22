@@ -328,8 +328,8 @@ void gui_grid(void){
                 // Paint current step
                 DrawRectangle(15 + (step * 9), track * 10, 8, 9, LIME); 
                 // Gate state for current step
-                if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1){
-                    if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].retrigger > 0) {
+                if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_type != Gate_Off){
+                    if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repetitions > 1) {
                         DrawRectangle(15 + (32 * 9), track * 10, 8, 9, BLACK);	
                     }
                     else {
@@ -462,7 +462,7 @@ void gui_SingleChannel(void){
                 else{
                     gate_colour = BLUE;
                 }
-                switch(Europi.tracks[track].channels[GATE_OUT].steps[SingleChannelOffset+column].retrigger){
+                switch(Europi.tracks[track].channels[GATE_OUT].steps[SingleChannelOffset+column].repetitions){
                     case 1:
                         DrawRectangleRec(touchRectangle,gate_colour);
                     break;
@@ -688,8 +688,8 @@ void gui_SingleChannel_Old(void){
                         DrawRectangle(15 + (step*9),220-val,8,val,LIME);
                     }
                     // Gate State
-                    if (Europi.tracks[track].channels[GATE_OUT].steps[step].gate_value == 1){
-                        sprintf(track_no,"%d",Europi.tracks[track].channels[GATE_OUT].steps[step].retrigger);
+                    if (Europi.tracks[track].channels[GATE_OUT].steps[step].gate_type != Gate_Off){
+                        sprintf(track_no,"%d",Europi.tracks[track].channels[GATE_OUT].steps[step].repetitions);
                         DrawText(track_no,15 + (step*9),220,10,DARKGRAY);
                     }
                     // Slew

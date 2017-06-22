@@ -238,9 +238,8 @@ void next_step(void)
                             sGate.i2c_address = Europi.tracks[0].channels[GATE_OUT].i2c_address;
                             sGate.i2c_channel = STEP1_OUT;
                             sGate.i2c_device = DEV_PCF8574;
-                            sGate.gate_length = 10000;			/* 10 MS Pulse */
                             sGate.gate_type = Trigger;
-                            sGate.retrigger_count = 1;
+                            sGate.ratchets = 1;
                             struct gate *pGate = malloc(sizeof(struct gate));
                             memcpy(pGate, &sGate, sizeof(struct gate));
                             if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
@@ -264,9 +263,8 @@ void next_step(void)
                             sGate.i2c_address = Europi.tracks[0].channels[GATE_OUT].i2c_address;
                             sGate.i2c_channel = STEP1_OUT;
                             sGate.i2c_device = DEV_PCF8574;
-                            sGate.gate_length = 10000;			/* 10 MS Pulse */
                             sGate.gate_type = Trigger;
-                            sGate.retrigger_count = 1;
+                            sGate.ratchets = 1;
                             struct gate *pGate = malloc(sizeof(struct gate));
                             memcpy(pGate, &sGate, sizeof(struct gate));
                             if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
@@ -293,9 +291,8 @@ void next_step(void)
                             sGate.i2c_address = Europi.tracks[0].channels[GATE_OUT].i2c_address;
                             sGate.i2c_channel = STEP1_OUT;
                             sGate.i2c_device = DEV_PCF8574;
-                            sGate.gate_length = 10000;			/* 10 MS Pulse */
                             sGate.gate_type = Trigger;
-                            sGate.retrigger_count = 1;
+                            sGate.ratchets = 1;
                             struct gate *pGate = malloc(sizeof(struct gate));
                             memcpy(pGate, &sGate, sizeof(struct gate));
                             if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
@@ -317,9 +314,8 @@ void next_step(void)
                             sGate.i2c_address = Europi.tracks[0].channels[GATE_OUT].i2c_address;
                             sGate.i2c_channel = STEP1_OUT;
                             sGate.i2c_device = DEV_PCF8574;
-                            sGate.gate_length = 10000;			/* 10 MS Pulse */
                             sGate.gate_type = Trigger;
-                            sGate.retrigger_count = 1;
+                            sGate.ratchets = 1;
                             struct gate *pGate = malloc(sizeof(struct gate));
                             memcpy(pGate, &sGate, sizeof(struct gate));
                             if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
@@ -342,9 +338,8 @@ void next_step(void)
                             sGate.i2c_address = Europi.tracks[0].channels[GATE_OUT].i2c_address;
                             sGate.i2c_channel = STEP1_OUT;
                             sGate.i2c_device = DEV_PCF8574;
-                            sGate.gate_length = 10000;			/* 10 MS Pulse */
                             sGate.gate_type = Trigger;
-                            sGate.retrigger_count = 1;
+                            sGate.ratchets = 1;
                             struct gate *pGate = malloc(sizeof(struct gate));
                             memcpy(pGate, &sGate, sizeof(struct gate));
                             if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
@@ -364,24 +359,21 @@ void next_step(void)
             if ((Europi.tracks[track].channels[CV_OUT].type == CHNL_TYPE_MIDI) && (Europi.tracks[track].channels[CV_OUT].enabled == TRUE)){
                 MIDISingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_channel, 0x40, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);   
             }
-			/* set the Gate State for each channel */
+			/* launch a thread to handle the gate function for each channel / step */
 			if (Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ){
-				if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_value == 1){
-					struct gate sGate;
-					sGate.track = track;
-					sGate.i2c_handle = Europi.tracks[track].channels[GATE_OUT].i2c_handle;
-					sGate.i2c_address = Europi.tracks[track].channels[GATE_OUT].i2c_address;
-					sGate.i2c_channel =  Europi.tracks[track].channels[GATE_OUT].i2c_channel;
-					sGate.i2c_device = Europi.tracks[track].channels[GATE_OUT].i2c_device;
-					sGate.retrigger_count = Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].retrigger;
-					sGate.gate_length = 10000;			/* 10 MS Pulse */
-					sGate.gate_type = Gate;
-					struct gate *pGate = malloc(sizeof(struct gate));
-					memcpy(pGate, &sGate, sizeof(struct gate));
-					if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
-						log_msg("Gate thread creation error\n");
-					}
-				}
+                struct gate sGate;
+                sGate.track = track;
+                sGate.i2c_handle = Europi.tracks[track].channels[GATE_OUT].i2c_handle;
+                sGate.i2c_address = Europi.tracks[track].channels[GATE_OUT].i2c_address;
+                sGate.i2c_channel =  Europi.tracks[track].channels[GATE_OUT].i2c_channel;
+                sGate.i2c_device = Europi.tracks[track].channels[GATE_OUT].i2c_device;
+                sGate.ratchets = Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].ratchets;
+                sGate.gate_type = Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_type;
+                struct gate *pGate = malloc(sizeof(struct gate));
+                memcpy(pGate, &sGate, sizeof(struct gate));
+                if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
+                    log_msg("Gate thread creation error\n");
+                }
 			}
             if (Europi.tracks[track].channels[CV_OUT].type == CHNL_TYPE_CV) {
                 /* Is there a Slew, AD, ADSR set on this step */
@@ -630,38 +622,62 @@ void *GateThread(void *arg)
 {
 	struct gate *pGate = (struct gate *)arg;
 	uint32_t start_tick = gpioTick();
-	if(pGate->gate_type == Trigger){
-		/* Gate On */
-		GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,1);
-		usleep(pGate->gate_length);
-		/* Gate Off */
-		GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,0);
-	}
-	else if(pGate->gate_type == Gate){
-		/* Gate On */
-		GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,1);
-		if (pGate->retrigger_count == 1){
-			/* Wait until approximately the end of the step */
-			usleep((step_ticks * 80)/100);
-			/* Gate Off */
-			GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,0);
-		}
-		else if (pGate->retrigger_count > 1){
-			/* this step is to be re-triggered, so work out the sleep length between triggers 
-			 * Work on 95% of the the total step time, as this gives a bit of leeway for the
-			 * function calling overhead
-			 */
-			int sleep_time = (((step_ticks * 80)/100) / pGate->retrigger_count);
-			int i;
-			for (i = 0; i < pGate->retrigger_count; i++){
-				/* Gate On */
-				GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,1);
-				usleep(sleep_time);
-				/* Gate Off */
-				GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,0);
-			}
-		}
-	}
+    if (pGate->ratchets == 1){
+        //Normal Gate
+        switch(pGate->gate_type){
+            case Gate_Off:
+                GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,0);
+            break;
+            case Gate_On:
+                GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,1);
+            break;
+            case Trigger:
+                GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,1);
+                usleep(10000);  //10ms Pulse
+                /* Gate Off */
+                GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,0);
+            break;
+            case Gate_25:
+                GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,1);
+                usleep((step_ticks * 25)/100);
+                GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,0);
+            break;
+            case Gate_50:
+                GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,1);
+                usleep((step_ticks * 50)/100);
+                GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,0);
+            break;
+            case Gate_75:
+                GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,1);
+                usleep((step_ticks * 75)/100);
+                GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,0);
+            break;
+            case Gate_95:
+                GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,1);
+                usleep((step_ticks * 95)/100);
+                GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,0);
+            break;
+            
+
+        }
+    }
+    // Ratchetting Gate
+    else {
+        /* this step is to be re-triggered, so work out the sleep length between triggers 
+         * Work on 95% of the the total step time, as this gives a bit of leeway for the
+         * function calling overhead
+         */
+        int sleep_time = (step_ticks / pGate->ratchets)/2;
+        int i;
+        for (i = 0; i < pGate->ratchets; i++){
+            /* Gate On */
+            GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,1);
+            usleep(sleep_time);
+            /* Gate Off */
+            GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,0);
+            usleep(sleep_time);
+        }
+    }
     free(pGate);
 	return(0);
 }
