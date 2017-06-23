@@ -28,6 +28,7 @@
 #include <pigpio.h>
 #include "slew_profiles.h"
 #include "quantizer_scales.h"
+#include "bjorklund.h"
 
 /* GPIO Port Assignments 		*/
 /* RPi Header pins in comments	*/
@@ -528,6 +529,7 @@ struct step {
 	// Applicable to steps within a GATE Channel
     enum gate_type_t gate_type;
 	int ratchets;		    /* Number or ratchets to fit into this Step */
+    int beats;              /* Number of beats to fit within the number of Ratchets (Euclidian polyrhythm generator) */
     int repetitions;        /* Number of times to repeat this step */
     int repeat_counter;     /* Counter within the step itself to track step repeats */
 };

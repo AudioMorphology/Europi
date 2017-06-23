@@ -865,7 +865,7 @@ void init_sequence(void)
 			}
 		}
 	}
-	Europi.tracks[0].last_step = 4; //32; /* track 0 always 32 steps */
+	Europi.tracks[0].last_step = 32; /* track 0 always 32 steps */
 	for (track=0;track<MAX_TRACKS;track++){
 		if (Europi.tracks[track].channels[CV_OUT].enabled == TRUE){
 			
@@ -934,8 +934,8 @@ void init_sequence(void)
 				//}
 			}
 			// some ratchets to make it more interesting
-			Europi.tracks[track].channels[1].steps[0].ratchets = 4;
-			Europi.tracks[track].channels[1].steps[0].repetitions = 4;
+			Europi.tracks[track].channels[1].steps[0].ratchets = 1;
+			Europi.tracks[track].channels[1].steps[0].repetitions = 1;
 			Europi.tracks[track].channels[1].steps[1].ratchets = 1;
 			Europi.tracks[track].channels[1].steps[5].ratchets = 16;
 			Europi.tracks[track].channels[1].steps[6].ratchets = 2;
