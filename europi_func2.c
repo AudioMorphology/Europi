@@ -855,7 +855,7 @@ void init_sequence(void)
 	for (track=0;track<MAX_TRACKS;track++){
 		if (Europi.tracks[track].channels[0].enabled == TRUE){
 			Europi.tracks[track].track_busy = FALSE;
-            Europi.tracks[track].direction = Random;
+            Europi.tracks[track].direction = Forwards;
 			Europi.tracks[track].last_step =  8; //rand() % 32;
 			Europi.tracks[track].channels[CV_OUT].scale_zero = 0;
 			Europi.tracks[track].channels[CV_OUT].scale_max = 60000;
@@ -925,7 +925,8 @@ void init_sequence(void)
 				int gate_prob = rand() % 100;
 				//if (gate_prob > 20){
 					Europi.tracks[track].channels[1].steps[step].gate_type = Gate_75;
-					Europi.tracks[track].channels[1].steps[step].ratchets = 1;
+					Europi.tracks[track].channels[1].steps[step].ratchets = 8;
+					Europi.tracks[track].channels[1].steps[step].fill = rand()%8;
 					Europi.tracks[track].channels[1].steps[step].repetitions = 1;
 					Europi.tracks[track].channels[1].steps[step].repeat_counter = 0;
 				//}
@@ -934,7 +935,7 @@ void init_sequence(void)
 				//}
 			}
 			// some ratchets to make it more interesting
-			Europi.tracks[track].channels[1].steps[0].ratchets = 1;
+/*			Europi.tracks[track].channels[1].steps[0].ratchets = 1;
 			Europi.tracks[track].channels[1].steps[0].repetitions = 1;
 			Europi.tracks[track].channels[1].steps[1].ratchets = 1;
 			Europi.tracks[track].channels[1].steps[5].ratchets = 16;
@@ -952,6 +953,7 @@ void init_sequence(void)
 			Europi.tracks[track].channels[1].steps[26].ratchets = 3;
 			Europi.tracks[track].channels[1].steps[29].ratchets = 4;
 			Europi.tracks[track].channels[1].steps[31].ratchets = 2;
+*/
 
 			// And some slews
 			Europi.tracks[track].channels[0].steps[0].slew_length = 30000;
@@ -1087,3 +1089,18 @@ int cstring_cmp(const void *a, const void *b)
     const char **ib = (const char **)b;
     return strcmp(*ia, *ib);
 } 
+
+/* POLYRHYTHM
+ * Takes the number of steps, the fill level, and which step we're on
+ * and returns a True / False value as to whether that step should
+ * sound or not.
+ * 
+ * This looks up that particular value in a pre-prepared table of 32x32
+ * bitmaps. Prepared according to an implementation of E.Bjoklund's
+ * algorithm
+ */
+int polyrhythm(uint32_t steps, uint32_t fill, uint32_t ThisStep){
+    if(fill > steps) fill = steps;
+    if(steps > 32 || steps < 2) return TRUE;
+    return bjorklund_patterns[steps-2][fill] & (0x01 << ThisStep);
+}

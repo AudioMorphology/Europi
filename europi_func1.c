@@ -242,6 +242,7 @@ void next_step(void)
                                 sGate.i2c_device = DEV_PCF8574;
                                 sGate.gate_type = Trigger;
                                 sGate.ratchets = 1;
+                                sGate.fill = 1;
                                 struct gate *pGate = malloc(sizeof(struct gate));
                                 memcpy(pGate, &sGate, sizeof(struct gate));
                                 if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
@@ -270,6 +271,7 @@ void next_step(void)
                                 sGate.i2c_device = DEV_PCF8574;
                                 sGate.gate_type = Trigger;
                                 sGate.ratchets = 1;
+                                sGate.fill = 1;
                                 struct gate *pGate = malloc(sizeof(struct gate));
                                 memcpy(pGate, &sGate, sizeof(struct gate));
                                 if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
@@ -301,6 +303,7 @@ void next_step(void)
                                 sGate.i2c_device = DEV_PCF8574;
                                 sGate.gate_type = Trigger;
                                 sGate.ratchets = 1;
+                                sGate.fill = 1;
                                 struct gate *pGate = malloc(sizeof(struct gate));
                                 memcpy(pGate, &sGate, sizeof(struct gate));
                                 if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
@@ -327,6 +330,7 @@ void next_step(void)
                                 sGate.i2c_device = DEV_PCF8574;
                                 sGate.gate_type = Trigger;
                                 sGate.ratchets = 1;
+                                sGate.fill = 1;
                                 struct gate *pGate = malloc(sizeof(struct gate));
                                 memcpy(pGate, &sGate, sizeof(struct gate));
                                 if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
@@ -353,6 +357,7 @@ void next_step(void)
                                 sGate.i2c_device = DEV_PCF8574;
                                 sGate.gate_type = Trigger;
                                 sGate.ratchets = 1;
+                                sGate.fill = 1;
                                 struct gate *pGate = malloc(sizeof(struct gate));
                                 memcpy(pGate, &sGate, sizeof(struct gate));
                                 if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
@@ -383,6 +388,7 @@ void next_step(void)
                 sGate.i2c_device = Europi.tracks[track].channels[GATE_OUT].i2c_device;
                 sGate.ratchets = Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].ratchets;
                 sGate.gate_type = Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_type;
+                sGate.fill = Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].fill;
                 struct gate *pGate = malloc(sizeof(struct gate));
                 memcpy(pGate, &sGate, sizeof(struct gate));
                 if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
@@ -635,7 +641,7 @@ void *SlewThread(void *arg)
 void *GateThread(void *arg)
 {
 	struct gate *pGate = (struct gate *)arg;
-    if (pGate->ratchets == 1){
+    if (pGate->ratchets <= 1){
         //Normal Gate
         switch(pGate->gate_type){
             case Gate_Off:
@@ -677,18 +683,25 @@ void *GateThread(void *arg)
     // Ratchetting Gate
     else {
         /* this step is to be re-triggered, so work out the sleep length between triggers 
-         * Work on 95% of the the total step time, as this gives a bit of leeway for the
-         * function calling overhead
+         * Perhaps work on 95% of the the total step time, as this gives a bit of leeway for the
+         * function calling overhead?
          */
         int sleep_time = (step_ticks / pGate->ratchets)/2;
         int i;
         for (i = 0; i < pGate->ratchets; i++){
-            /* Gate On */
-            GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,1);
-            usleep(sleep_time);
-            /* Gate Off */
-            GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,0);
-            usleep(sleep_time);
+            // Ratchet is ON
+            if(polyrhythm(pGate->ratchets,pGate->fill,i)){
+                /* Gate On */
+                GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,1);
+                usleep(sleep_time);
+                /* Gate Off */
+                GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,0);
+                usleep(sleep_time);
+            }
+            else {
+                // Ratchet is OFF
+                usleep(sleep_time * 2);
+            }
         }
     }
     free(pGate);

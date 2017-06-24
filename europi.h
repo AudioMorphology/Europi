@@ -96,6 +96,8 @@
 #define FALSE		0
 #define UP          1
 #define DOWN        -1
+#define ON          1
+#define OFF         0
 
 /* Menu Constants */
 #define MENU_FONT_SIZE      20
@@ -304,6 +306,7 @@ void quantize_track(int track, int scale);
 uint16_t scale_value(int track,uint16_t raw_value);
 size_t file_list(const char *path, char ***ls);
 int cstring_cmp(const void *a, const void *b);
+int polyrhythm(uint32_t Steps, uint32_t Fill, uint32_t ThisStep);
 
 
 /* function prototypes in europi_gui.c */
@@ -457,6 +460,7 @@ struct gate {
 	int i2c_device;			/* Type of device (needed for Gate / Trigger outputs */
 	enum gate_type_t gate_type;   /* Off, Trigger, Gate */
 	int ratchets;	        /* How many times to re-trigger during the step */
+    int fill;               /* Euclidian fill value */
 };
 
 struct adsr {
@@ -529,7 +533,7 @@ struct step {
 	// Applicable to steps within a GATE Channel
     enum gate_type_t gate_type;
 	int ratchets;		    /* Number or ratchets to fit into this Step */
-    int beats;              /* Number of beats to fit within the number of Ratchets (Euclidian polyrhythm generator) */
+    int fill;              /* Number of beats to fit within the number of Ratchets (Euclidian polyrhythm generator) */
     int repetitions;        /* Number of times to repeat this step */
     int repeat_counter;     /* Counter within the step itself to track step repeats */
 };
