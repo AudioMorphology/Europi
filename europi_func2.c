@@ -959,10 +959,10 @@ void init_sequence(void)
 			Europi.tracks[track].channels[0].steps[2].slew_type = Linear;
 			Europi.tracks[track].channels[0].steps[2].slew_shape = Both;			
 			Europi.tracks[track].channels[0].steps[4].slew_length = 30000;
-			Europi.tracks[track].channels[0].steps[4].slew_type = Linear;
+			Europi.tracks[track].channels[0].steps[4].slew_type = Exponential;
 			Europi.tracks[track].channels[0].steps[4].slew_shape = Rising;			
 			Europi.tracks[track].channels[0].steps[6].slew_length = 30000;
-			Europi.tracks[track].channels[0].steps[6].slew_type = Linear;
+			Europi.tracks[track].channels[0].steps[6].slew_type = RevExp;
 			Europi.tracks[track].channels[0].steps[6].slew_shape = Both;			
 			Europi.tracks[track].channels[0].steps[8].slew_length = 30000;
 			Europi.tracks[track].channels[0].steps[8].slew_type = Linear;
@@ -988,7 +988,6 @@ void init_sequence(void)
 			Europi.tracks[track].channels[0].steps[28].slew_length = 30000;
 			Europi.tracks[track].channels[0].steps[28].slew_type = Linear;
 			Europi.tracks[track].channels[0].steps[28].slew_shape = Rising;			
-			
 
 		}
 		

@@ -265,6 +265,7 @@ int pitch2midi(uint16_t voltage);
 void *SlewThread(void *arg); 
 void *GateThread(void *arg);
 void *AdThread(void *arg); 
+void *AdsrThread(void *arg); 
 void *MidiThread(void *arg); 
 
 /* Function Prototypes in europi_func2 */ 
@@ -472,11 +473,9 @@ struct adsr {
 	uint16_t a_start_value;	/* Start value for Attack Ramp */
 	uint16_t a_end_value;	/* End value for Attack Ramp */
 	uint32_t a_length;		/* Length of Attack Ramp */
-	uint16_t d_start_value;	/* Start value for Decay Ramp */
-	uint16_t d_end_value;	/* End value for Decay Ramp */
 	uint32_t d_length;		/* Length of Decay Ramp */
+    uint32_t s_level;       /* Sustain Level */
 	uint32_t s_length;		/* Length of Sustain */
-	uint16_t r_start_value;	/* Start value for Release Ramp */
 	uint16_t r_end_value;	/* End value for Release Ramp */
 	uint32_t r_length;		/* Length of Release Ramp */
 };

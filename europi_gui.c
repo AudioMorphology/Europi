@@ -186,6 +186,7 @@ void gui_singlestep(void){
     int column, offset, txt_len;
     char txt[20]; 
     Rectangle stepRectangle = {0,0,0,0};
+    Rectangle touchRectangle = {0,0,0,0};
     BeginDrawing();
     DrawTexture(MainScreenTexture,0,0,WHITE);
     // Items to cover:
@@ -195,9 +196,9 @@ void gui_singlestep(void){
     // Gate / Trigger
     // Slew
     // Step Repeat
-    DrawRectangle(6,29, 308, 183, CLR_LIGHTBLUE);  
+    // DrawRectangle(6,29, 308, 183, CLR_LIGHTBLUE);  
     // Draw the current Track 8-Step segement
-    offset = Europi.tracks[edit_track].current_step / 8;
+    offset = edit_step / 8; //Europi.tracks[edit_track].current_step / 8;
     sprintf(txt,"%02d-%d:",edit_track+1,(offset * 8)+1);
     txt_len = MeasureText(txt,20);
     DrawText(txt,68-txt_len,34,20,DARKGRAY);
@@ -243,28 +244,94 @@ void gui_singlestep(void){
     sprintf(txt,":%d",(offset * 8)+8);
     DrawText(txt,270,34,20,DARKGRAY);
     
-    DrawText("Quantization:",8,56,20,DARKGRAY);
-    DrawText(scale_names[Europi.tracks[edit_track].channels[CV_OUT].quantise],140,56,20,DARKGRAY);
-    DrawText("Gate Type:",26,76,20,DARKGRAY);
-    DrawTexture(Text5chTexture, 140,76,WHITE);
-    DrawText("Slew Type:",30,96,20,DARKGRAY);
-    DrawTexture(Text5chTexture, 140,96,WHITE);
-    DrawText("Slew Shape:",20,116,20,DARKGRAY);
-    DrawTexture(Text5chTexture, 140,116,WHITE);
+    DrawText("Slew Type:",30,58,20,DARKGRAY);
+    switch(Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_type){
+        default:
+        case Off:
+            DrawText("Off",140,58,20,BLUE);
+            break;
+        case Linear:
+            DrawText("Linear",140,58,20,BLUE);
+            break;
+        case Exponential:
+            DrawText("Exponential",140,58,20,BLUE);
+            break;
+        case RevExp:
+            DrawText("Reverse Exp",140,58,20,BLUE);
+            break;
+        case ADSR:
+            DrawText("ADSR",140,58,20,BLUE);
+            break;
+        case AD:
+            DrawText("Attack-Decay",140,58,20,BLUE);
+            break;
+    }
+    DrawText("Slew Shape:",20,78,20,DARKGRAY);
+    switch(Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_shape){
+        default:
+        case Both:
+            DrawText("Both",140,78,20,BLUE);
+            break;
+        case Rising:
+            DrawText("Rising",140,78,20,BLUE);
+            break;
+        case Falling:
+            DrawText("Falling",140,78,20,BLUE);
+            break;
+
+    }
+    DrawText("Slew Length:",12,98,20,DARKGRAY);
+    if(Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_type != Off){
+        sprintf(txt,"%d",Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_length);
+        DrawText(txt,140,98,20,BLUE); 
+    }
+    DrawText("Gate Type:",26,118,20,DARKGRAY);
+    switch(Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].gate_type){
+        default:
+        case Gate_Off:
+            DrawText("Off",140,118,20,BLUE);
+            break;
+        case Gate_On:
+            DrawText("On",140,118,20,BLUE);
+            break;
+        case Trigger:
+            DrawText("Trigger",140,118,20,BLUE);
+            break;
+        case Gate_25:
+            DrawText("25%",140,118,20,BLUE);
+            break;
+        case Gate_50:
+            DrawText("50%",140,118,20,BLUE);
+            break;
+        case Gate_75:
+            DrawText("75%",140,118,20,BLUE);
+            break;
+        case Gate_95:
+            DrawText("95%",140,118,20,BLUE);
+            break;
+    }
+    DrawText("Ratchets:",40,138,20,DARKGRAY);
+    sprintf(txt,"%d",Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].ratchets);
+    DrawText(txt,140,138,20,BLUE);    
+    
+    DrawText("Fill:",104,158,20,DARKGRAY);
+    sprintf(txt,"%d",Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].fill);
+    DrawText(txt,140,158,20,BLUE);    
+
     // Draw the Pitch 'Bar Graph' display
-    DrawRectangleLines(280,76,20,120,BLACK);
+    DrawRectangleLines(280,81,20,120,BLACK);
     int Octave,Partial,Pitch,i;
     Octave = Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].raw_value / 6000;
     Partial = Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].raw_value % 6000;
     //Check for collision within the Partial bar
     stepRectangle.x = 280;
-    stepRectangle.y = 76;
+    stepRectangle.y = 81;
     stepRectangle.width = 20;
     stepRectangle.height = 120;
     if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture1 != GESTURE_NONE)){
         // Work out how far up the Partial bar we are
-        if((touchPosition.y >= (float)76) && (touchPosition.y <= (float)(76+120))) {
-            Partial = (int)(((120-(touchPosition.y - (float)76)) / (float)(120)) * 5999);
+        if((touchPosition.y >= (float)81) && (touchPosition.y <= (float)(81+120))) {
+            Partial = (int)(((120-(touchPosition.y - (float)81)) / (float)(120)) * 5999);
             int newpitch = quantize((6000 * Octave) + Partial,Europi.tracks[edit_track].channels[CV_OUT].quantise);
             Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].raw_value = newpitch;
             // Update scaled value 
@@ -272,17 +339,15 @@ void gui_singlestep(void){
         }
     }
 
-    sprintf(txt,"%d, %d, %d",Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].raw_value, Octave, Partial);
-    DrawText(txt,10,180,20,DARKGRAY);    
     for(i=0;i<10;i++){
-        DrawRectangleLines(260,(i*12)+78,15,10,BLACK);
+        DrawRectangleLines(260,(i*12)+83,15,10,BLACK);
         if((9-i) == Octave){
             // Colour the current Octave
-            DrawRectangle(261,(i*12)+78+1,13,8,RED);
+            DrawRectangle(261,(i*12)+83+1,13,8,RED);
         }
         //Check for collision within the Octave Bar
         stepRectangle.x = 260;
-        stepRectangle.y = (i*12)+78;
+        stepRectangle.y = (i*12)+83;
         stepRectangle.width = 15;
         stepRectangle.height = 10;
         if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture1 != GESTURE_NONE)){
@@ -296,8 +361,41 @@ void gui_singlestep(void){
     // Fill the partial column = this is the percentage of an 
     // Octave, so 6000 would == 120 pixels
     Pitch = (Partial * 120) / 6000;
-    DrawRectangle(281,76+120-Pitch-1,18,Pitch,BLUE); 
-    
+    DrawRectangle(281,81+120-Pitch-1,18,Pitch,BLUE); 
+  
+    // Draw all Steps in the track along the bottom of the screen
+    int x = 14;
+    int step;
+    for(step = 0; step<Europi.tracks[edit_track].last_step; step++){
+        if(step == offset){
+            //Highlight behind current block of 8 steps
+            touchRectangle.x = x+1;
+            touchRectangle.y = 202;
+            touchRectangle.width = 8*9+1;
+            touchRectangle.height = 10;
+            DrawRectangleRec(touchRectangle,DARKGRAY);
+            x += 2;
+        }
+        if (step == offset+8) x+= 2;
+        touchRectangle.x = x;
+        touchRectangle.y = 203;
+        touchRectangle.width = 8;
+        touchRectangle.height = 8;
+        if(step == Europi.tracks[edit_track].current_step){
+            DrawRectangleRec(touchRectangle,LIME);
+        }
+        else{
+            DrawRectangleRec(touchRectangle,RED);
+        }
+        if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+            //Move the displayed 8-step segment to this position
+            if(Europi.tracks[edit_track].last_step >= 8){
+                if(step <= (Europi.tracks[edit_track].last_step - 8)) offset = step;
+                else offset = Europi.tracks[edit_track].last_step - 8;
+            }
+        }
+        x += 9;
+    }
     // Handle any screen overlays - these need to 
     // be added within the Drawing loop
     ShowScreenOverlays();
@@ -443,7 +541,7 @@ void gui_SingleChannel(void){
                     edit_step = SingleChannelOffset+column;
                     ClearScreenOverlays();
                     DisplayPage = SingleStep;
-                    ScreenOverlays.SingleStep = 1;
+                    ScreenOverlays.SingleStep = 1; 
                     encoder_focus = none;
                     btnA_func = btnA_none;
                     btnB_func = btnB_prev;

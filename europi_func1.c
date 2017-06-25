@@ -436,18 +436,37 @@ void next_step(void)
                         sAD.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
                         sAD.a_start_value = 0;	
                         sAD.a_end_value = 30000;	//5v	
-                        sAD.a_length = 000;		
+                        sAD.a_length = 0;		
                         sAD.d_end_value = 0;	
-                        sAD.d_length = 20000;
+                        sAD.d_length = 10000;
                         sAD.shot_type = Repeat;
                         struct ad *pAD = malloc(sizeof(struct ad));
                         memcpy(pAD, &sAD, sizeof(struct ad));
                         if(pthread_create(&ThreadId, &detached_attr, &AdThread, pAD)){
-                            log_msg("Attack-Decay thread creation error\n");
+                        log_msg("Attack-Decay thread creation error\n");
                         }
                     break;
                     case ADSR:
                         // Full ADSR ramp profile
+                        sADSR.track = track;
+                        sADSR.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
+                        sADSR.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;
+                        sADSR.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
+                        sADSR.a_start_value = 0;	
+                        sADSR.a_end_value = 30000;	//5v	
+                        sADSR.a_length = 10000;		
+                        sADSR.d_length = 10000;
+                        sADSR.s_level = 20000;
+                        sADSR.s_length = 100000;
+                        sADSR.r_end_value = 0;
+                        sADSR.r_length = 10000;
+                        sAD.shot_type = Repeat;
+                        struct adsr *pADSR = malloc(sizeof(struct adsr));
+                        memcpy(pADSR, &sADSR, sizeof(struct adsr));
+                        if(pthread_create(&ThreadId, &detached_attr, &AdsrThread, pADSR)){
+                        log_msg("ADSR thread creation error\n");
+                        }
+                        
                         
                     break;
                     case Off:
@@ -460,6 +479,89 @@ void next_step(void)
 	/* anything that needed resetting back to step 1 will have done so */
 	if (step_one == TRUE) step_one = FALSE;
 }
+
+/*
+ * ADSR thread.
+ * ADSR Profile ramp generator
+ */
+void *AdsrThread(void *arg)
+{
+	struct adsr *pADSR = (struct adsr *)arg;
+	uint16_t this_value;
+	uint32_t start_tick = gpioTick();
+	int step_size;
+	int num_steps;
+	int i;
+	// don't bother if it's anything other than a 'normal' AD profile
+	if((pADSR->a_end_value > pADSR->a_start_value) && (pADSR->s_level < pADSR->a_end_value)){
+		// Set Track Busy flag
+		Europi.tracks[pADSR->track].track_busy = TRUE;
+		// A-ramp
+		this_value = pADSR->a_start_value;
+		DACSingleChannelWrite(pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
+		if(pADSR->a_length >= slew_interval){
+			step_size = (pADSR->a_end_value - pADSR->a_start_value) / (pADSR->a_length / slew_interval);
+			num_steps = (pADSR->a_end_value - pADSR->a_start_value) / step_size;
+			if (step_size == 0) {step_size = 1; num_steps = (pADSR->a_end_value - pADSR->a_start_value);}
+			for(i = 0;i < num_steps; i++){
+				usleep(slew_interval / 2);
+				// Rail clamp
+				if((this_value += step_size) <= 60000){
+					DACSingleChannelWrite(pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
+				}
+				else {
+					DACSingleChannelWrite(pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, 60000);
+				}
+			}
+		}
+		// D-ramp
+		this_value = pADSR->a_end_value;
+		DACSingleChannelWrite(pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
+		if(pADSR->d_length >= slew_interval){
+			step_size = (pADSR->a_end_value - pADSR->s_level) / (pADSR->d_length / slew_interval);
+			num_steps = (pADSR->a_end_value - pADSR->s_level) / step_size;
+			if (step_size == 0) {step_size = 1; num_steps = (pADSR->a_end_value - pADSR->s_level);}
+			for(i = 0;i < num_steps; i++){
+				usleep(slew_interval / 2);
+				// Rail clamp
+				if((this_value -= step_size) >= 0){
+					DACSingleChannelWrite(pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
+				}
+				else {
+					DACSingleChannelWrite(pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, 0);
+				}
+			}
+		}
+        // Sustain time
+        usleep(pADSR->s_length);
+        
+        // Release ramp
+		this_value = pADSR->s_level;
+		DACSingleChannelWrite(pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
+		if(pADSR->r_length >= slew_interval){
+			step_size = (pADSR->s_level - pADSR->r_end_value) / (pADSR->r_length / slew_interval);
+			num_steps = (pADSR->s_level - pADSR->r_end_value) / step_size;
+			if (step_size == 0) {step_size = 1; num_steps = (pADSR->s_level - pADSR->r_end_value);}
+			for(i = 0;i < num_steps; i++){
+				usleep(slew_interval / 2);
+				// Rail clamp
+				if((this_value -= step_size) >= 0){
+					DACSingleChannelWrite(pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
+				}
+				else {
+					DACSingleChannelWrite(pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, 0);
+				}
+			}
+		}
+        
+		DACSingleChannelWrite(pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, pADSR->r_end_value);
+		// Clear Track Busy flag
+		Europi.tracks[pADSR->track].track_busy = FALSE;
+	}	
+	free(pADSR);
+	return(0);
+}
+
 
 /*
  * Attack-Decay thread.
@@ -515,7 +617,7 @@ void *AdThread(void *arg)
 		}
 		DACSingleChannelWrite(pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, pAD->d_end_value);
 		// Clear Track Busy flag
-		Europi.tracks[2].track_busy = FALSE;
+		Europi.tracks[pAD->track].track_busy = FALSE;
 	}	
 	free(pAD);
 	return(0);
