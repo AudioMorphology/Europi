@@ -363,11 +363,12 @@ void gui_singlestep(void){
     Pitch = (Partial * 120) / 6000;
     DrawRectangle(281,81+120-Pitch-1,18,Pitch,BLUE); 
   
+
     // Draw all Steps in the track along the bottom of the screen
     int x = 14;
     int step;
     for(step = 0; step<Europi.tracks[edit_track].last_step; step++){
-        if(step == offset){
+        if(step == offset * 8){
             //Highlight behind current block of 8 steps
             touchRectangle.x = x+1;
             touchRectangle.y = 202;
@@ -376,12 +377,15 @@ void gui_singlestep(void){
             DrawRectangleRec(touchRectangle,DARKGRAY);
             x += 2;
         }
-        if (step == offset+8) x+= 2;
+        if (step == ((offset*8)+8)) x+= 2;
         touchRectangle.x = x;
         touchRectangle.y = 203;
         touchRectangle.width = 8;
         touchRectangle.height = 8;
-        if(step == Europi.tracks[edit_track].current_step){
+        if(step == edit_step){
+            DrawRectangleRec(touchRectangle,YELLOW);
+        }
+        else if(step == Europi.tracks[edit_track].current_step){
             DrawRectangleRec(touchRectangle,LIME);
         }
         else{
@@ -389,10 +393,7 @@ void gui_singlestep(void){
         }
         if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
             //Move the displayed 8-step segment to this position
-            if(Europi.tracks[edit_track].last_step >= 8){
-                if(step <= (Europi.tracks[edit_track].last_step - 8)) offset = step;
-                else offset = Europi.tracks[edit_track].last_step - 8;
-            }
+            edit_step = step;
         }
         x += 9;
     }
