@@ -143,6 +143,8 @@ extern char *kbd_chars[4][11];
 extern size_t file_count;                      
 extern int file_selected;
 extern int first_file;
+
+
 /* Internal Clock
  * 
  * This is the main timing loop for the 
@@ -212,7 +214,7 @@ void next_step(void)
 	// no value for step_tick, to the length of
 	// the first step will be indeterminate. So,
 	// set it to 200ms.
-	if (step_tick == 0) step_ticks = 400000; else step_ticks = current_tick - step_tick;
+	if (step_tick == 0) step_ticks = 200000; else step_ticks = current_tick - step_tick;
 	//log_msg("Step Ticks: %d\n",step_ticks);
 	step_tick = current_tick;
 	int previous_step, channel, track;
@@ -378,6 +380,7 @@ void next_step(void)
             if ((Europi.tracks[track].channels[CV_OUT].type == CHNL_TYPE_MIDI) && (Europi.tracks[track].channels[CV_OUT].enabled == TRUE)){
                 MIDISingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_channel, 0x40, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);   
             }
+            
 			/* launch a thread to handle the gate function for each channel / step */
 			if (Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ){
                 struct gate sGate;
@@ -683,10 +686,11 @@ void *GateThread(void *arg)
     // Ratchetting Gate
     else {
         /* this step is to be re-triggered, so work out the sleep length between triggers 
-         * Perhaps work on 95% of the the total step time, as this gives a bit of leeway for the
-         * function calling overhead?
+         * The measured Function Calling overhead averages at around 10k to 20k ticks
+         * whereas a typical Step length would be between 200k and, perhaps, 1m2, so taking
+         * off 10k for the function calling overhead feels about right
          */
-        int sleep_time = (step_ticks / pGate->ratchets)/2;
+        int sleep_time = ((step_ticks - 10000) / pGate->ratchets)/2;
         int i;
         for (i = 0; i < pGate->ratchets; i++){
             // Ratchet is ON

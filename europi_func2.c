@@ -923,17 +923,13 @@ void init_sequence(void)
 			// gate needed for each step
 			for (step=0;step<32;step++){
 				int gate_prob = rand() % 100;
-				//if (gate_prob > 20){
-					Europi.tracks[track].channels[1].steps[step].gate_type = Gate_75;
-					Europi.tracks[track].channels[1].steps[step].ratchets = 8;
-					Europi.tracks[track].channels[1].steps[step].fill = rand()%8;
-					Europi.tracks[track].channels[1].steps[step].repetitions = 1;
-					Europi.tracks[track].channels[1].steps[step].repeat_counter = 0;
-				//}
-				//else {
-				//	Europi.tracks[track].channels[1].steps[step].gate_value = 0;
-				//}
+                Europi.tracks[track].channels[1].steps[step].gate_type = Gate_On;
+                Europi.tracks[track].channels[1].steps[step].ratchets = 8;
+                Europi.tracks[track].channels[1].steps[step].fill = rand()%8;
+                Europi.tracks[track].channels[1].steps[step].repetitions = 1;
+                Europi.tracks[track].channels[1].steps[step].repeat_counter = 0;
 			}
+            
 			// some ratchets to make it more interesting
 /*			Europi.tracks[track].channels[1].steps[0].ratchets = 1;
 			Europi.tracks[track].channels[1].steps[0].repetitions = 1;

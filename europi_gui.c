@@ -28,6 +28,7 @@
 #include "../raylib/release/rpi/raylib.h"
 
 extern int clock_freq;
+extern int step_ticks;
 extern int prog_running;
 extern int run_stop; 
 extern int save_run_stop;
@@ -73,6 +74,7 @@ extern size_t file_count;
 extern int file_selected;
 extern int first_file;
 extern int debug;
+
 
 /*
  * GUI_8x8 Attempts to display more detail in a subset of tracks and steps
@@ -314,6 +316,7 @@ void gui_grid(void){
     int step;
     char track_no[20];
     int txt_len;
+
     for(track=0;track<24;track++){
         // Track Number
         sprintf(track_no,"%d",track+1);
@@ -346,6 +349,7 @@ void gui_grid(void){
             }
         }
     }
+    
 }
 /*
  * gui_SingleChannel displays just the currently
@@ -424,8 +428,6 @@ void gui_SingleChannel(void){
                 /*DrawRectangleLines(22+(column*39),30,18,120,BLACK);*/
                 //Step number boxes
                 DrawRectangleLines(6+(column*39),152,33,20,BLACK);
-                //DrawTexture(Text2chTexture,7+(column*39),180,WHITE); // Box for Step Number
-
                 // Centre the Step Number in the box
                 sprintf(step_no,"%d",SingleChannelOffset+column+1);
                 txt_len = MeasureText(step_no,20);
@@ -462,39 +464,55 @@ void gui_SingleChannel(void){
                 else{
                     gate_colour = BLUE;
                 }
-                switch(Europi.tracks[track].channels[GATE_OUT].steps[SingleChannelOffset+column].repetitions){
-                    case 1:
-                        DrawRectangleRec(touchRectangle,gate_colour);
-                    break;
-                    case 2:
-                        DrawRectangleRec(touchRectangle,gate_colour);
-                        touchRectangle.x += 9;
-                        DrawRectangleRec(touchRectangle,gate_colour);
-                    break;
-                    case 3:
-                        DrawRectangleRec(touchRectangle,gate_colour);
-                        touchRectangle.x += 9;
-                        DrawRectangleRec(touchRectangle,gate_colour);
-                        touchRectangle.x += 9;
-                        DrawRectangleRec(touchRectangle,gate_colour);
-                    break;
-                    case 4:
-                        DrawRectangleRec(touchRectangle,gate_colour);
-                        touchRectangle.x += 9;
-                        DrawRectangleRec(touchRectangle,gate_colour);
-                        touchRectangle.x += 9;
-                        DrawRectangleRec(touchRectangle,gate_colour);
-                        touchRectangle.x += 9;
-                        DrawRectangleRec(touchRectangle,gate_colour);
-                    break;
-                    default:
-                        // No re-trigger count, so if the Gate is On,
-                        // then just draw horizontal line
-                        
-                    
-                    break;
+                if(Europi.tracks[track].channels[GATE_OUT].steps[SingleChannelOffset+column].ratchets <= 1){
+                    switch(Europi.tracks[track].channels[GATE_OUT].steps[SingleChannelOffset+column].gate_type){
+                        case    Gate_On: 
+                            touchRectangle.width = 39;
+                            DrawRectangleRec(touchRectangle,gate_colour);
+                        break;
+                        case    Trigger: 
+                            touchRectangle.width = 3;
+                            DrawRectangleRec(touchRectangle,gate_colour);
+                        break;
+                        case    Gate_25:
+                            touchRectangle.width = 9;
+                            DrawRectangleRec(touchRectangle,gate_colour);
+                        break;
+                        case    Gate_50:
+                            touchRectangle.width = 19;
+                            DrawRectangleRec(touchRectangle,gate_colour);
+                        break;
+                        case    Gate_75:
+                            touchRectangle.width = 29;
+                            DrawRectangleRec(touchRectangle,gate_colour);
+                        break;
+                        case    Gate_95:
+                            touchRectangle.width = 37;
+                            DrawRectangleRec(touchRectangle,gate_colour);
+                        break;
+                        case    Gate_Off:
+                        default:
+                        break;
+                    }
                 }
-                
+                else {
+                    // Ratchetting Gate
+                    if(Europi.tracks[track].channels[GATE_OUT].steps[SingleChannelOffset+column].ratchets <= 16){
+                        int GateWidth = 38 / Europi.tracks[track].channels[GATE_OUT].steps[SingleChannelOffset+column].ratchets - 1;
+                        touchRectangle.width = GateWidth;
+                        for(i=0;i<Europi.tracks[track].channels[GATE_OUT].steps[SingleChannelOffset+column].ratchets;i++){
+                            if(polyrhythm(Europi.tracks[track].channels[GATE_OUT].steps[SingleChannelOffset+column].ratchets,Europi.tracks[track].channels[GATE_OUT].steps[SingleChannelOffset+column].fill,i)){
+                                DrawRectangleRec(touchRectangle,gate_colour);
+                            }
+                            touchRectangle.x += GateWidth + 1;
+                        }
+                    }
+                    else {
+                        // Too many ratchets to show meaningfully, so just draw a 95% fill line
+                        touchRectangle.width = 38;
+                        DrawRectangleRec(touchRectangle,gate_colour);
+                    }
+                }
             }
             // Draw all Steps in the track along the bottom of the screen
             int x = 14;

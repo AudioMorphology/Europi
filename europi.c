@@ -100,7 +100,6 @@ pthread_t touchThreadId;
 pthread_t midiThreadId[4];              // 4 x Threads for potential MIDI Listeners 
 int midiThreadLaunched[4];             // flags to show whether the listener has launched or not              
 
-
 enum encoder_focus_t encoder_focus;
 enum btnA_func_t btnA_func;
 enum btnB_func_t btnB_func;
