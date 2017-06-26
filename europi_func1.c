@@ -627,7 +627,8 @@ void *AdThread(void *arg)
  * Slew Thread - launched for each Track / Step that
  * has a slew value other than SLEW_OFF. This thread
  * function lives just to perform the slew, then
- * ends itself
+ * ends itself. It executes the slew by stepping through
+ * a pre-calculated array for each slew shape (Linear, Exponential etc)
  */
 void *SlewThread(void *arg)
 {
@@ -639,9 +640,8 @@ void *SlewThread(void *arg)
     float profile_offset;
     float profile_index;
     float pitch_jump;
-    //float thispercent;
     int slew_profile;
-    //if(pSlew->i2c_handle != 0) {free(pSlew); return(0);}
+
 	if (pSlew->slew_length == 0) {
 		// No slew length set, so just output this step and close the thread
 		DACSingleChannelWrite(pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, pSlew->end_value);
@@ -666,31 +666,18 @@ void *SlewThread(void *arg)
         num_steps = pSlew->slew_length / slew_interval;
         profile_index = (float)100 / (float)num_steps;
 		pitch_jump = pSlew->end_value - pSlew->start_value;
-        //step_size = (pSlew->end_value - pSlew->start_value) / (pSlew->slew_length / slew_interval);
-		//if (step_size == 0) step_size = 1;
-		//log_msg("index: %f steps: %d jump: %d\n",profile_index,num_steps,pitch_jump);
         profile_offset = 0;
         while((num_steps > 0) && (this_value <= pSlew->end_value)){
-            //thispercent = slew_profiles[slew_profile][(int)profile_offset];
-            //log_msg("This Percent %f\n",thispercent);
             this_value = pSlew->start_value + ((slew_profiles[slew_profile][(int)profile_offset] / (float)100) * pitch_jump);
-			//log_msg("Start: %d end: %d this: %d Steps: %d\n",pSlew->start_value,pSlew->end_value,this_value,num_steps);
             DACSingleChannelWrite(pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, this_value);
 			usleep(slew_interval / 2);		
             profile_offset += profile_index;
             num_steps--;
         }
         DACSingleChannelWrite(pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, pSlew->end_value);
-/*
-		while ((this_value <= pSlew->end_value) && (this_value < (60000 - step_size))){
-			DACSingleChannelWrite(pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, this_value);
-			this_value += step_size;
-			usleep(slew_interval / 2);		
-			*/
 	}
 	else if ((pSlew->end_value < pSlew->start_value) && ((pSlew->slew_shape == Falling) || (pSlew->slew_shape == Both))){
 		// Glide Down
-		// Glide UP
         switch(pSlew->slew_type){
             case Exponential:
                 slew_profile = 4;
@@ -706,28 +693,15 @@ void *SlewThread(void *arg)
         num_steps = pSlew->slew_length / slew_interval;
         profile_index = (float)100 / (float)num_steps;
 		pitch_jump = pSlew->start_value - pSlew->end_value;
-		//step_size = (pSlew->start_value - pSlew->end_value) / (pSlew->slew_length / slew_interval);
-		//if (step_size == 0) step_size = 1;		
-		//log_msg("Step size Down: %d\n",step_size);
         profile_offset = 0;
         while((num_steps > 0) && (this_value >= pSlew->end_value)){
-            //thispercent = slew_profiles[slew_profile][(int)profile_offset];
-            //log_msg("This Percent %f\n",thispercent);
             this_value = pSlew->end_value + ((slew_profiles[slew_profile][(int)profile_offset] / (float)100) * pitch_jump);
-			//log_msg("Start: %d end: %d this: %d Steps: %d\n",pSlew->start_value,pSlew->end_value,this_value,num_steps);
             DACSingleChannelWrite(pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, this_value);
 			usleep(slew_interval / 2);		
             profile_offset += profile_index;
             num_steps--;
         }
         DACSingleChannelWrite(pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, pSlew->end_value);
-
-	/*	while ((this_value >= pSlew->end_value) && (this_value >= step_size)){
-			DACSingleChannelWrite(pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, this_value);
-			this_value -= step_size;
-			usleep(slew_interval / 2);
-			if ((gpioTick() - start_tick) > step_ticks) break;	//We've been here too long
-		}*/ 
 	}
 	else {
 		// Slew set, but Rising or Falling are off, so just output the end value
@@ -739,9 +713,17 @@ void *SlewThread(void *arg)
 
 /*
  * Gate Thread - launched for each Track / Step that
- * has a Gate/Trigger. Uses gate_length to determine the
- * length of the pulse. The function lives just to perform 
- * the trigger, then ends itself
+ * has a Gate/Trigger. For normal Gsates, it uses gate_type 
+ * to determine the length of the pulse. 
+ * If a ratchet value is set, then it will output a series of
+ * pulses timed to fit within the known length of the Step. It
+ * uses a Fill value to determine how many of these ratchets actually
+ * sound. If Fill >= ratchets, then all will sound, otherwise it
+ * looks up the fill sequence in a pre-calculated Euclidian fill
+ * table, which gives quite musical rhythmic fills up to 32 ratchets 
+ * per step. Above this, it just outputs 100% ratchets.
+ * 
+ * The thread lives just to perform the gate, then ends itself
  */
 void *GateThread(void *arg)
 {
@@ -781,8 +763,6 @@ void *GateThread(void *arg)
                 usleep((step_ticks * 95)/100);
                 GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,0);
             break;
-            
-
         }
     }
     // Ratchetting Gate
@@ -805,7 +785,9 @@ void *GateThread(void *arg)
                 usleep(sleep_time);
             }
             else {
-                // Ratchet is OFF
+                // Ratchet is OFF - make sure Gate is OFF just in case
+                // an Off Ratchet follows an ON gate!
+                GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,0);
                 usleep(sleep_time * 2);
             }
         }
@@ -860,8 +842,13 @@ void *MidiThread(void *arg)
     }
     return NULL;
 }
- int startup(void)
- {
+/*
+ * STARTUP
+ * Main initialisation function, called once when the
+ * prog starts.
+ */
+int startup(void)
+{
 	 // Initial state of the Screen Elements (Menus etc)
 	 ClearScreenOverlays();
 	 DisplayPage = GridView;
@@ -1034,7 +1021,12 @@ void *MidiThread(void *arg)
     return(0);
 }
 
-/* Things to do as the prog closess */
+/* SHUTDOWN
+ * Main program shutdown routine - called 
+ * once when the prog closes. Aims to shut 
+ * all gates down, unload all textures, the
+ * PIGPIO library etc.
+ * Things to do as the prog closess */
 int shutdown(void)
  {
 	int track;
@@ -1105,7 +1097,6 @@ void log_msg(const char* format, ...)
 	fprintf(stderr, "%s", buf);
     // Also logs messages to a circular buffer
     // which holds the most recent 10 messages
-//    snprintf(debug_messages[next_debug_slot],50,"%s\0",buf);
     snprintf(debug_messages[next_debug_slot],50,"%s",buf);
     next_debug_slot++;
     if(next_debug_slot >= 10) next_debug_slot = 0;
@@ -2056,7 +2047,7 @@ int quantize(int raw, int scale){
 /*
  * PITCH2MIDI
  * 
- * Takes a Note Voltage between 0 and 60000 and returns a MID Note number
+ * Takes a Note Voltage between 0 and 60000 and returns a MIDI Note number
  * between 0 and 120 - NOTE that MIDI Note numbers should go as high as 127
  * but, using 500/Semi-tone means 127 would be represented by 63,500 which
  * is off the top of our scale

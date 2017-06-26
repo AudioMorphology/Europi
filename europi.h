@@ -461,7 +461,7 @@ struct gate {
 	int i2c_device;			/* Type of device (needed for Gate / Trigger outputs */
 	enum gate_type_t gate_type;   /* Off, Trigger, Gate */
 	int ratchets;	        /* How many times to re-trigger during the step */
-    int fill;               /* Euclidian fill value */
+    int fill;               /* Euclidian fill value - if this is greater or equal to the ratchets, then every ratches will sound */
 };
 
 struct adsr {
