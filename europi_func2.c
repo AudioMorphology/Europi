@@ -48,8 +48,13 @@ extern int VerticalScrollPercent;
 extern char *fbp; 
 extern char input_txt[];
 extern char current_filename[];
+extern char modal_dialog_txt1[];
+extern char modal_dialog_txt2[];
+extern char modal_dialog_txt3[];
+extern char modal_dialog_txt4[];
 extern int selected_step;
 extern struct europi Europi;
+extern struct europi_hw Europi_hw;
 extern struct screen_overlays ScreenOverlays;
 extern enum display_page_t DisplayPage;
 extern int prog_running;
@@ -140,6 +145,7 @@ void ClearScreenOverlays(void){
     ScreenOverlays.VerticalScrollBar = 0;
     ScreenOverlays.SingleStep = 0;
     ScreenOverlays.SingleChannel = 0;
+    ScreenOverlays.ModalDialog = 0;
 }
 
 /*
@@ -163,7 +169,8 @@ int OverlayActive(void){
         (ScreenOverlays.FileSaveAs == 1) ||
         (ScreenOverlays.VerticalScrollBar == 1)||
         (ScreenOverlays.SingleStep == 1) ||
-        (ScreenOverlays.SingleChannel == 1)
+        (ScreenOverlays.SingleChannel == 1) ||
+        (ScreenOverlays.ModalDialog == 1)
         ) return 1;
     else return 0;        
 }
@@ -197,7 +204,6 @@ void select_first_track(void){
 	while(track < MAX_TRACKS){
 		if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE) {
 			Europi.tracks[track].selected = TRUE;
-			log_msg("Selected: %d\n",track);
 			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
 			break;
 		}
@@ -651,9 +657,14 @@ void config_setzero(void){
 	int track;
     save_run_stop = run_stop;
 	run_stop = STOP;
+    btnA_func = btnA_select;
+    btnB_func = btnB_val_down;
+    btnC_func = btnC_val_up;
+    btnD_func = btnD_done;
 	ClearScreenOverlays();
 	ScreenOverlays.SetZero = 1;
 	encoder_focus = track_select;
+	select_first_track();
 	/* Slight pause to give some threads time to exist */
 	sleep(2);
 	/* clear down all Gate outputs */
@@ -662,7 +673,6 @@ void config_setzero(void){
 			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x00);
 		}
 	}
-	select_first_track();
 }
 
 /*
@@ -673,8 +683,13 @@ void config_setten(void){
     save_run_stop = run_stop;
 	run_stop = STOP;
 	ClearScreenOverlays();
+    btnA_func = btnA_select;
+    btnB_func = btnB_val_down;
+    btnC_func = btnC_val_up;
+    btnD_func = btnD_done;
 	ScreenOverlays.SetTen = 1;
 	encoder_focus = track_select;
+	select_first_track();
 	/* Slight pause to give some threads time to exist */
 	sleep(2);
 	/* clear down all Gate outputs */
@@ -683,7 +698,6 @@ void config_setten(void){
 			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x00);
 		}
 	}
-	select_first_track();
 }
 
 /*
@@ -857,8 +871,6 @@ void init_sequence(void)
 			Europi.tracks[track].track_busy = FALSE;
             Europi.tracks[track].direction = Forwards;
 			Europi.tracks[track].last_step =  8; //rand() % 32;
-			Europi.tracks[track].channels[CV_OUT].scale_zero = 0;
-			Europi.tracks[track].channels[CV_OUT].scale_max = 60000;
 
 			for (step=0;step<MAX_STEPS;step++){
 			Europi.tracks[track].channels[0].steps[step].scaled_value = 280; //410;
@@ -1098,4 +1110,76 @@ int polyrhythm(uint32_t steps, uint32_t fill, uint32_t ThisStep){
     if(fill > steps) fill = steps;
     if(steps > 32 || steps < 2) return TRUE;
     return bjorklund_patterns[steps-2][fill] & (0x01 << ThisStep);
+}
+/* HARDWARE_CONFIG
+ * Compares the current hardware configuration (as recorded at startup)
+ * with the hardware config saved to disk and, if they are the same,
+ * updates the Scale_zero and Scale_max figures for each channel from
+ * the version saved to disk. If the hardware config is different to
+ * that saved to disk, it warns the user to run the config routines
+ */
+void hardware_config(void){
+    struct europi_hw SavedConfig;
+    
+	FILE * file = fopen("resources/hardware.conf","rb");
+	if (file != NULL) {
+        log_msg("Config file found and read\n");
+		fread(&SavedConfig, sizeof(struct europi_hw), 1, file);
+		fclose(file);
+        //Compare the Read config with the generated config initially
+        //to check that the Hardware Configurations are identical
+        int Diff = FALSE;
+        int track;
+        for(track=0;track<MAX_TRACKS;track++){
+            if((SavedConfig.hw_tracks[track].hw_channels[CV_OUT].enabled != Europi_hw.hw_tracks[track].hw_channels[CV_OUT].enabled) ||
+            (SavedConfig.hw_tracks[track].hw_channels[CV_OUT].type != Europi_hw.hw_tracks[track].hw_channels[CV_OUT].type) ||
+            (SavedConfig.hw_tracks[track].hw_channels[CV_OUT].i2c_handle != Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_handle) ||
+            (SavedConfig.hw_tracks[track].hw_channels[CV_OUT].i2c_device != Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_device) ||
+            (SavedConfig.hw_tracks[track].hw_channels[CV_OUT].i2c_address != Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_address) ||
+            (SavedConfig.hw_tracks[track].hw_channels[CV_OUT].i2c_channel != Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_channel) ||		
+            (SavedConfig.hw_tracks[track].hw_channels[GATE_OUT].enabled != Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].enabled) ||
+            (SavedConfig.hw_tracks[track].hw_channels[GATE_OUT].type != Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].type) ||
+            (SavedConfig.hw_tracks[track].hw_channels[GATE_OUT].i2c_handle != Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_handle) ||
+            (SavedConfig.hw_tracks[track].hw_channels[GATE_OUT].i2c_device != Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_device) ||
+            (SavedConfig.hw_tracks[track].hw_channels[GATE_OUT].i2c_channel != Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_channel)){
+            Diff = TRUE;
+            }
+        }
+        if(Diff == FALSE){
+            //Current config same as Saved config, so update scale_zero and scale_max from saved config
+            for(track=0;track<MAX_TRACKS;track++){
+                Europi.tracks[track].channels[CV_OUT].scale_zero = SavedConfig.hw_tracks[track].hw_channels[CV_OUT].scale_zero;
+                Europi.tracks[track].channels[CV_OUT].scale_max = SavedConfig.hw_tracks[track].hw_channels[CV_OUT].scale_max;
+            }
+        }
+        else{
+            //Current Hardware Config is different to the saved config, so warn the user
+            log_msg("hardware configuration change detected\n");
+            sprintf(modal_dialog_txt1,"New hardware configuration");
+            sprintf(modal_dialog_txt2,"detected.");
+            sprintf(modal_dialog_txt3,"It is strongly recommended");
+            sprintf(modal_dialog_txt4,"that you re-run Setup");
+            ClearScreenOverlays();
+            ScreenOverlays.ModalDialog = 1;
+            btnA_func = btnA_none;
+            btnB_func = btnB_cancel;
+            btnC_func = btnC_OK;
+            btnD_func = btnD_none;
+        }
+	}
+    else {
+        //Config file doesn't exist, so just save the one generated during startup
+        FILE * file = fopen("resources/hardware.conf","wb");
+        if (file != NULL) {
+            fwrite(&Europi_hw,sizeof(struct europi_hw),1,file);
+            fclose(file);
+            log_msg("Hardware Config Saved\n");
+        }
+        else{
+            log_msg("Error: Unable to save current Config\n");
+        }
+        
+    }
+    
+    
 }

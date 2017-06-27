@@ -50,6 +50,10 @@ int debug = FALSE;		/* controls whether debug messages are printed to the main s
 int impersonate_hw = FALSE;	/* allows the software to bypass hardware checks (useful when testing sw without full hw ) */ 
 char input_txt[100];    /* buffer for capturing user input */
 char current_filename[100]; /* The File we have Open, which is used in File-Save */
+char modal_dialog_txt1[50]; /* 1st Line of text for display in Modal Dialog box */
+char modal_dialog_txt2[50]; /* 2nd Line of text for display in Modal Dialog box */
+char modal_dialog_txt3[50]; /* 2nd Line of text for display in Modal Dialog box */
+char modal_dialog_txt4[50]; /* 2nd Line of text for display in Modal Dialog box */
 int prog_running=0;		/* Setting this to 0 will force the prog to quit*/
 int ThreadEnd = FALSE; /* semaphore to shut down autonomous threads when the prog ends */
 int run_stop=STOP;		/* 0=Stop 1=Run: Halts the main step generator */
@@ -179,7 +183,7 @@ menu Menu[]={
 
 /* This is the main structure that holds info about the running sequence */
 struct europi Europi; 
-struct hardware Hardware;
+struct europi_hw Europi_hw;
 enum display_page_t DisplayPage = GridView;
 struct screen_overlays ScreenOverlays;
 

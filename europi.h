@@ -165,6 +165,7 @@ enum btnB_func_t {
     btnB_menu,
     btnB_open,
     btnB_save,
+    btnB_cancel,
     btnB_val_down,
     btnB_prev,
     btnB_tr_minus
@@ -173,6 +174,7 @@ enum btnB_func_t {
 enum btnC_func_t {
     btnC_none,
     btnC_bpm_dn,
+    btnC_OK,
     btnC_cancel,
     btnC_val_up,
     btnC_next,
@@ -308,6 +310,7 @@ uint16_t scale_value(int track,uint16_t raw_value);
 size_t file_list(const char *path, char ***ls);
 int cstring_cmp(const void *a, const void *b);
 int polyrhythm(uint32_t Steps, uint32_t Fill, uint32_t ThisStep);
+void hardware_config(void);
 
 
 /* function prototypes in europi_gui.c */
@@ -366,7 +369,7 @@ void gui_debug(void);
  * if more flexibility is needed
  */ 
 #define MAX_SEQUENCES 64	/* Song can contain up to 64 sequences */
-#define MAX_TRACKS 2+(4*8)	/* 2 Tracks on Europi, plus 4 per minion, with total of 8 Minions */ 
+#define MAX_TRACKS 2+(4*8)	/* 2 Tracks on Europi, plus 4 per minion, with total of 8 Minions */
 #define MAX_CHANNELS 2		/* 2 channels per track (CV + GATE) */
 #define MAX_STEPS 32		/* Up to 32 steps in an individual sequence */
 /* CHANNEL TYPE */
@@ -433,6 +436,7 @@ enum display_page_t {
      int VerticalScrollBar;
      int SingleStep;
      int SingleChannel;
+     int ModalDialog;
  };
  
 /*
@@ -547,10 +551,10 @@ struct channel {
 	struct step steps[MAX_STEPS];	/* Array of steps */
 	int i2c_handle;				/* Handle to the i2c device that outputs this track */
 	int i2c_device;				/* Type of i2c device DAC8754, MCP23008 etc */
-	int i2c_address;			/* Address of this device on the i2c Bus - address need to match the physical A3-A0 pins */
-	int i2c_channel;			/* Individual channel (on multi-channel i2c devices) */
-	long scale_zero;			/* Value required to generate zero volt output */
-	long scale_max;				/* Value required to generate 10v output voltage */
+	unsigned i2c_address;		/* Address of this device on the i2c Bus - address need to match the physical A3-A0 pins */
+	unsigned i2c_channel;		/* Individual channel (on multi-channel i2c devices) */
+	uint16_t scale_zero;			/* Value required to generate zero volt output */
+	uint16_t scale_max;				/* Value required to generate 10v output voltage */
 	int enabled;			/* Whether this channel is in use or not */
 	int type;				/* Types include CV, GATE, TRIGGER */
 	int quantise;			/* whether this channel is quantised to a particular scale 0=OFF*/
@@ -575,10 +579,40 @@ struct track{
  * Europi is the main Container structure for the Hardware
  */
 struct europi{
-	int track_enabled;
 	struct track tracks[MAX_TRACKS];
 };
-
+/*
+ * hw_channel holds the Hardware config for a Channel - forms
+ * part of the Europi_hw structure, and is only used to save the
+ * hardware config, and to compare the current config with the 
+ * saved config during program initialisation.
+ */
+struct hw_channel{
+	int i2c_handle;				/* Handle to the i2c device that outputs this track */
+	int i2c_device;				/* Type of i2c device DAC8754, MCP23008 etc */
+	unsigned i2c_address;		/* Address of this device on the i2c Bus - address need to match the physical A3-A0 pins */
+	unsigned i2c_channel;		/* Individual channel (on multi-channel i2c devices) */
+	uint16_t scale_zero;		/* Value required to generate zero volt output */
+	uint16_t scale_max;			/* Value required to generate 10v output voltage */
+    int enabled;
+    int type;
+};
+/* 
+ * hw_track holds the Hardware config for a track
+ */
+struct hw_track{
+    struct hw_channel hw_channels[MAX_CHANNELS];
+};
+/*
+ * Europi_hw is used to save the device-specific config
+ * such as scale zero and 10v settings, and also tracks
+ * if the hardware configuration (number of Minions etc)
+ * has changed - and prompts the user to re-calibrate if
+ * it has.
+ */
+struct europi_hw{
+    struct hw_track hw_tracks[MAX_TRACKS];
+};
 /* 
  * PATTERN is one main loopable section, 
  * can contain many TRACKS 
@@ -593,13 +627,5 @@ struct sequence {
 	int next_pattern;							/* used to control the way sequences are chained together in a Song */
 	struct pattern patterns[MAX_SEQUENCES];	/* Array of Sequences */
 };
-
-/*
- * Hardware contains the per-track hardware configuration
- */
-struct hardware {
-	int hardware_index;
-	struct device devices[MAX_TRACKS];
-}; 
 
 #endif /* EUROPI_H */

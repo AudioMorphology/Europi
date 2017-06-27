@@ -55,6 +55,10 @@ extern char *kbfds;
 extern int impersonate_hw;
 extern int debug; 
 extern char debug_messages[10][80];
+extern char modal_dialog_txt1[];
+extern char modal_dialog_txt2[];
+extern char modal_dialog_txt3[];
+extern char modal_dialog_txt4[];
 extern int next_debug_slot;
 extern char input_txt[];  
 extern int kbfd;
@@ -113,6 +117,7 @@ extern int btnB_state;
 extern int btnC_state;
 extern int btnD_state;
 extern struct europi Europi;
+extern struct europi_hw Europi_hw;
 extern enum display_page_t DisplayPage;
 extern struct screen_overlays ScreenOverlays;
 extern int kbd_char_selected;
@@ -1046,8 +1051,16 @@ int shutdown(void)
 		if (Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ){
 			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x00);
 		}
+        /* Note the current scale_zero and scale_max values in the Hardware config structure */
+       Europi_hw.hw_tracks[track].hw_channels[CV_OUT].scale_zero = Europi.tracks[track].channels[CV_OUT].scale_zero;
+       Europi_hw.hw_tracks[track].hw_channels[CV_OUT].scale_max = Europi.tracks[track].channels[CV_OUT].scale_max;
 	}
-
+    /* Save the current Hardware config */
+    FILE * file = fopen("resources/hardware.conf","wb");
+    if (file != NULL) {
+        fwrite(&Europi_hw,sizeof(struct europi_hw),1,file);
+        fclose(file);
+    }
 	/* Raylib de-initialisation */
     UnloadTexture(VerticalScrollBarTexture);
     UnloadTexture(ScrollHandleTexture);
@@ -1774,6 +1787,8 @@ void hardware_init(void)
         Europi.tracks[track].direction = Forwards;
 		Europi.tracks[track].channels[CV_OUT].enabled = FALSE;
 		Europi.tracks[track].channels[GATE_OUT].enabled = FALSE;
+        Europi_hw.hw_tracks[track].hw_channels[CV_OUT].enabled = FALSE;
+        Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].enabled = FALSE;
 	}
     last_track = 0;
 	/*
@@ -1800,11 +1815,27 @@ void hardware_init(void)
 			Europi.tracks[track].channels[CV_OUT].transpose = 0;			/* fixed (transpose) voltage offset applied to this channel */
 			Europi.tracks[track].channels[CV_OUT].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
 			Europi.tracks[track].channels[CV_OUT].vc_type = VOCT;
-			Europi.tracks[track].channels[GATE_OUT].enabled = TRUE;
+            Europi.tracks[track].channels[GATE_OUT].enabled = TRUE;
 			Europi.tracks[track].channels[GATE_OUT].type = CHNL_TYPE_GATE;
 			Europi.tracks[track].channels[GATE_OUT].i2c_handle = track;			
 			Europi.tracks[track].channels[GATE_OUT].i2c_device = DEV_PCF8574;
 			Europi.tracks[track].channels[GATE_OUT].i2c_channel = 0;
+            
+            /* note the equivalent in the Hardware structure */
+			Europi_hw.hw_tracks[track].hw_channels[CV_OUT].enabled = TRUE;
+			Europi_hw.hw_tracks[track].hw_channels[CV_OUT].type = CHNL_TYPE_CV;
+			Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_handle = track;			
+			Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_device = DEV_DAC8574;
+			Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_address = 0x0;
+			Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_channel = 0;		
+			Europi_hw.hw_tracks[track].hw_channels[CV_OUT].scale_zero = 280;		
+            Europi_hw.hw_tracks[track].hw_channels[CV_OUT].scale_max = 63000;		
+            Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].enabled = TRUE;
+			Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].type = CHNL_TYPE_GATE;
+			Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_handle = track;			
+			Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_device = DEV_PCF8574;
+			Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_channel = 0;
+
 		 }
 		 return;
 	 }
@@ -1841,12 +1872,31 @@ void hardware_init(void)
 		Europi.tracks[track].channels[CV_OUT].transpose = 0;			/* fixed (transpose) voltage offset applied to this channel */
 		Europi.tracks[track].channels[CV_OUT].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
 		Europi.tracks[track].channels[CV_OUT].vc_type = VOCT;
+        
+        /* note the equivalent in the Hardware structure */
+        Europi_hw.hw_tracks[track].hw_channels[CV_OUT].enabled = TRUE;
+        Europi_hw.hw_tracks[track].hw_channels[CV_OUT].type = CHNL_TYPE_CV;
+        Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_handle = handle;			
+        Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_device = DEV_DAC8574;
+        Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_address = 0x08;
+        Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_channel = 0;		
+        Europi_hw.hw_tracks[track].hw_channels[CV_OUT].scale_zero = 280;		
+        Europi_hw.hw_tracks[track].hw_channels[CV_OUT].scale_max = 63000;		
+        
 		/* Track 0 channel 1 = Gate Output */
 		Europi.tracks[track].channels[GATE_OUT].enabled = TRUE;
 		Europi.tracks[track].channels[GATE_OUT].type = CHNL_TYPE_GATE;
 		Europi.tracks[track].channels[GATE_OUT].i2c_handle = pcf_handle;			
 		Europi.tracks[track].channels[GATE_OUT].i2c_device = DEV_PCF8574;
 		Europi.tracks[track].channels[GATE_OUT].i2c_channel = 0;
+
+        /* note the equivalent in the Hardware structure */
+        Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].enabled = TRUE;
+        Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].type = CHNL_TYPE_GATE;
+        Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_handle = pcf_handle;			
+        Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_device = DEV_PCF8574;
+        Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_channel = 0;
+
 		/* Track 1 channel 0 = CV */
 		track++;
 		Europi.tracks[track].channels[CV_OUT].enabled = TRUE;
@@ -1861,12 +1911,31 @@ void hardware_init(void)
 		Europi.tracks[track].channels[CV_OUT].transpose = 0;				/* fixed (transpose) voltage offset applied to this channel */
 		Europi.tracks[track].channels[CV_OUT].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
 		Europi.tracks[track].channels[CV_OUT].vc_type = VOCT;
+        
+        /* note the equivalent in the Hardware structure */
+        Europi_hw.hw_tracks[track].hw_channels[CV_OUT].enabled = TRUE;
+        Europi_hw.hw_tracks[track].hw_channels[CV_OUT].type = CHNL_TYPE_CV;
+        Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_handle = handle;			
+        Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_device = DEV_DAC8574;
+        Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_address = 0x08;
+        Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_channel = 1;		
+        Europi_hw.hw_tracks[track].hw_channels[CV_OUT].scale_zero = 280;		
+        Europi_hw.hw_tracks[track].hw_channels[CV_OUT].scale_max = 63000;		
+        
 		/* Track 1 channel 1 = Gate*/
 		Europi.tracks[track].channels[GATE_OUT].enabled = TRUE;
 		Europi.tracks[track].channels[GATE_OUT].type = CHNL_TYPE_GATE;
 		Europi.tracks[track].channels[GATE_OUT].i2c_handle = pcf_handle;			
 		Europi.tracks[track].channels[GATE_OUT].i2c_device = DEV_PCF8574;
 		Europi.tracks[track].channels[GATE_OUT].i2c_channel = 1;		
+
+        /* note the equivalent in the Hardware structure */
+        Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].enabled = TRUE;
+        Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].type = CHNL_TYPE_GATE;
+        Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_handle = pcf_handle;			
+        Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_device = DEV_PCF8574;
+        Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_channel = 1;
+
 		/* Channels 3 & 4 of the PCF8574 are the Clock and Step 1 out 
 		 * no need to set them to anything specific, and we don't really
 		 * want them appearing as additional tracks*/
@@ -1902,11 +1971,22 @@ void hardware_init(void)
 				Europi.tracks[track].channels[CV_OUT].i2c_device = DEV_DAC8574;
 				Europi.tracks[track].channels[CV_OUT].i2c_address = address;
 				Europi.tracks[track].channels[CV_OUT].i2c_channel = i;		
-				Europi.tracks[track].channels[CV_OUT].scale_zero = 0X0000;	/* Value required to generate zero volt output */
+				Europi.tracks[track].channels[CV_OUT].scale_zero = 0x0000;	/* Value required to generate zero volt output */
 				Europi.tracks[track].channels[CV_OUT].scale_max = 63000;		/* Value required to generate maximum output voltage NOTE: This needs to be overwritten during configuration*/
 				Europi.tracks[track].channels[CV_OUT].transpose = 0;				/* fixed (transpose) voltage offset applied to this channel */
 				Europi.tracks[track].channels[CV_OUT].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
 				Europi.tracks[track].channels[CV_OUT].vc_type = VOCT;
+
+                /* note the equivalent in the Hardware structure */
+                Europi_hw.hw_tracks[track].hw_channels[CV_OUT].enabled = TRUE;
+                Europi_hw.hw_tracks[track].hw_channels[CV_OUT].type = CHNL_TYPE_CV;
+                Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_handle = handle;			
+                Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_device = DEV_DAC8574;
+                Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_address = address;
+                Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_channel = i;		
+                Europi_hw.hw_tracks[track].hw_channels[CV_OUT].scale_zero = 0x0000;		
+                Europi_hw.hw_tracks[track].hw_channels[CV_OUT].scale_max = 63000;		
+
 				/* Channel 1 = Gate Output*/
 				if (gpio_handle >= 0) {
 					Europi.tracks[track].channels[GATE_OUT].enabled = TRUE;
@@ -1914,10 +1994,18 @@ void hardware_init(void)
 					Europi.tracks[track].channels[GATE_OUT].i2c_handle = gpio_handle;			
 					Europi.tracks[track].channels[GATE_OUT].i2c_device = DEV_MCP23008;
 					Europi.tracks[track].channels[GATE_OUT].i2c_channel = i; 		
+                    /* note the equivalent in the Hardware structure */
+                    Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].enabled = TRUE;
+                    Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].type = CHNL_TYPE_GATE;
+                    Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_handle = gpio_handle;			
+                    Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_device = DEV_MCP23008;
+                    Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_channel = i;
+                    
 				}
 				else {
 					/* for some reason we couldn't get a handle to the MCP23008, so disable the Gate channel */
 					Europi.tracks[track].channels[GATE_OUT].enabled = FALSE;
+					Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].enabled = FALSE;
 				}
 				track++;
 			}	
@@ -1972,8 +2060,20 @@ void hardware_init(void)
             Europi.tracks[track].channels[CV_OUT].transpose = 0;			/* fixed (transpose) voltage offset applied to this channel */
             Europi.tracks[track].channels[CV_OUT].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
             Europi.tracks[track].channels[CV_OUT].vc_type = VOCT;
+            
+            /* note the equivalent in the Hardware structure */
+            Europi_hw.hw_tracks[track].hw_channels[CV_OUT].enabled = TRUE;
+            Europi_hw.hw_tracks[track].hw_channels[CV_OUT].type = CHNL_TYPE_MIDI;
+            Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_handle = handle;			
+            Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_device = DEV_SC16IS750;
+            Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_address = address;
+            Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_channel = 0;		
+            Europi_hw.hw_tracks[track].hw_channels[CV_OUT].scale_zero = 280;		
+            Europi_hw.hw_tracks[track].hw_channels[CV_OUT].scale_max = 63000;		
+            
             // No Gate channel on a MIDI Minion:
             Europi.tracks[track].channels[GATE_OUT].enabled = FALSE;
+            Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].enabled = FALSE;
             // Launch a listening Thread
             struct midiChnl sMidiChnl; 
             sMidiChnl.i2c_handle = handle;
@@ -2019,6 +2119,9 @@ void hardware_init(void)
 			}
 		}
 	}
+    
+    /* Scan for Hardware Changes */
+    hardware_config();
 }
 
 /*

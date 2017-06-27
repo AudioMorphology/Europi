@@ -40,6 +40,10 @@ extern int lastGesture;
 extern menu Menu[]; 
 extern char input_txt[]; 
 extern char current_filename[];
+extern char modal_dialog_txt1[];
+extern char modal_dialog_txt2[];
+extern char modal_dialog_txt3[];
+extern char modal_dialog_txt4[];
 extern Texture2D KeyboardTexture;
 extern Texture2D DialogTexture;
 extern Texture2D TextInputTexture;
@@ -91,7 +95,13 @@ void gui_8x8(void){
      */
     if(last_track > 8){
         start_track = ((last_track-8) * VerticalScrollPercent) / 100;
-        ScreenOverlays.VerticalScrollBar = 1;
+        /* Don't display the Vertical Scroll Ber in certain situations */
+        if(ScreenOverlays.ModalDialog == 1) { 
+        ScreenOverlays.VerticalScrollBar = 0;
+        }
+        else {
+            ScreenOverlays.VerticalScrollBar = 1;
+        }
     }
     else {
         start_track = 0;
@@ -847,6 +857,111 @@ void ShowScreenOverlays(void){
         ScreenOverlays.MainMenu = 1;
         gui_MainMenu();
     }
+    if(ScreenOverlays.ModalDialog == 1){
+        DrawTexture(TopBarTexture,0,0,WHITE);
+        DrawRectangle(5,28, 309, 184, CLR_LIGHTBLUE);
+        int txt_len = MeasureText(modal_dialog_txt1,20);
+        DrawText(modal_dialog_txt1,158-(txt_len/2),80,20,DARKGRAY);
+        txt_len = MeasureText(modal_dialog_txt2,20);
+        DrawText(modal_dialog_txt2,158-(txt_len/2),100,20,DARKGRAY);
+        txt_len = MeasureText(modal_dialog_txt3,20);
+        DrawText(modal_dialog_txt3,158-(txt_len/2),120,20,DARKGRAY);
+        txt_len = MeasureText(modal_dialog_txt4,20);
+        DrawText(modal_dialog_txt4,158-(txt_len/2),140,20,DARKGRAY);
+        
+    }
+    if(ScreenOverlays.SetZero == 1){
+        int track = 0;
+        char str[80];
+        char strTrack[5];
+        char strZero[5];
+        DrawTexture(TopBarTexture,0,0,WHITE);
+        DrawTexture(Text2chTexture,70,2,WHITE); // Box for Track Number
+        DrawTexture(Text5chTexture,210,2,WHITE);// Box for Zero value
+        DrawText("Track",5,5,20,DARKGRAY);
+        DrawText("Zero Val",112,5,20,DARKGRAY);
+        
+        for(track = 0; track < MAX_TRACKS; track++) {
+            if (Europi.tracks[track].selected == TRUE){
+                sprintf(strTrack,"%02d",track+1);
+                sprintf(strZero,"%05d",Europi.tracks[track].channels[CV_OUT].scale_zero);
+                DrawText(strTrack,75,5,20,DARKGRAY);
+                DrawText(strZero,215,5,20,DARKGRAY);
+                if(encoder_focus == track_select){
+                    DrawRectangleLines(71,3,30,22,RED);
+                    DrawRectangleLines(72,4,28,20,RED);
+                }
+                else if (encoder_focus == set_zerolevel) {
+                    DrawRectangleLines(210,3,67,22,RED);
+                    DrawRectangleLines(211,4,65,20,RED);
+                }
+            }
+        }
+        // Check for Select button
+        if (btnA_state == 1){
+            btnA_state = 0;
+            if(encoder_focus == track_select) encoder_focus = set_zerolevel;
+            else encoder_focus = track_select;
+        }
+        if (btnB_state == 1){
+            // Check for Val -
+            btnB_state = 0;
+            if(encoder_focus == track_select) select_next_track(DOWN);
+            //else set_loop_point(DOWN);
+        }
+        if (btnC_state == 1){
+            // Check for Val +
+            btnC_state = 0;
+            if(encoder_focus == track_select) select_next_track(UP);
+            //else set_loop_point(UP);
+        }
+    }
+    if(ScreenOverlays.SetTen == 1){
+        int track = 0;
+        char str[80];
+        char strTrack[5];
+        char strMax[5];
+        DrawTexture(TopBarTexture,0,0,WHITE);
+        DrawTexture(Text2chTexture,70,2,WHITE); // Box for Track Number
+        DrawTexture(Text5chTexture,210,2,WHITE);// Box for Zero value
+        DrawText("Track",5,5,20,DARKGRAY);
+        DrawText("10v Value",112,5,20,DARKGRAY);
+        
+        for(track = 0; track < MAX_TRACKS; track++) {
+            if (Europi.tracks[track].selected == TRUE){
+                sprintf(strTrack,"%02d",track+1);
+                sprintf(strMax,"%05d",Europi.tracks[track].channels[CV_OUT].scale_max);
+                DrawText(strTrack,75,5,20,DARKGRAY);
+                DrawText(strMax,215,5,20,DARKGRAY);
+                if(encoder_focus == track_select){
+                    DrawRectangleLines(71,3,30,22,RED);
+                    DrawRectangleLines(72,4,28,20,RED);
+                }
+                else if (encoder_focus == set_maxlevel) {
+                    DrawRectangleLines(210,3,67,22,RED);
+                    DrawRectangleLines(211,4,65,20,RED);
+                }
+            }
+        }
+        // Check for Select button
+        if (btnA_state == 1){
+            btnA_state = 0;
+            if(encoder_focus == track_select) encoder_focus = set_maxlevel;
+            else encoder_focus = track_select;
+        }
+        if (btnB_state == 1){
+            // Check for Val -
+            btnB_state = 0;
+            if(encoder_focus == track_select) select_next_track(DOWN);
+            //else set_loop_point(DOWN);
+        }
+        if (btnC_state == 1){
+            // Check for Val +
+            btnC_state = 0;
+            if(encoder_focus == track_select) select_next_track(UP);
+            //else set_loop_point(UP);
+        }
+    }
     if(ScreenOverlays.SetLoop == 1){
         int track = 0;
         char str[80];
@@ -1446,6 +1561,17 @@ void gui_ButtonBar(void){
                 }
             }
         break;
+        case btnB_cancel:
+            DrawText("Cancel",86,217,20,DARKGRAY);
+            if ((ScreenOverlays.ModalDialog == 1) && (btnB_state == 1)){
+                btnB_state = 0;
+                // Cancel Modal Dialog
+                ClearScreenOverlays();
+                buttonsDefault();
+                ClearMenus();
+                MenuSelectItem(0,0);
+            }
+        break;
         case btnB_val_down:
             DrawText("Val -",95,217,20,DARKGRAY);
         break;
@@ -1475,6 +1601,17 @@ void gui_ButtonBar(void){
                 clock_freq -= 10;
                 if (clock_freq < 1) clock_freq = 1;
                 gpioHardwarePWM(MASTER_CLK,clock_freq,500000);
+            }
+        break;
+        case btnC_OK:
+            DrawText("OK",186,217,20,DARKGRAY);
+            if (btnC_state == 1){
+                btnC_state = 0;
+                // Don't know what we're cancelling, and don't care
+                ClearScreenOverlays();
+                buttonsDefault();
+                ClearMenus();
+                MenuSelectItem(0,0);
             }
         break;
         case btnC_cancel:
