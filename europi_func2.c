@@ -44,6 +44,8 @@ extern int run_stop;
 extern int save_run_stop;
 extern int disp_menu;
 extern int debug;
+extern int TuningOn;
+extern uint16_t TuningVoltage; 
 extern int VerticalScrollPercent;
 extern char *fbp; 
 extern char input_txt[];
@@ -302,7 +304,7 @@ void select_next_step(int dir){
         track++;
     }
     /* Output the current value for this track / step, so we can hear what's going on */
-    DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);
+    DACSingleChannelWrite(track,Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);
     // And turn the Gate output on
     GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
 }
@@ -450,7 +452,7 @@ void set_step_pitch(int dir, int vel){
                     Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value = scale_value(track,newpitch);
                 }
                 Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value; //= (uint16_t)(output_scaling * quantized) + Europi.tracks[track].channels[CV_OUT].scale_zero;
-                DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
+                DACSingleChannelWrite(track,Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
             }
             else {
                 // unquantised tracks use the velocity to move
@@ -463,7 +465,7 @@ void set_step_pitch(int dir, int vel){
                     if (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value >= vel) Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value -= vel;
                 }
                 Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value; //= (uint16_t)(output_scaling * quantized) + Europi.tracks[track].channels[CV_OUT].scale_zero;
-                DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
+                DACSingleChannelWrite(track,Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
             }            
             break;
         }
@@ -711,6 +713,19 @@ void config_setten(void){
     MenuSelectItem(0,0);
     ScreenOverlays.MainMenu = 0;
  }
+
+/*
+ * menu callback to set Global Tuning flag on/off
+ */
+ void config_tune(void){
+    save_run_stop = run_stop;
+    if(TuningOn == TRUE) TuningOn = FALSE;
+    else TuningOn = TRUE;
+    ClearMenus();
+    MenuSelectItem(0,0);
+    ScreenOverlays.MainMenu = 0;
+ }
+
 
 /* 
  * Set the zero volt level for the passed Track
@@ -1039,7 +1054,9 @@ uint16_t scale_value(int track,uint16_t raw_value)
 {
 	float output_scaling;
     int quantised_value = quantize(raw_value,Europi.tracks[track].channels[CV_OUT].quantise);
-	output_scaling = ((float)Europi.tracks[track].channels[CV_OUT].scale_max - (float)Europi.tracks[track].channels[CV_OUT].scale_zero) / (float)60000;
+    // If the global Tuning Flag is set, then don't quantise the value, just scale it
+    if(TuningOn == TRUE) quantised_value = raw_value;
+    output_scaling = ((float)Europi.tracks[track].channels[CV_OUT].scale_max - (float)Europi.tracks[track].channels[CV_OUT].scale_zero) / (float)60000;
 	return (uint16_t)(output_scaling * quantised_value) + Europi.tracks[track].channels[CV_OUT].scale_zero;
 } 
 

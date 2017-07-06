@@ -64,6 +64,8 @@ int clock_counter = 95;	/* Main clock counter, tracks the 96 pulses per step */
 int clock_level = 0;	/* Master clock phase */
 int clock_source = INT_CLK;	/* INT_CLK = Internal, EXT_CLK = External Clock Source */
 int clock_freq=192;		/* speed of the main internal clock in Hz */
+int TuningOn = FALSE;    //FALSE;   /* when True, all CV ports will output the same Raw voltage */
+uint16_t TuningVoltage = 0;   /* raw value that is output when Tuning flag is Set */
 uint8_t PCF8574_state=0xF0; /* current state of the PCF8574 Ports on the Europi */
 int led_on = 0;
 int last_track;         /* used to trim the for() loops when looping round all tracks */
@@ -164,7 +166,8 @@ menu mnu_seq_gridview = {0,0,dir_none,"Grid View",&seq_gridview,{NULL}};
 
 menu mnu_config_setzero = {0,0,dir_left,"Set Zero",&config_setzero,{NULL}};
 menu mnu_config_set10v = {0,0,dir_left,"Set 10 Volt",&config_setten,{NULL}};
-menu mnu_config_debug = {0,0,dir_left,"debug on/off",&config_debug,{NULL}};
+menu mnu_config_debug = {0,0,dir_left,"Debug on/off",&config_debug,{NULL}};
+menu mnu_config_tune = {0,0,dir_left,"Tuning on/off",&config_tune,{NULL}};
 
 menu mnu_test_scalevalue = {0,0,dir_left,"Test scale value",&test_scalevalue,{NULL}};
 menu mnu_test_keyboard = {0,0,dir_left,"Test Keyboard",&test_keyboard,{NULL}};
@@ -174,7 +177,7 @@ menu sub_end = {0,0,dir_none,NULL,NULL,{NULL}}; //set of NULLs to mark the end o
 menu Menu[]={
 	{0,1,dir_down,"File",NULL,{&mnu_file_open,&mnu_file_save,&mnu_file_saveas,&mnu_file_new,&mnu_file_quit,&sub_end}},
 	{0,0,dir_down,"Sequence",NULL,{&mnu_seq_setslew,&mnu_seq_setloop,&mnu_seq_setpitch,&mnu_seq_setdir,&mnu_seq_quantise,&mnu_seq_gridview,&mnu_seq_singlechnl,&mnu_seq_new,&sub_end}},
-	{0,0,dir_down,"Config",NULL,{&mnu_config_setzero,&mnu_config_set10v,&mnu_config_debug,&sub_end}},
+	{0,0,dir_down,"Config",NULL,{&mnu_config_setzero,&mnu_config_set10v,&mnu_config_debug,&mnu_config_tune,&sub_end}},
 	{0,0,dir_down,"Test",NULL,{&mnu_test_scalevalue,&mnu_config_setzero,&mnu_test_keyboard,&sub_end}},
 	{0,0,dir_down,"Play",NULL,{&sub_end}},
 	{0,0,dir_down,NULL,NULL,{NULL}}

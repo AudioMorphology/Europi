@@ -76,6 +76,8 @@ extern int clock_counter;
 extern int clock_level;
 extern int clock_freq;
 extern int clock_source;
+extern int TuningOn;
+extern uint16_t TuningVoltage; 
 extern uint8_t PCF8574_state;
 extern int led_on;
 extern int print_messages;
@@ -208,18 +210,12 @@ void reset_input(int gpio, int level, uint32_t tick)
 /* Function called to advance the sequence on to the next step */
 void next_step(void)
 {
-	/* Note the time and length of the previous step
-	 * this gives us a running approximation of how
-	 * fast the sequence is running, and can be used to 
-	 * prevent slews overrunning too badly, time triggers
-	 * etc.
-	 */
 	uint32_t current_tick = gpioTick();
 	// first ever time it's run, there will be
 	// no value for step_tick, to the length of
 	// the first step will be indeterminate. So,
 	// set it to 200ms.
-	if (step_tick == 0) step_ticks = 200000; else step_ticks = current_tick - step_tick;
+	if (step_tick == 0) step_ticks = 250000; else step_ticks = current_tick - step_tick;
 	//log_msg("Step Ticks: %d\n",step_ticks);
 	step_tick = current_tick;
 	int previous_step, channel, track;
@@ -379,7 +375,7 @@ void next_step(void)
 			/* set the CV for each channel, BUT ONLY if slew is OFF */
 			// Standard CV Channel
             if ((Europi.tracks[track].channels[CV_OUT].type == CHNL_TYPE_CV) && (Europi.tracks[track].channels[CV_OUT].enabled == TRUE ) && (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type == Off)){
-				DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
+				DACSingleChannelWrite(track,Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
 			}
             // MIDI Channel
             if ((Europi.tracks[track].channels[CV_OUT].type == CHNL_TYPE_MIDI) && (Europi.tracks[track].channels[CV_OUT].enabled == TRUE)){
@@ -503,7 +499,7 @@ void *AdsrThread(void *arg)
 		Europi.tracks[pADSR->track].track_busy = TRUE;
 		// A-ramp
 		this_value = pADSR->a_start_value;
-		DACSingleChannelWrite(pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
+		DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
 		if(pADSR->a_length >= slew_interval){
 			step_size = (pADSR->a_end_value - pADSR->a_start_value) / (pADSR->a_length / slew_interval);
 			num_steps = (pADSR->a_end_value - pADSR->a_start_value) / step_size;
@@ -512,16 +508,16 @@ void *AdsrThread(void *arg)
 				usleep(slew_interval / 2);
 				// Rail clamp
 				if((this_value += step_size) <= 60000){
-					DACSingleChannelWrite(pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
+					DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
 				}
 				else {
-					DACSingleChannelWrite(pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, 60000);
+					DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, 60000);
 				}
 			}
 		}
 		// D-ramp
 		this_value = pADSR->a_end_value;
-		DACSingleChannelWrite(pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
+		DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
 		if(pADSR->d_length >= slew_interval){
 			step_size = (pADSR->a_end_value - pADSR->s_level) / (pADSR->d_length / slew_interval);
 			num_steps = (pADSR->a_end_value - pADSR->s_level) / step_size;
@@ -530,10 +526,10 @@ void *AdsrThread(void *arg)
 				usleep(slew_interval / 2);
 				// Rail clamp
 				if((this_value -= step_size) >= 0){
-					DACSingleChannelWrite(pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
+					DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
 				}
 				else {
-					DACSingleChannelWrite(pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, 0);
+					DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, 0);
 				}
 			}
 		}
@@ -542,7 +538,7 @@ void *AdsrThread(void *arg)
         
         // Release ramp
 		this_value = pADSR->s_level;
-		DACSingleChannelWrite(pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
+		DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
 		if(pADSR->r_length >= slew_interval){
 			step_size = (pADSR->s_level - pADSR->r_end_value) / (pADSR->r_length / slew_interval);
 			num_steps = (pADSR->s_level - pADSR->r_end_value) / step_size;
@@ -551,15 +547,15 @@ void *AdsrThread(void *arg)
 				usleep(slew_interval / 2);
 				// Rail clamp
 				if((this_value -= step_size) >= 0){
-					DACSingleChannelWrite(pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
+					DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
 				}
 				else {
-					DACSingleChannelWrite(pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, 0);
+					DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, 0);
 				}
 			}
 		}
         
-		DACSingleChannelWrite(pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, pADSR->r_end_value);
+		DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, pADSR->r_end_value);
 		// Clear Track Busy flag
 		Europi.tracks[pADSR->track].track_busy = FALSE;
 	}	
@@ -586,7 +582,7 @@ void *AdThread(void *arg)
 		Europi.tracks[pAD->track].track_busy = TRUE;
 		// A-ramp
 		this_value = pAD->a_start_value;
-		DACSingleChannelWrite(pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, this_value);
+		DACSingleChannelWrite(pAD->track,pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, this_value);
 		if(pAD->a_length >= slew_interval){
 			step_size = (pAD->a_end_value - pAD->a_start_value) / (pAD->a_length / slew_interval);
 			num_steps = (pAD->a_end_value - pAD->a_start_value) / step_size;
@@ -595,16 +591,16 @@ void *AdThread(void *arg)
 				usleep(slew_interval / 2);
 				// Rail clamp
 				if((this_value += step_size) <= 60000){
-					DACSingleChannelWrite(pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, this_value);
+					DACSingleChannelWrite(pAD->track,pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, this_value);
 				}
 				else {
-					DACSingleChannelWrite(pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, 60000);
+					DACSingleChannelWrite(pAD->track,pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, 60000);
 				}
 			}
 		}
 		// D-ramp
 		this_value = pAD->a_end_value;
-		DACSingleChannelWrite(pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, this_value);
+		DACSingleChannelWrite(pAD->track,pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, this_value);
 		if(pAD->d_length >= slew_interval){
 			step_size = (pAD->a_end_value - pAD->d_end_value) / (pAD->d_length / slew_interval);
 			num_steps = (pAD->a_end_value - pAD->d_end_value) / step_size;
@@ -613,14 +609,14 @@ void *AdThread(void *arg)
 				usleep(slew_interval / 2);
 				// Rail clamp
 				if((this_value -= step_size) >= 0){
-					DACSingleChannelWrite(pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, this_value);
+					DACSingleChannelWrite(pAD->track,pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, this_value);
 				}
 				else {
-					DACSingleChannelWrite(pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, 0);
+					DACSingleChannelWrite(pAD->track,pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, 0);
 				}
 			}
 		}
-		DACSingleChannelWrite(pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, pAD->d_end_value);
+		DACSingleChannelWrite(pAD->track,pAD->i2c_handle, pAD->i2c_address, pAD->i2c_channel, pAD->d_end_value);
 		// Clear Track Busy flag
 		Europi.tracks[pAD->track].track_busy = FALSE;
 	}	
@@ -649,7 +645,7 @@ void *SlewThread(void *arg)
 
 	if (pSlew->slew_length == 0) {
 		// No slew length set, so just output this step and close the thread
-		DACSingleChannelWrite(pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, pSlew->end_value);
+		DACSingleChannelWrite(pSlew->track,pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, pSlew->end_value);
 		free(pSlew);
 		return(0);
 	}
@@ -674,12 +670,12 @@ void *SlewThread(void *arg)
         profile_offset = 0;
         while((num_steps > 0) && (this_value <= pSlew->end_value)){
             this_value = pSlew->start_value + ((slew_profiles[slew_profile][(int)profile_offset] / (float)100) * pitch_jump);
-            DACSingleChannelWrite(pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, this_value);
+            DACSingleChannelWrite(pSlew->track,pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, this_value);
 			usleep(slew_interval / 2);		
             profile_offset += profile_index;
             num_steps--;
         }
-        DACSingleChannelWrite(pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, pSlew->end_value);
+        DACSingleChannelWrite(pSlew->track,pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, pSlew->end_value);
 	}
 	else if ((pSlew->end_value < pSlew->start_value) && ((pSlew->slew_shape == Falling) || (pSlew->slew_shape == Both))){
 		// Glide Down
@@ -701,16 +697,16 @@ void *SlewThread(void *arg)
         profile_offset = 0;
         while((num_steps > 0) && (this_value >= pSlew->end_value)){
             this_value = pSlew->end_value + ((slew_profiles[slew_profile][(int)profile_offset] / (float)100) * pitch_jump);
-            DACSingleChannelWrite(pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, this_value);
+            DACSingleChannelWrite(pSlew->track,pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, this_value);
 			usleep(slew_interval / 2);		
             profile_offset += profile_index;
             num_steps--;
         }
-        DACSingleChannelWrite(pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, pSlew->end_value);
+        DACSingleChannelWrite(pSlew->track,pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, pSlew->end_value);
 	}
 	else {
 		// Slew set, but Rising or Falling are off, so just output the end value
-		DACSingleChannelWrite(pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, pSlew->end_value);
+		DACSingleChannelWrite(pSlew->track,pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, pSlew->end_value);
 	}
     free(pSlew);
 	return(0);
@@ -1045,7 +1041,7 @@ int shutdown(void)
 	for (track = 0;track < MAX_TRACKS; track++){
 		/* set the CV for each channel to the Zero level*/
 		if (Europi.tracks[track].channels[0].enabled == TRUE ){
-			DACSingleChannelWrite(Europi.tracks[track].channels[0].i2c_handle, Europi.tracks[track].channels[0].i2c_address, Europi.tracks[track].channels[0].i2c_channel, Europi.tracks[track].channels[0].scale_zero);
+			DACSingleChannelWrite(track,Europi.tracks[track].channels[0].i2c_handle, Europi.tracks[track].channels[0].i2c_address, Europi.tracks[track].channels[0].i2c_channel, Europi.tracks[track].channels[0].scale_zero);
 		}
 		/* set the Gate State for each channel to OFF*/
 		if (Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ){
@@ -1265,7 +1261,7 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 						if(Europi.tracks[track].selected == TRUE){
 							if(Europi.tracks[track].channels[CV_OUT].scale_zero <= 65535-vel){
 							Europi.tracks[track].channels[CV_OUT].scale_zero += vel;
-							DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].scale_zero);
+							DACSingleChannelWrite(track,Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].scale_zero);
 							}
 							break;
 						}
@@ -1278,7 +1274,7 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 						if(Europi.tracks[track].selected == TRUE){
 							if(Europi.tracks[track].channels[CV_OUT].scale_zero >= vel){
 							Europi.tracks[track].channels[CV_OUT].scale_zero -= vel;
-							DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].scale_zero);
+							DACSingleChannelWrite(track,Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].scale_zero);
 							}
 							break;
 						}
@@ -1294,7 +1290,7 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 						if(Europi.tracks[track].selected == TRUE){
 							if(Europi.tracks[track].channels[CV_OUT].scale_max <= 65535-vel){
 							Europi.tracks[track].channels[CV_OUT].scale_max += vel;
-							DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].scale_max);
+							DACSingleChannelWrite(track,Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].scale_max);
 							}
 							break;
 						}
@@ -1307,7 +1303,7 @@ void encoder_callback(int gpio, int level, uint32_t tick){
 						if(Europi.tracks[track].selected == TRUE){
 							if(Europi.tracks[track].channels[CV_OUT].scale_max >= vel){
 							Europi.tracks[track].channels[CV_OUT].scale_max -= vel;
-							DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].scale_max);
+							DACSingleChannelWrite(track,Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].scale_max);
 							}
 							break;
 						}
@@ -1660,10 +1656,14 @@ void MIDISingleChannelWrite(unsigned handle, uint8_t channel, uint8_t velocity, 
  * The ctrl_reg needs to look like this:
  * [A3][A2][0][1][x][C1][C0][0]
  */
-void DACSingleChannelWrite(unsigned handle, uint8_t address, uint8_t channel, uint16_t voltage){
+void DACSingleChannelWrite(int track, unsigned handle, uint8_t address, uint8_t channel, uint16_t voltage){
 	uint16_t v_out;
 	uint8_t ctrl_reg;
 	if(impersonate_hw == TRUE) return;
+    if(TuningOn == TRUE) {
+        //Output the Global tuning voltage scaled by this Channel's scale factor
+        voltage = scale_value(track,TuningVoltage);
+    }
 	//log_msg("%d, %d, %d, %d\n",handle,address,channel,voltage);
 	ctrl_reg = (((address & 0xC) << 4) | 0x10) | ((channel << 1) & 0x06);
 	//log_msg("handle: %0x, address: %0x, channel: %d, ctrl_reg: %02x, Voltage: %d\n",handle, address, channel,ctrl_reg,voltage);

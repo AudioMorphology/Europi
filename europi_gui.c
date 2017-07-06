@@ -277,18 +277,20 @@ void gui_singlestep(void){
             break;
     }
     DrawText("Slew Shape:",20,78,20,DARKGRAY);
-    switch(Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_shape){
-        default:
-        case Both:
-            DrawText("Both",140,78,20,BLUE);
-            break;
-        case Rising:
-            DrawText("Rising",140,78,20,BLUE);
-            break;
-        case Falling:
-            DrawText("Falling",140,78,20,BLUE);
-            break;
-
+    if(Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_type != Off){
+        //Only draw the shape if the Slew Type isn't Off
+        switch(Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_shape){
+            default:
+            case Both:
+                DrawText("Both",140,78,20,BLUE);
+                break;
+            case Rising:
+                DrawText("Rising",140,78,20,BLUE);
+                break;
+            case Falling:
+                DrawText("Falling",140,78,20,BLUE);
+                break;
+        }
     }
     DrawText("Slew Length:",12,98,20,DARKGRAY);
     if(Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_type != Off){
@@ -333,10 +335,10 @@ void gui_singlestep(void){
     int Octave,Partial,Pitch,i;
     Octave = Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].raw_value / 6000;
     Partial = Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].raw_value % 6000;
-    //Check for collision within the Partial bar
-    stepRectangle.x = 280;
+    //Check for collision within the Partial bar. Note: Ignores touches in left-most 5 pixels
+    stepRectangle.x = 280+5;
     stepRectangle.y = 81;
-    stepRectangle.width = 20;
+    stepRectangle.width = 20-5;
     stepRectangle.height = 120;
     if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture1 != GESTURE_NONE)){
         // Work out how far up the Partial bar we are
@@ -482,9 +484,11 @@ void gui_SingleChannel(void){
                 Octave = Europi.tracks[track].channels[CV_OUT].steps[SingleChannelOffset+column].raw_value / 6000;
                 Partial = Europi.tracks[track].channels[CV_OUT].steps[SingleChannelOffset+column].raw_value % 6000;
                 //Check for collision within the Partial bar
-                touchRectangle.x = 22+(column*39);
+                //Note: This ignores touches close to the left-hand
+                //edge, to reduce the accidental selection of octaves
+                touchRectangle.x = 22+(column*39)+5;
                 touchRectangle.y = 30;
-                touchRectangle.width = 18;
+                touchRectangle.width = 18-5;    
                 touchRectangle.height = 120;
                 if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
                     // Work out how far up the Partial bar we are
