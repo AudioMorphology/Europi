@@ -882,21 +882,35 @@ void init_sequence(void)
 	
 	//Temp - set all outputs to 0
 	for (track=0;track<MAX_TRACKS;track++){
-		if (Europi.tracks[track].channels[0].enabled == TRUE){
+		if (Europi.tracks[track].channels[CV_OUT].enabled == TRUE){
 			Europi.tracks[track].track_busy = FALSE;
             Europi.tracks[track].direction = Forwards;
 			Europi.tracks[track].last_step =  8; //rand() % 32;
 
 			for (step=0;step<MAX_STEPS;step++){
-			Europi.tracks[track].channels[0].steps[step].scaled_value = 280; //410;
+			Europi.tracks[track].channels[CV_OUT].steps[step].scaled_value = 280; //410;
 			}
 		}
 	}
 	Europi.tracks[0].last_step = 32; /* track 0 always 32 steps */
+
+    // AD Profile on channel 4
+    Europi.tracks[3].channels[CV_OUT].function = AD;
+    Europi.tracks[3].ad_adsr.a_length = 100000;
+    Europi.tracks[3].ad_adsr.d_length = 200000;
+
+    // ADSR Profile on Channel 5
+    Europi.tracks[4].channels[CV_OUT].function = ADSR;
+    Europi.tracks[4].ad_adsr.a_length = 0;
+    Europi.tracks[4].ad_adsr.d_length = 100000;
+    Europi.tracks[4].ad_adsr.s_level = 50;          // 50%
+    Europi.tracks[4].ad_adsr.s_length = 500000;
+    Europi.tracks[4].ad_adsr.r_length = 300000;
+    
+
 	for (track=0;track<MAX_TRACKS;track++){
 		if (Europi.tracks[track].channels[CV_OUT].enabled == TRUE){
 			
-
 			
 /*			for (step=0;step<=31;step++){
 				Europi.tracks[track].channels[CV_OUT].steps[step].raw_value = 1000 * step;

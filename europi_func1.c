@@ -371,15 +371,95 @@ void next_step(void)
                     }
                 break;
 			}
-			
-			/* set the CV for each channel, BUT ONLY if slew is OFF */
-			// Standard CV Channel
-            if ((Europi.tracks[track].channels[CV_OUT].type == CHNL_TYPE_CV) && (Europi.tracks[track].channels[CV_OUT].enabled == TRUE ) && (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type == Off)){
-				DACSingleChannelWrite(track,Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
-			}
-            // MIDI Channel
-            if ((Europi.tracks[track].channels[CV_OUT].type == CHNL_TYPE_MIDI) && (Europi.tracks[track].channels[CV_OUT].enabled == TRUE)){
-                MIDISingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_channel, 0x40, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);   
+			/* Deal with the various different types of Analogue output
+             * In General, this launches a thread to deal with anything
+             * that isn't a simple static voltage, as this removes the
+             * processing load from the main program loop
+             */
+            if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE) {
+                switch(Europi.tracks[track].channels[CV_OUT].type){
+                    default:
+                    case CHNL_TYPE_CV:
+                        // CV Channels can have a function of CV, AD or ADSR
+                        switch(Europi.tracks[track].channels[CV_OUT].function){
+                            default:
+                            case CV:
+                                if(Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type == Off){
+                                    // No Slew - just set the output CV
+                                    DACSingleChannelWrite(track,Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
+                                }
+                                else {
+                                    // Slew
+                                    struct slew sSlew;
+                                    sSlew.track = track;
+                                    sSlew.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
+                                    sSlew.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;
+                                    sSlew.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
+                                    sSlew.start_value = Europi.tracks[track].channels[CV_OUT].steps[previous_step].scaled_value;
+                                    sSlew.end_value = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value;
+                                    sSlew.slew_length = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_length;
+                                    sSlew.slew_type = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type;
+                                    sSlew.slew_shape = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_shape;
+                                    struct slew *pSlew = malloc(sizeof(struct slew));
+                                    memcpy(pSlew, &sSlew, sizeof(struct slew));
+                                    if(pthread_create(&ThreadId, &detached_attr, &SlewThread, pSlew)){
+                                        log_msg("Slew thread creation error\n");
+                                    }
+                                }
+                            
+                            break;
+                            case AD:
+                                {
+                                    // Always starts and end on Zero
+                                    struct ad sAD;
+                                    sAD.track = track;
+                                    sAD.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
+                                    sAD.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;
+                                    sAD.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
+                                    sAD.a_start_value = Europi.tracks[track].channels[CV_OUT].scale_zero;	
+                                    sAD.a_end_value = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value;	
+                                    sAD.a_length = Europi.tracks[track].ad_adsr.a_length;		
+                                    sAD.a_start_value = Europi.tracks[track].channels[CV_OUT].scale_zero;	
+                                    sAD.d_length = Europi.tracks[track].ad_adsr.d_length;
+                                    sAD.shot_type = Repeat;
+                                    struct ad *pAD = malloc(sizeof(struct ad));
+                                    memcpy(pAD, &sAD, sizeof(struct ad));
+                                    if(pthread_create(&ThreadId, &detached_attr, &AdThread, pAD)){
+                                    log_msg("Attack-Decay thread creation error\n");
+                                    }
+                                }
+                            
+                            break;
+                            case ADSR:
+                                {
+                                    // Starts and ends on Zero. sustain level is a % of the max level
+                                    struct adsr sADSR;
+                                    sADSR.track = track;
+                                    sADSR.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
+                                    sADSR.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;
+                                    sADSR.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
+                                    sADSR.a_start_value = Europi.tracks[track].channels[CV_OUT].scale_zero;	
+                                    sADSR.a_end_value = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value;
+                                    sADSR.a_length = Europi.tracks[track].ad_adsr.a_length;	
+                                    sADSR.d_length = Europi.tracks[track].ad_adsr.d_length;
+                                    sADSR.s_level = Europi.tracks[track].ad_adsr.s_level;  
+                                    sADSR.s_length = Europi.tracks[track].ad_adsr.s_length;
+                                    sADSR.r_end_value = Europi.tracks[track].channels[CV_OUT].scale_zero;	
+                                    sADSR.r_length = Europi.tracks[track].ad_adsr.r_length;
+                                    struct adsr *pADSR = malloc(sizeof(struct adsr));
+                                    memcpy(pADSR, &sADSR, sizeof(struct adsr));
+                                    if(pthread_create(&ThreadId, &detached_attr, &AdsrThread, pADSR)){
+                                    log_msg("ADSR thread creation error\n");
+                                    }
+                                }
+                            break;
+                        }
+                    break;
+                    case CHNL_TYPE_MIDI:
+                        MIDISingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_channel, 0x40, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);   
+                    break;
+                }
+                               
             }
             
 			/* launch a thread to handle the gate function for each channel / step */
@@ -399,82 +479,6 @@ void next_step(void)
                     log_msg("Gate thread creation error\n");
                 }
 			}
-            if (Europi.tracks[track].channels[CV_OUT].type == CHNL_TYPE_CV) {
-                /* Is there a Slew, AD, ADSR set on this step */
-                switch (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type){
-                    // launch a thread to handle the slew for this Channel / Step
-                    // Note that this is created as a Detached, rather than Joinable
-                    // thread, because otherwise the memory consumed by the thread
-                    // won't be recovered when the thread exits, leading to memory
-                    // leaks
-                    struct slew sSlew;
-                    struct ad sAD;
-                    struct adsr sADSR;
-                    
-                    case Linear:
-                    case Exponential:
-                    case RevExp:
-                        sAD.track = track;
-                        sSlew.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
-                        sSlew.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;
-                        sSlew.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
-                        sSlew.start_value = Europi.tracks[track].channels[CV_OUT].steps[previous_step].scaled_value;
-                        sSlew.end_value = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value;
-                        sSlew.slew_length = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_length;
-                        sSlew.slew_type = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type;
-                        sSlew.slew_shape = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_shape;
-                        struct slew *pSlew = malloc(sizeof(struct slew));
-                        memcpy(pSlew, &sSlew, sizeof(struct slew));
-                        if(pthread_create(&ThreadId, &detached_attr, &SlewThread, pSlew)){
-                            log_msg("Slew thread creation error\n");
-                        }
-                    break;
-                    case AD:
-                        // Attack - Decay ramp
-                        sAD.track = track;
-                        sAD.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
-                        sAD.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;
-                        sAD.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
-                        sAD.a_start_value = 0;	
-                        sAD.a_end_value = 30000;	//5v	
-                        sAD.a_length = 0;		
-                        sAD.d_end_value = 0;	
-                        sAD.d_length = 10000;
-                        sAD.shot_type = Repeat;
-                        struct ad *pAD = malloc(sizeof(struct ad));
-                        memcpy(pAD, &sAD, sizeof(struct ad));
-                        if(pthread_create(&ThreadId, &detached_attr, &AdThread, pAD)){
-                        log_msg("Attack-Decay thread creation error\n");
-                        }
-                    break;
-                    case ADSR:
-                        // Full ADSR ramp profile
-                        sADSR.track = track;
-                        sADSR.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
-                        sADSR.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;
-                        sADSR.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
-                        sADSR.a_start_value = 0;	
-                        sADSR.a_end_value = 30000;	//5v	
-                        sADSR.a_length = 10000;		
-                        sADSR.d_length = 10000;
-                        sADSR.s_level = 20000;
-                        sADSR.s_length = 100000;
-                        sADSR.r_end_value = 0;
-                        sADSR.r_length = 10000;
-                        sAD.shot_type = Repeat;
-                        struct adsr *pADSR = malloc(sizeof(struct adsr));
-                        memcpy(pADSR, &sADSR, sizeof(struct adsr));
-                        if(pthread_create(&ThreadId, &detached_attr, &AdsrThread, pADSR)){
-                        log_msg("ADSR thread creation error\n");
-                        }
-                        
-                        
-                    break;
-                    case Off:
-                    
-                    break;
-                }
-            }
 		}
 	}
 	/* anything that needed resetting back to step 1 will have done so */
@@ -483,82 +487,82 @@ void next_step(void)
 
 /*
  * ADSR thread.
- * ADSR Profile ramp generator
+ * ADSR Profile ramp generator. Always starts and ends at Zero, and
+ * the sustain level is expressed as a Percentage of the max Attack value
  */
 void *AdsrThread(void *arg)
 {
 	struct adsr *pADSR = (struct adsr *)arg;
 	uint16_t this_value;
 	uint32_t start_tick = gpioTick();
+    uint16_t sus_level;
 	int step_size;
 	int num_steps;
 	int i;
-	// don't bother if it's anything other than a 'normal' AD profile
-	if((pADSR->a_end_value > pADSR->a_start_value) && (pADSR->s_level < pADSR->a_end_value)){
-		// Set Track Busy flag
-		Europi.tracks[pADSR->track].track_busy = TRUE;
-		// A-ramp
-		this_value = pADSR->a_start_value;
-		DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
-		if(pADSR->a_length >= slew_interval){
-			step_size = (pADSR->a_end_value - pADSR->a_start_value) / (pADSR->a_length / slew_interval);
-			num_steps = (pADSR->a_end_value - pADSR->a_start_value) / step_size;
-			if (step_size == 0) {step_size = 1; num_steps = (pADSR->a_end_value - pADSR->a_start_value);}
-			for(i = 0;i < num_steps; i++){
-				usleep(slew_interval / 2);
-				// Rail clamp
-				if((this_value += step_size) <= 60000){
-					DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
-				}
-				else {
-					DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, 60000);
-				}
-			}
-		}
-		// D-ramp
-		this_value = pADSR->a_end_value;
-		DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
-		if(pADSR->d_length >= slew_interval){
-			step_size = (pADSR->a_end_value - pADSR->s_level) / (pADSR->d_length / slew_interval);
-			num_steps = (pADSR->a_end_value - pADSR->s_level) / step_size;
-			if (step_size == 0) {step_size = 1; num_steps = (pADSR->a_end_value - pADSR->s_level);}
-			for(i = 0;i < num_steps; i++){
-				usleep(slew_interval / 2);
-				// Rail clamp
-				if((this_value -= step_size) >= 0){
-					DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
-				}
-				else {
-					DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, 0);
-				}
-			}
-		}
-        // Sustain time
-        usleep(pADSR->s_length);
-        
-        // Release ramp
-		this_value = pADSR->s_level;
-		DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
-		if(pADSR->r_length >= slew_interval){
-			step_size = (pADSR->s_level - pADSR->r_end_value) / (pADSR->r_length / slew_interval);
-			num_steps = (pADSR->s_level - pADSR->r_end_value) / step_size;
-			if (step_size == 0) {step_size = 1; num_steps = (pADSR->s_level - pADSR->r_end_value);}
-			for(i = 0;i < num_steps; i++){
-				usleep(slew_interval / 2);
-				// Rail clamp
-				if((this_value -= step_size) >= 0){
-					DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
-				}
-				else {
-					DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, 0);
-				}
-			}
-		}
-        
-		DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, pADSR->r_end_value);
-		// Clear Track Busy flag
-		Europi.tracks[pADSR->track].track_busy = FALSE;
-	}	
+    // Set Track Busy flag
+    Europi.tracks[pADSR->track].track_busy = TRUE;
+    sus_level = ((pADSR->a_end_value - pADSR->a_start_value) * pADSR->s_level)/100;
+    // A-ramp
+    this_value = pADSR->a_start_value;
+    DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
+    if(pADSR->a_length >= slew_interval){
+        step_size = (pADSR->a_end_value - pADSR->a_start_value) / (pADSR->a_length / slew_interval);
+        num_steps = (pADSR->a_end_value - pADSR->a_start_value) / step_size;
+        if (step_size == 0) {step_size = 1; num_steps = (pADSR->a_end_value - pADSR->a_start_value);}
+        for(i = 0;i < num_steps; i++){
+            usleep(slew_interval / 2);
+            // Rail clamp
+            if((this_value += step_size) <= Europi.tracks[pADSR->track].channels[CV_OUT].scale_max){
+                DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
+            }
+            else {
+                DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, Europi.tracks[pADSR->track].channels[CV_OUT].scale_max);
+            }
+        }
+    }
+    // D-ramp
+    this_value = pADSR->a_end_value;
+    DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
+    if(pADSR->d_length >= slew_interval){
+        step_size = (pADSR->a_end_value - sus_level) / (pADSR->d_length / slew_interval);
+        num_steps = (pADSR->a_end_value - sus_level) / step_size;
+        if (step_size == 0) {step_size = 1; num_steps = (pADSR->a_end_value - sus_level);}
+        for(i = 0;i < num_steps; i++){
+            usleep(slew_interval / 2);
+            // Rail clamp
+            if((this_value -= step_size) >= Europi.tracks[pADSR->track].channels[CV_OUT].scale_zero){
+                DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
+            }
+            else {
+                DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, Europi.tracks[pADSR->track].channels[CV_OUT].scale_zero);
+            }
+        }
+    }
+    // Sustain time
+    usleep(pADSR->s_length);
+    
+    // Release ramp
+    this_value = sus_level;
+    DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
+    if(pADSR->r_length >= slew_interval){
+        step_size = (sus_level - pADSR->r_end_value) / (pADSR->r_length / slew_interval);
+        num_steps = (sus_level - pADSR->r_end_value) / step_size;
+        if (step_size == 0) {step_size = 1; num_steps = (sus_level - pADSR->r_end_value);}
+        for(i = 0;i < num_steps; i++){
+            usleep(slew_interval / 2);
+            // Rail clamp
+            if((this_value -= step_size) >= Europi.tracks[pADSR->track].channels[CV_OUT].scale_zero){
+                DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, this_value);
+            }
+            else {
+                DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, Europi.tracks[pADSR->track].channels[CV_OUT].scale_zero);
+            }
+        }
+    }
+    
+    DACSingleChannelWrite(pADSR->track,pADSR->i2c_handle, pADSR->i2c_address, pADSR->i2c_channel, pADSR->r_end_value);
+    // Clear Track Busy flag
+    Europi.tracks[pADSR->track].track_busy = FALSE;
 	free(pADSR);
 	return(0);
 }
@@ -1805,6 +1809,7 @@ void hardware_init(void)
 			 */
 			Europi.tracks[track].channels[CV_OUT].enabled = TRUE;
 			Europi.tracks[track].channels[CV_OUT].type = CHNL_TYPE_CV;
+			Europi.tracks[track].channels[CV_OUT].function = CV;
 			Europi.tracks[track].channels[CV_OUT].quantise = 0;			/* Quantization off by default */
 			Europi.tracks[track].channels[CV_OUT].i2c_handle = track;			
 			Europi.tracks[track].channels[CV_OUT].i2c_device = DEV_DAC8574;
@@ -1862,6 +1867,7 @@ void hardware_init(void)
 		}
 		Europi.tracks[track].channels[CV_OUT].enabled = TRUE;
 		Europi.tracks[track].channels[CV_OUT].type = CHNL_TYPE_CV;
+		Europi.tracks[track].channels[CV_OUT].function = CV;
 		Europi.tracks[track].channels[CV_OUT].quantise = 0;			/* Quantization off by default */
 		Europi.tracks[track].channels[CV_OUT].i2c_handle = handle;			
 		Europi.tracks[track].channels[CV_OUT].i2c_device = DEV_DAC8574;
@@ -1886,6 +1892,7 @@ void hardware_init(void)
 		/* Track 0 channel 1 = Gate Output */
 		Europi.tracks[track].channels[GATE_OUT].enabled = TRUE;
 		Europi.tracks[track].channels[GATE_OUT].type = CHNL_TYPE_GATE;
+		Europi.tracks[track].channels[GATE_OUT].function = Gate;
 		Europi.tracks[track].channels[GATE_OUT].i2c_handle = pcf_handle;			
 		Europi.tracks[track].channels[GATE_OUT].i2c_device = DEV_PCF8574;
 		Europi.tracks[track].channels[GATE_OUT].i2c_channel = 0;
@@ -1901,6 +1908,7 @@ void hardware_init(void)
 		track++;
 		Europi.tracks[track].channels[CV_OUT].enabled = TRUE;
 		Europi.tracks[track].channels[CV_OUT].type = CHNL_TYPE_CV;
+		Europi.tracks[track].channels[CV_OUT].function = CV;
 		Europi.tracks[track].channels[CV_OUT].quantise = 0;		
 		Europi.tracks[track].channels[CV_OUT].i2c_handle = handle;			
 		Europi.tracks[track].channels[CV_OUT].i2c_device = DEV_DAC8574;
@@ -1925,6 +1933,7 @@ void hardware_init(void)
 		/* Track 1 channel 1 = Gate*/
 		Europi.tracks[track].channels[GATE_OUT].enabled = TRUE;
 		Europi.tracks[track].channels[GATE_OUT].type = CHNL_TYPE_GATE;
+		Europi.tracks[track].channels[GATE_OUT].function = Gate;
 		Europi.tracks[track].channels[GATE_OUT].i2c_handle = pcf_handle;			
 		Europi.tracks[track].channels[GATE_OUT].i2c_device = DEV_PCF8574;
 		Europi.tracks[track].channels[GATE_OUT].i2c_channel = 1;		
@@ -1966,6 +1975,7 @@ void hardware_init(void)
 				/* Channel 0 = CV Output */
 				Europi.tracks[track].channels[CV_OUT].enabled = TRUE;
 				Europi.tracks[track].channels[CV_OUT].type = CHNL_TYPE_CV;
+				Europi.tracks[track].channels[CV_OUT].function = CV;
 				Europi.tracks[track].channels[CV_OUT].quantise = 0;			/* Quantization Off by default */
 				Europi.tracks[track].channels[CV_OUT].i2c_handle = handle;			
 				Europi.tracks[track].channels[CV_OUT].i2c_device = DEV_DAC8574;
@@ -1991,6 +2001,7 @@ void hardware_init(void)
 				if (gpio_handle >= 0) {
 					Europi.tracks[track].channels[GATE_OUT].enabled = TRUE;
 					Europi.tracks[track].channels[GATE_OUT].type = CHNL_TYPE_GATE;
+					Europi.tracks[track].channels[GATE_OUT].function = Gate;
 					Europi.tracks[track].channels[GATE_OUT].i2c_handle = gpio_handle;			
 					Europi.tracks[track].channels[GATE_OUT].i2c_device = DEV_MCP23008;
 					Europi.tracks[track].channels[GATE_OUT].i2c_channel = i; 		
@@ -2050,6 +2061,7 @@ void hardware_init(void)
             // finally, set up the Track object for this MIDI channel
             Europi.tracks[track].channels[CV_OUT].enabled = TRUE;
             Europi.tracks[track].channels[CV_OUT].type = CHNL_TYPE_MIDI;
+            Europi.tracks[track].channels[CV_OUT].function = MIDI;
             Europi.tracks[track].channels[CV_OUT].quantise = 0;			/* Quantization off by default */
             Europi.tracks[track].channels[CV_OUT].i2c_handle = handle;			
             Europi.tracks[track].channels[CV_OUT].i2c_device = DEV_SC16IS750;

@@ -191,9 +191,7 @@ enum slew_t {
 	Off,
 	Linear,
     Exponential,
-	RevExp,         // Reverse Exponential
-	ADSR,
-	AD
+	RevExp         // Reverse Exponential
 };
 
 enum slew_shape_t {
@@ -376,8 +374,15 @@ void gui_debug(void);
 /* CHANNEL TYPE */
 #define CHNL_TYPE_CV 0
 #define CHNL_TYPE_GATE 1
-#define CHNL_TYPE_TRIGGER 2
-#define CHNL_TYPE_MIDI 3
+#define CHNL_TYPE_MIDI 2
+/* Channel Function */
+enum chnl_function_t {
+	CV,
+	AD,
+    ADSR,
+    Gate,   // Not really used
+    MIDI    // Not really used
+};
 /* Voltage control type */
 #define VOCT 0				/* Volts per Octave */
 #define VHZ 1				/* Hertz per Volt */
@@ -479,7 +484,7 @@ struct adsr {
 	uint16_t a_end_value;	/* End value for Attack Ramp */
 	uint32_t a_length;		/* Length of Attack Ramp */
 	uint32_t d_length;		/* Length of Decay Ramp */
-    uint32_t s_level;       /* Sustain Level */
+    uint16_t s_level;       /* Sustain Level */
 	uint32_t s_length;		/* Length of Sustain */
 	uint16_t r_end_value;	/* End value for Release Ramp */
 	uint32_t r_length;		/* Length of Release Ramp */
@@ -497,6 +502,21 @@ struct ad {
 	uint16_t d_end_value;	/* End value for Decay Ramp */
 	uint32_t d_length;		/* Length of Decay Ramp */
 	enum shot_type_t shot_type; /* One-shot or Repeat */
+};
+
+/* One of these per track - holds the 
+ * shape of the AD / ADSR when the channel
+ * function is set to one of those types
+ */
+struct ad_adsr_t {
+	uint16_t a_end_value;	/* End value for Attack Ramp - set by CV level of step*/
+	uint32_t a_length;		/* Length of Attack Ramp */
+	uint32_t d_length;		/* Length of Decay Ramp */
+    uint16_t s_level;       /* Sustain Level - as  %of a_end_value */
+	uint32_t s_length;		/* Length of Sustain */
+	uint32_t r_length;		/* Length of Release Ramp */
+	enum shot_type_t shot_type; /* One-shot or Repeat */
+    enum slew_t slope_type; /* linear, exponential, Reverse Exponential */
 };
 
 struct midiChnl {
@@ -557,7 +577,8 @@ struct channel {
 	uint16_t scale_zero;			/* Value required to generate zero volt output */
 	uint16_t scale_max;				/* Value required to generate 10v output voltage */
 	int enabled;			/* Whether this channel is in use or not */
-	int type;				/* Types include CV, GATE, TRIGGER */
+	int type;				/* Types include CV, GATE, MIDI */
+    enum chnl_function_t function;     /* CV Channel function: CV, AD, ADSR */
 	int quantise;			/* whether this channel is quantised to a particular scale 0=OFF*/
 	long transpose;			/* fixed (transpose) voltage offset applied to this channel */
 	int	octaves;			/* How many octaves are covered from scale_zero to scale_max */
@@ -575,6 +596,7 @@ struct track{
 	int current_step;		    /* Tracks where this track is going next */
 	int last_step;			    /* sets the end step for a particular track */
     enum track_dir_t direction; /* Forwards, Backwards, Pendulum, Random */
+    struct ad_adsr_t ad_adsr;   /* Holds per-track AD or ADSR shapes */
 };
 /*
  * Europi is the main Container structure for the Hardware
@@ -586,7 +608,8 @@ struct europi{
  * hw_channel holds the Hardware config for a Channel - forms
  * part of the Europi_hw structure, and is only used to save the
  * hardware config, and to compare the current config with the 
- * saved config during program initialisation.
+ * saved config during program initialisation. Note that this
+ * doesn't hold things like Channel Function, which is sequence-specific
  */
 struct hw_channel{
 	int i2c_handle;				/* Handle to the i2c device that outputs this track */

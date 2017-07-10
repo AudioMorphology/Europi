@@ -259,22 +259,16 @@ void gui_singlestep(void){
         default:
         case Off:
             DrawText("Off",140,58,20,BLUE);
-            break;
+        break;
         case Linear:
             DrawText("Linear",140,58,20,BLUE);
-            break;
+        break;
         case Exponential:
             DrawText("Exponential",140,58,20,BLUE);
-            break;
+        break;
         case RevExp:
             DrawText("Reverse Exp",140,58,20,BLUE);
-            break;
-        case ADSR:
-            DrawText("ADSR",140,58,20,BLUE);
-            break;
-        case AD:
-            DrawText("Attack-Decay",140,58,20,BLUE);
-            break;
+        break;
     }
     DrawText("Slew Shape:",20,78,20,DARKGRAY);
     if(Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_type != Off){
@@ -283,13 +277,13 @@ void gui_singlestep(void){
             default:
             case Both:
                 DrawText("Both",140,78,20,BLUE);
-                break;
+            break;
             case Rising:
                 DrawText("Rising",140,78,20,BLUE);
-                break;
+            break;
             case Falling:
                 DrawText("Falling",140,78,20,BLUE);
-                break;
+            break;
         }
     }
     DrawText("Slew Length:",12,98,20,DARKGRAY);
@@ -302,25 +296,25 @@ void gui_singlestep(void){
         default:
         case Gate_Off:
             DrawText("Off",140,118,20,BLUE);
-            break;
+        break;
         case Gate_On:
             DrawText("On",140,118,20,BLUE);
-            break;
+        break;
         case Trigger:
             DrawText("Trigger",140,118,20,BLUE);
-            break;
+        break;
         case Gate_25:
             DrawText("25%",140,118,20,BLUE);
-            break;
+        break;
         case Gate_50:
             DrawText("50%",140,118,20,BLUE);
-            break;
+        break;
         case Gate_75:
             DrawText("75%",140,118,20,BLUE);
-            break;
+        break;
         case Gate_95:
             DrawText("95%",140,118,20,BLUE);
-            break;
+        break;
     }
     DrawText("Ratchets:",40,138,20,DARKGRAY);
     sprintf(txt,"%d",Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].ratchets);
