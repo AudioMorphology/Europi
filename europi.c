@@ -226,6 +226,12 @@ while (prog_running == 1){
         case SingleChannel:
             gui_SingleChannel();
         break;
+        case SingleAD:
+            gui_SingleAD();
+        break;
+        case SingleADSR:
+            gui_SingleADSR();
+        break;
     }
  
 /*

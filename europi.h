@@ -275,6 +275,7 @@ void select_first_track(void);
 void select_track(int track);
 void select_next_track(int dir);
 void select_next_step(int dir);
+void SwitchChannelFunction(int track);
 void set_loop_point(int dir);
 void select_next_quantisation(int dir);
 void select_next_direction(int dir);
@@ -315,12 +316,14 @@ void hardware_config(void);
 /* function prototypes in europi_gui.c */
 void gui_8x8(void);
 void gui_singlestep(void);
-void gui_grid(void);
 void gui_SingleChannel(void);
+void gui_SingleAD(void);
+void gui_SingleADSR(void);
 void gui_ButtonBar(void);
 void gui_MainMenu(void);
 void ShowScreenOverlays(void);
 void gui_debug(void);
+void gui_grid(void);
 
 /* function prototypes in touch.c */
 //void *TouchThread(void *arg);
@@ -416,7 +419,9 @@ typedef struct MENU{
 enum display_page_t {
 	GridView,
 	SingleChannel,
-    SingleStep
+    SingleStep,
+    SingleAD,
+    SingleADSR
 };
 
 /* Overlays are things such as Menus, 
@@ -442,6 +447,8 @@ enum display_page_t {
      int VerticalScrollBar;
      int SingleStep;
      int SingleChannel;
+     int SingleAD;
+     int SingleADSR;
      int ModalDialog;
  };
  

@@ -46,6 +46,7 @@ extern int disp_menu;
 extern int debug;
 extern int TuningOn;
 extern uint16_t TuningVoltage; 
+extern int SingleChannelOffset;
 extern int VerticalScrollPercent;
 extern char *fbp; 
 extern char input_txt[];
@@ -78,6 +79,7 @@ extern int first_file;
 
 /*
  * menu callback for Single Channel view
+ * !!!!To Do: worry about what sort of Single channel this is (AD, ADSR etc)
  */
 void seq_singlechnl(void) {
 	ClearScreenOverlays();
@@ -147,6 +149,8 @@ void ClearScreenOverlays(void){
     ScreenOverlays.VerticalScrollBar = 0;
     ScreenOverlays.SingleStep = 0;
     ScreenOverlays.SingleChannel = 0;
+    ScreenOverlays.SingleAD = 0;
+    ScreenOverlays.SingleADSR = 0;
     ScreenOverlays.ModalDialog = 0;
 }
 
@@ -172,6 +176,8 @@ int OverlayActive(void){
         (ScreenOverlays.VerticalScrollBar == 1)||
         (ScreenOverlays.SingleStep == 1) ||
         (ScreenOverlays.SingleChannel == 1) ||
+        (ScreenOverlays.SingleAD == 1) ||
+        (ScreenOverlays.SingleADSR == 1) ||
         (ScreenOverlays.ModalDialog == 1)
         ) return 1;
     else return 0;        
@@ -308,6 +314,55 @@ void select_next_step(int dir){
     // And turn the Gate output on
     GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
 }
+/* SwitchChannelFunction sets the appropriate Display Page
+ * and screen Overlays depending on whether this is a normal
+ * CV Channel, Ad or ADSR.It felt convenient to do this at 
+ * a single point, as this context switch will need to happen 
+ * in several different places as you scroll up and down tracks
+ */
+void SwitchChannelFunction(int track){
+    // Need to check which sort of Single channel display to set
+    if(Europi.tracks[track].channels[CV_OUT].type == CHNL_TYPE_CV){
+        // CV Channels can have a function of CV, AD or ADSR
+        switch(Europi.tracks[track].channels[CV_OUT].function){
+            default:
+            case CV:
+                DisplayPage = SingleChannel;
+                ScreenOverlays.SingleChannel = 1;
+                SingleChannelOffset = 0;
+                encoder_focus = none;
+                btnA_func = btnA_none;
+                btnB_func = btnB_tr_minus;
+                btnC_func = btnC_tr_plus;
+                btnD_func = btnD_done; 
+                save_run_stop = run_stop;
+            break;
+            case AD:
+                DisplayPage = SingleAD;
+                ScreenOverlays.SingleAD = 1;
+                SingleChannelOffset = 0;
+                encoder_focus = none;
+                btnA_func = btnA_none;
+                btnB_func = btnB_tr_minus;
+                btnC_func = btnC_tr_plus;
+                btnD_func = btnD_done; 
+                save_run_stop = run_stop;
+            break;
+            case ADSR:
+                DisplayPage = SingleADSR;
+                ScreenOverlays.SingleADSR = 1;
+                SingleChannelOffset = 0;
+                encoder_focus = none;
+                btnA_func = btnA_none;
+                btnB_func = btnB_tr_minus;
+                btnC_func = btnC_tr_plus;
+                btnD_func = btnD_done; 
+                save_run_stop = run_stop;
+            break;
+        }
+    }
+}
+
 /*
  * Set Loop Point moves the current
  * last step in a track one step up or down

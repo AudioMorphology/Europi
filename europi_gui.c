@@ -129,16 +129,7 @@ void gui_8x8(void){
                 edit_track = start_track+track;
                 select_track(start_track+track);
                 ClearScreenOverlays();
-                DisplayPage = SingleChannel;
-                ScreenOverlays.SingleChannel = 1;
-                SingleChannelOffset = 0;
-                encoder_focus = none;
-                btnA_func = btnA_none;
-                btnB_func = btnB_tr_minus;
-                btnC_func = btnC_tr_plus;
-                btnD_func = btnD_done; 
-                save_run_stop = run_stop;
-
+                SwitchChannelFunction(edit_track);
             }
         }
         for(column=0;column<8;column++){
@@ -411,52 +402,6 @@ void gui_singlestep(void){
 
 
 /*
- * GUI_GRID Displays a grid of 32 steps by 24 channels - a bit
- * too dense to be useable on a TFT display, but an interesting
- * experiment in displaying a lot of data on a small screen
- */
-void gui_grid(void){
-    ClearBackground(RAYWHITE);
-    int track;
-    int step;
-    char track_no[20];
-    int txt_len;
-
-    for(track=0;track<24;track++){
-        // Track Number
-        sprintf(track_no,"%d",track+1);
-        txt_len = MeasureText(track_no,10);
-        DrawText(track_no,12-txt_len,track * 10,10,DARKGRAY);
-        for(step=0;step<32;step++){
-            if(step == Europi.tracks[track].last_step){
-                // Paint last step
-                DrawRectangle(15 + (step * 9), track * 10, 8, 9, BLACK); 
-            }
-            else if(step == Europi.tracks[track].current_step){
-                // Paint current step
-                DrawRectangle(15 + (step * 9), track * 10, 8, 9, LIME); 
-                // Gate state for current step
-                if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_type != Gate_Off){
-                    if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repetitions > 1) {
-                        DrawRectangle(15 + (32 * 9), track * 10, 8, 9, BLACK);	
-                    }
-                    else {
-                        DrawRectangle(15 + (32 * 9), track * 10, 8, 9, VIOLET);	
-                    }	
-                }
-                else {
-                    DrawRectangle(15 + (32 * 9), track * 10, 8, 9, WHITE);	
-                }
-            }
-            else {
-                // paint blank step
-                DrawRectangle(15 + (step * 9), track * 10, 8, 9, MAROON); 
-            }
-        }
-    }
-    
-}
-/*
  * gui_SingleChannel displays just the currently
  * selected channel on a page of its own, but only
  * in blocks of 8 steps
@@ -661,7 +606,47 @@ void gui_SingleChannel(void){
     ShowScreenOverlays();
     EndDrawing();
 }
+/* gui_SingleAD displays & edits the AD profile for 
+ * a track of type SingleAD
+ */
+void gui_SingleAD(void){
+    int track;
+    
+    BeginDrawing();
+    DrawTexture(MainScreenTexture,0,0,WHITE);
+    for (track = 0; track < MAX_TRACKS; track++){
+        if (Europi.tracks[track].selected == TRUE){
+            
+            DrawText("Track type AD",30,100,20,DARKGRAY);
 
+        }
+    }
+    // Handle any screen overlays - these need to 
+    // be added within the Drawing loop
+    ShowScreenOverlays();
+    EndDrawing();
+}
+
+/* gui_SingleADSR displays & edits the ADSR profile for 
+ * a track of type SingleADSR
+ */
+void gui_SingleADSR(void){
+    int track;
+    
+    BeginDrawing();
+    DrawTexture(MainScreenTexture,0,0,WHITE);
+    for (track = 0; track < MAX_TRACKS; track++){
+        if (Europi.tracks[track].selected == TRUE){
+
+            DrawText("Track type ADSR",30,100,20,DARKGRAY);
+        
+        }
+    }
+    // Handle any screen overlays - these need to 
+    // be added within the Drawing loop
+    ShowScreenOverlays();
+    EndDrawing();
+}
 
 /*
  * gui_SingleChannel displays just the currently
@@ -841,6 +826,52 @@ void gui_SingleChannel_Old(void){
     EndDrawing();
 }
 
+/*
+ * GUI_GRID Displays a grid of 32 steps by 24 channels - a bit
+ * too dense to be useable on a TFT display, but an interesting
+ * experiment in displaying a lot of data on a small screen
+ */
+void gui_grid(void){
+    ClearBackground(RAYWHITE);
+    int track;
+    int step;
+    char track_no[20];
+    int txt_len;
+
+    for(track=0;track<24;track++){
+        // Track Number
+        sprintf(track_no,"%d",track+1);
+        txt_len = MeasureText(track_no,10);
+        DrawText(track_no,12-txt_len,track * 10,10,DARKGRAY);
+        for(step=0;step<32;step++){
+            if(step == Europi.tracks[track].last_step){
+                // Paint last step
+                DrawRectangle(15 + (step * 9), track * 10, 8, 9, BLACK); 
+            }
+            else if(step == Europi.tracks[track].current_step){
+                // Paint current step
+                DrawRectangle(15 + (step * 9), track * 10, 8, 9, LIME); 
+                // Gate state for current step
+                if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_type != Gate_Off){
+                    if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repetitions > 1) {
+                        DrawRectangle(15 + (32 * 9), track * 10, 8, 9, BLACK);	
+                    }
+                    else {
+                        DrawRectangle(15 + (32 * 9), track * 10, 8, 9, VIOLET);	
+                    }	
+                }
+                else {
+                    DrawRectangle(15 + (32 * 9), track * 10, 8, 9, WHITE);	
+                }
+            }
+            else {
+                // paint blank step
+                DrawRectangle(15 + (step * 9), track * 10, 8, 9, MAROON); 
+            }
+        }
+    }
+    
+}
 
 /*
  * ShowScreenOverlays is called from within the 
@@ -1431,6 +1462,8 @@ void ShowScreenOverlays(void){
                 else {
                     edit_step--;
                 }
+                // Set the display type for this new Track
+                
             }
             if (btnC_state == 1){
                 // Check for Next
@@ -1442,34 +1475,97 @@ void ShowScreenOverlays(void){
 
     }
     if(ScreenOverlays.SingleChannel == 1){
-            char strTrack[5];
-            DrawTexture(TopBarTexture,0,0,WHITE);
-            DrawTexture(Text2chTexture,75,2,WHITE); // Box for Track Number
-            DrawText("Track:",5,5,20,DARKGRAY);
-            sprintf(strTrack,"%02d",edit_track+1);
-            DrawText(strTrack,80,5,20,DARKGRAY);
-            if (btnB_state == 1){
-                // Check for Prev
-                btnB_state = 0;
-                if(edit_track <= 0){
-                    edit_track = last_track-1;
-                }
-                else {
-                    edit_track--;
-                }
-                SingleChannelOffset = 0;
-                select_track(edit_track);
+        char strTrack[5];
+        DrawTexture(TopBarTexture,0,0,WHITE);
+        DrawTexture(Text2chTexture,75,2,WHITE); // Box for Track Number
+        DrawText("Track:",5,5,20,DARKGRAY);
+        sprintf(strTrack,"%02d",edit_track+1);
+        DrawText(strTrack,80,5,20,DARKGRAY);
+        if (btnB_state == 1){
+            // Check for Prev
+            btnB_state = 0;
+            if(edit_track <= 0){
+                edit_track = last_track-1;
             }
-            if (btnC_state == 1){
-                // Check for Next
-                if(++edit_track >= last_track){
-                    edit_track=0;
-                }
-                btnC_state = 0;
-                SingleChannelOffset = 0;
-                select_track(edit_track);
+            else {
+                edit_track--;
             }
-
+            SingleChannelOffset = 0;
+            select_track(edit_track);
+            SwitchChannelFunction(edit_track);
+        }
+        if (btnC_state == 1){
+            // Check for Next
+            if(++edit_track >= last_track){
+                edit_track=0;
+            }
+            btnC_state = 0;
+            SingleChannelOffset = 0;
+            select_track(edit_track);
+            SwitchChannelFunction(edit_track);
+        }
+    }
+    if(ScreenOverlays.SingleAD == 1){
+        char strTrack[5];
+        DrawTexture(TopBarTexture,0,0,WHITE);
+        DrawTexture(Text2chTexture,75,2,WHITE); // Box for Track Number
+        DrawText("Track:",5,5,20,DARKGRAY);
+        sprintf(strTrack,"%02d",edit_track+1);
+        DrawText(strTrack,80,5,20,DARKGRAY);
+        if (btnB_state == 1){
+            // Check for Prev
+            btnB_state = 0;
+            if(edit_track <= 0){
+                edit_track = last_track-1;
+            }
+            else {
+                edit_track--;
+            }
+            SingleChannelOffset = 0;
+            select_track(edit_track);
+            SwitchChannelFunction(edit_track);
+        }
+        if (btnC_state == 1){
+            // Check for Next
+            if(++edit_track >= last_track){
+                edit_track=0;
+            }
+            btnC_state = 0;
+            SingleChannelOffset = 0;
+            select_track(edit_track);
+            SwitchChannelFunction(edit_track);
+        }
+    }
+    if(ScreenOverlays.SingleADSR == 1){
+        char strTrack[5];
+        DrawTexture(TopBarTexture,0,0,WHITE);
+        DrawTexture(Text2chTexture,75,2,WHITE); // Box for Track Number
+        DrawText("Track:",5,5,20,DARKGRAY);
+        sprintf(strTrack,"%02d",edit_track+1);
+        DrawText(strTrack,80,5,20,DARKGRAY);
+        if (btnB_state == 1){
+            // Check for Prev
+            btnB_state = 0;
+            if(edit_track <= 0){
+                edit_track = last_track-1;
+            }
+            else {
+                edit_track--;
+            }
+            SingleChannelOffset = 0;
+            select_track(edit_track);
+            SwitchChannelFunction(edit_track);
+        }
+        if (btnC_state == 1){
+            // Check for Next
+            if(++edit_track >= last_track){
+                edit_track=0;
+            }
+            btnC_state = 0;
+            SingleChannelOffset = 0;
+            select_track(edit_track);
+            SwitchChannelFunction(edit_track);
+        }
     }
     // The soft button function bar is always displayed 
     // at the bottom of the screen
@@ -1659,6 +1755,8 @@ void gui_ButtonBar(void){
                 btnD_state = 0;
                 // Don't know what we're done doing, but don't care
                 if(DisplayPage == SingleStep) DisplayPage = GridView;
+                if(DisplayPage == SingleAD) DisplayPage = GridView;
+                if(DisplayPage == SingleADSR) DisplayPage = GridView;
                 if(DisplayPage == SingleChannel) DisplayPage = GridView;
                 ClearScreenOverlays();
                 buttonsDefault();
