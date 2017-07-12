@@ -1583,7 +1583,7 @@ int MidiMinionFinder(unsigned address)
 	int mid_handle;
 	i2cAddr = MID_BASE_ADDR | (address & 0x7);
 	mid_handle = i2cOpen(1,i2cAddr,0);
-    log_msg("MINION Addr: %x, Handle: %d\n",i2cAddr, mid_handle);
+    //log_msg("MINION Addr: %x, Handle: %d\n",i2cAddr, mid_handle);
 	if (mid_handle < 0) return -1;
     /* just to make sure, write out something random
      * to one of the user registers, and check that
@@ -1593,7 +1593,7 @@ int MidiMinionFinder(unsigned address)
 	if(i2cWriteByteData(mid_handle,SC16IS750_SPR,rnd_val) !=0) return -1;   // Return on write failure
     ret_val = i2cReadByteData(mid_handle,SC16IS750_SPR);
     if(ret_val != rnd_val) {
-        i2cClose(mid_handle);
+        i2cClose(mid_handle);   //for some reason this doesn't free up the handle for re-use but, hey ho.
         return -1;    
     }
     else {
@@ -1854,7 +1854,7 @@ void hardware_init(void)
 	handle = EuropiFinder();
 	if (handle >=0){
 		/* we have a Europi - it supports 2 Tracks each with 2 channels (CV + GATE) */
-		log_msg("Europi Found on i2cAddress %d handle = %d\n",address, handle);
+        log_msg("Europi found on Address 08\n");
 		is_europi = TRUE;
 		/* As this is a Europi, then there should be a PCF8574 GPIO Expander on address 0x38 */
 		pcf_addr = PCF_BASE_ADDR;
@@ -1863,7 +1863,7 @@ void hardware_init(void)
 		if(pcf_handle >= 0) {
 			/* Gates off, LEDs off */
 			i2cWriteByte(pcf_handle, (unsigned)(0xF0));
-            log_msg("Europi PCF8574 Found on i2cAddress %d handle = %d\n",pcf_addr, pcf_handle);
+            log_msg("Europi DAC8574 Addr:%0x, Handle:%0x, PCF8574 Addr:%0x Handle:%0x\n",DAC_BASE_ADDR,handle,PCF_BASE_ADDR,pcf_handle);
 		}
 		Europi.tracks[track].channels[CV_OUT].enabled = TRUE;
 		Europi.tracks[track].channels[CV_OUT].type = CHNL_TYPE_CV;
@@ -1957,17 +1957,16 @@ void hardware_init(void)
 	for (address=0;address<=7;address++){
 		handle = MinionFinder(address);
 		if(handle >= 0){
-			log_msg("Minion Found on Address %d handle = %d\n",address, handle);
+			log_msg("Minion Found on Address %d\n",address);
 			/* Get a handle to the associated MCP23008 */
 			mcp_addr = MCP_BASE_ADDR | (address & 0x7);	
 			gpio_handle = i2cOpen(1,mcp_addr,0);
-			//log_msg("gpio_handle: %d\n",gpio_handle);
+            log_msg("Minion DAC8574 Addr:%0x, Handle:%0x, MCP23008 Addr:%0x Handle:%0x\n",DAC_BASE_ADDR | (address & 0x3),handle,mcp_addr,gpio_handle);
 			if(gpio_handle < 0){log_msg("failed to open MCP23008 associated with DAC8574 on Addr: %0x\n",address);}
 			/* Set MCP23008 IO direction to Output, and turn all Gates OFF */
 			if(gpio_handle >= 0) {
 				i2cWriteWordData(gpio_handle, 0x00, (unsigned)(0x0));
 				i2cWriteByteData(gpio_handle, 0x09, 0x0);
-                log_msg("Minion MCP23008 Found on i2cAddress %d handle = %d\n",mcp_addr, gpio_handle);
 				}
 			int i;
 			for(i=0;i<4;i++){
@@ -2044,7 +2043,8 @@ void hardware_init(void)
         }
         handle = MidiMinionFinder(address);
 		if(handle >= 0){
-			log_msg("MIDI Minion Found on Address %x handle = %d\n",address, handle);
+			log_msg("MIDI Minion Found on Address %d\n",i);
+            log_msg("MIDI Minion SC16IS75 Addr:%0x, Handle:%d\n",address,handle);
             // Set the Baud Rate divisor = 4
             // Prescaler is set to 1, so Divisor = 2,000,000 / Baudrate * 16
             // MIDI Baud Rate = 31,250 so Divisor = 4
