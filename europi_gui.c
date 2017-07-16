@@ -610,15 +610,32 @@ void gui_SingleChannel(void){
  * a track of type SingleAD
  */
 void gui_SingleAD(void){
-    int track;
+    int track,i;
+    Vector2 LineStart;
+    Vector2 LineEnd;
+    Rectangle Vertex;
+    float x;
     
     BeginDrawing();
     DrawTexture(MainScreenTexture,0,0,WHITE);
     for (track = 0; track < MAX_TRACKS; track++){
         if (Europi.tracks[track].selected == TRUE){
-            
-            DrawText("Track type AD",30,100,20,DARKGRAY);
-
+            LineStart.x = 8;
+            LineStart.y = 20;
+            LineEnd.x = 8;
+            LineEnd.y = 210;
+            // Use the pre-calculated Logarithmic Slew Profile to draw
+            // a horizontal log scale
+            for(i=0;i<=100;i+=5){
+                x = (slew_profiles[3][i]*(float)308)/100;
+                LineStart.x = 8+(int)x;
+                LineEnd.x = 8+(int)x;
+                DrawLineEx(LineStart,LineEnd,1,CLR_DARKBLUE);
+            }
+        // Draw the Vertex
+        x = 30 + 200*((float)Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value / (float)60000);
+        log_msg("X: %f\n",x);
+        DrawRectangleLines(50,(int)x-4,8,8,BLACK);
         }
     }
     // Handle any screen overlays - these need to 
@@ -1582,7 +1599,7 @@ void ShowScreenOverlays(void){
  */
 void gui_ButtonBar(void){
     Rectangle buttonRectangle = {0,0,0,0};
-    //DrawTexture(ButtonBarTexture,0,213,WHITE);
+    DrawTexture(ButtonBarTexture,0,213,WHITE);
     // Button A
     buttonRectangle.x = 0;
     buttonRectangle.y = 213;

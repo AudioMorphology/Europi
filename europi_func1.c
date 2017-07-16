@@ -733,6 +733,12 @@ void *SlewThread(void *arg)
 void *GateThread(void *arg)
 {
 	struct gate *pGate = (struct gate *)arg;
+    // If global tuning is on, ignore all Gate info, just turn all the gates ON and quit
+    if(TuningOn == TRUE){
+        GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,1); 
+        free(pGate);
+        return(0);
+    }
     if (pGate->ratchets <= 1){
         //Normal Gate
         switch(pGate->gate_type){
