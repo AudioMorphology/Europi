@@ -29,7 +29,7 @@
 * 
 * These have been pre-calculated in order to save computational time
 */
-static float slew_profiles[6][101]={
+static float slew_profiles[10][101]={
 // Linear Rising - Offset 0
 {0.0000,1.0000,2.0000,3.0000,4.0000,5.0000,6.0000,7.0000,8.0000,9.0000,10.0000,
 11.0000,12.0000,13.0000,14.0000,15.0000,16.0000,17.0000,18.0000,19.0000,20.0000,
