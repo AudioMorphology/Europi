@@ -673,7 +673,7 @@ void *SlewThread(void *arg)
 		pitch_jump = pSlew->end_value - pSlew->start_value;
         profile_offset = 0;
         while((num_steps > 0) && (this_value <= pSlew->end_value)){
-            this_value = pSlew->start_value + ((slew_profiles[slew_profile][(int)profile_offset] / (float)100) * pitch_jump);
+            this_value = pSlew->start_value + ((slew_profiles[0][slew_profile][(int)profile_offset] / (float)100) * pitch_jump);
             DACSingleChannelWrite(pSlew->track,pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, this_value);
 			usleep(slew_interval / 2);		
             profile_offset += profile_index;
@@ -700,7 +700,7 @@ void *SlewThread(void *arg)
 		pitch_jump = pSlew->start_value - pSlew->end_value;
         profile_offset = 0;
         while((num_steps > 0) && (this_value >= pSlew->end_value)){
-            this_value = pSlew->end_value + ((slew_profiles[slew_profile][(int)profile_offset] / (float)100) * pitch_jump);
+            this_value = pSlew->end_value + ((slew_profiles[1][slew_profile][(int)profile_offset] / (float)100) * pitch_jump);
             DACSingleChannelWrite(pSlew->track,pSlew->i2c_handle, pSlew->i2c_address, pSlew->i2c_channel, this_value);
 			usleep(slew_interval / 2);		
             profile_offset += profile_index;

@@ -610,11 +610,14 @@ void gui_SingleChannel(void){
  * a track of type SingleAD
  */
 void gui_SingleAD(void){
-    int track,i;
+    int track,i,j;
     Vector2 LineStart;
     Vector2 LineEnd;
+    Vector2 Origin;
+    Vector2 VertexCentre;
+    Vector2 ADEnd;
     Rectangle Vertex;
-    float x;
+    float x,y;
     
     BeginDrawing();
     DrawTexture(MainScreenTexture,0,0,WHITE);
@@ -627,15 +630,55 @@ void gui_SingleAD(void){
             // Use the pre-calculated Logarithmic Slew Profile to draw
             // a horizontal log scale
             for(i=0;i<=100;i+=5){
-                x = (slew_profiles[3][i]*(float)308)/100;
+                x = (slew_profiles[0][3][i]*(float)308)/100;
                 LineStart.x = 8+(int)x;
                 LineEnd.x = 8+(int)x;
                 DrawLineEx(LineStart,LineEnd,1,CLR_DARKBLUE);
             }
-        // Draw the Vertex
-        x = 30 + 200*((float)Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value / (float)60000);
-        log_msg("X: %f\n",x);
-        DrawRectangleLines(50,(int)x-4,8,8,BLACK);
+            // Draw the Curve
+            Origin.x = 8;
+            Origin.y = 210;
+
+            // Draw the Vertex
+            y = Origin.y - 180*((float)Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value / (float)60000);
+            VertexCentre.x = 100;
+            VertexCentre.y = y;
+            DrawRectangleLines(VertexCentre.x-4,VertexCentre.y-4,8,8,BLACK);
+            
+            
+            // Draw Rising curve
+            LineStart.x = Origin.x;
+            LineStart.y = Origin.y - ((slew_profiles[0][7][0]*(float)(Origin.y-VertexCentre.y))/100);
+            for(i=1;i<100;i++){
+                LineEnd.x = Origin.x+(((VertexCentre.x-Origin.x)*i)/100);
+                LineEnd.y = Origin.y - ((slew_profiles[0][7][i]*(float)(Origin.y-VertexCentre.y))/100);
+                DrawLineEx(LineStart,LineEnd,1,BLACK);
+                LineStart.x = LineEnd.x;
+                LineStart.y = LineEnd.y;
+            }
+            //Make sure graph actually arrives in the Vertex
+            DrawLineEx(LineStart,VertexCentre,1,BLACK);
+            
+            // Draw Falling curve
+            ADEnd.x = 200;
+            ADEnd.y = 210;
+            LineStart.x = VertexCentre.x;
+            LineStart.y = VertexCentre.y;
+            for(i=1;i<100;i++){
+                LineEnd.x = VertexCentre.x+(((ADEnd.x-VertexCentre.x)*i)/100);
+                LineEnd.y = VertexCentre.y + ((((float)100-slew_profiles[1][7][i])*(float)(ADEnd.y-VertexCentre.y))/100);
+                DrawLineEx(LineStart,LineEnd,1,BLACK);
+                LineStart.x = LineEnd.x;
+                LineStart.y = LineEnd.y;
+            }
+            //Make sure the line actually arrives at the endpoint
+            DrawLineEx(LineStart,ADEnd,1,BLACK);
+
+            //Draw the end Vertex
+            DrawRectangleLines(ADEnd.x-4,ADEnd.y-4,8,8,BLACK);
+            
+            
+        
         }
     }
     // Handle any screen overlays - these need to 

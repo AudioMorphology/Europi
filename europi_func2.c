@@ -951,7 +951,7 @@ void init_sequence(void)
 
     // AD Profile on channel 4
     Europi.tracks[3].channels[CV_OUT].function = AD;
-    Europi.tracks[3].ad_adsr.a_length = 100000;
+    Europi.tracks[3].ad_adsr.a_length = 000000;
     Europi.tracks[3].ad_adsr.d_length = 200000;
 
     // ADSR Profile on Channel 5
