@@ -1,0 +1,49 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP DAC8574
+D Quad 16-Bit I2C DAC
+K Quad 16-Bit I2C DAC
+$ENDCMP
+#
+$CMP LM7805
+D Linear Regulator +5V
+K POWER REGUL
+F regulator\lm78xx.pdf
+$ENDCMP
+#
+$CMP LM7812
+D Linear Regulator +12V
+K POWER REGUL
+F regulator\lm78xx.pdf
+$ENDCMP
+#
+$CMP MCP23008
+D 8-Bit I/O Expander
+K GPIO Expander I2C
+$ENDCMP
+#
+$CMP OPA2130
+D Dual FET-input precision Op Amp
+K Dual Op Amp FET
+$ENDCMP
+#
+$CMP OPA4130
+D Quad FET-input precision Op Amp
+K Op Amp FET Quad
+$ENDCMP
+#
+$CMP PCF8574A
+D 8-Bit I2C GPIO Expander
+$ENDCMP
+#
+$CMP SC16IS750
+D Single UART with I2C and SPI Interfaces
+K UART, I2C, SPI
+$ENDCMP
+#
+$CMP SN74HC125
+D Quad tri-state buffer
+K buffer quad
+$ENDCMP
+#
+#End Doc Library
