@@ -25,7 +25,7 @@
 #include <stdio.h>
  
 #include "europi.h"
-#include "../raylib/release/rpi/raylib.h"
+#include "../raylib/src/raylib.h"
 
 extern int clock_freq;
 extern int step_ticks;
@@ -70,7 +70,8 @@ extern int btnC_state;
 extern int btnD_state;
 extern int edit_track;
 extern int edit_step;
-extern struct screen_overlays ScreenOverlays;
+//extern struct screen_overlays ScreenOverlays;
+extern uint32_t ActiveOverlays;
 extern enum display_page_t DisplayPage;
 extern struct europi Europi;
 extern char **files;
@@ -95,17 +96,17 @@ void gui_8x8(void){
      */
     if(last_track > 8){
         start_track = ((last_track-8) * VerticalScrollPercent) / 100;
-        /* Don't display the Vertical Scroll Ber in certain situations */
-        if(ScreenOverlays.ModalDialog == 1) { 
-        ScreenOverlays.VerticalScrollBar = 0;
+        /* Don't display the Vertical Scroll Bar in certain situations */
+        if(ActiveOverlays & ovl_ModalDialog) { 
+        ActiveOverlays &= !ovl_VerticalScrollBar;
         }
         else {
-            ScreenOverlays.VerticalScrollBar = 1;
+            ActiveOverlays |= ovl_VerticalScrollBar;
         }
     }
     else {
         start_track = 0;
-        ScreenOverlays.VerticalScrollBar = 0;
+        ActiveOverlays &= !ovl_VerticalScrollBar;
     }
     BeginDrawing();
     DrawTexture(MainScreenTexture,0,0,WHITE);
@@ -122,7 +123,8 @@ void gui_8x8(void){
         trackRectangle.y = 8 + (track * 25);
         trackRectangle.width = 67;
         trackRectangle.height = 26;
-        if(ScreenOverlays.MainMenu == 0){
+//        if(ScreenOverlays.MainMenu == 0){
+		if(OverlayActive( 0 ) == 0){
             // Only if no menus or overlays active
             if (CheckCollisionPointRec(touchPosition, trackRectangle) && (currentGesture1 != GESTURE_NONE)){
                 // Open this track in a Single Channel view
@@ -138,7 +140,7 @@ void gui_8x8(void){
             stepRectangle.width = 22;
             stepRectangle.height = 22;
             // Check gesture collision
-            if(ScreenOverlays.MainMenu == 0){
+            if(OverlayActive(ovl_VerticalScrollBar) == 0){
                 // Only if no Menus or Overlays active
                 if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture1 != GESTURE_NONE)){
                     // Open this step in the Single Step editor
@@ -147,7 +149,7 @@ void gui_8x8(void){
                     select_track(start_track+track);
                     ClearScreenOverlays();
                     DisplayPage = SingleStep;
-                    ScreenOverlays.SingleStep = 1;
+                    ActiveOverlays |= ovl_SingleStep;
                     encoder_focus = none;
                     btnA_func = btnA_none;
                     btnB_func = btnB_prev;
@@ -214,7 +216,7 @@ void gui_singlestep(void){
             edit_step = (offset*8)+column;
             ClearScreenOverlays();
             DisplayPage = SingleStep;
-            ScreenOverlays.SingleStep = 1;
+            ActiveOverlays |= ovl_SingleStep;
             encoder_focus = none;
             btnA_func = btnA_none;
             btnB_func = btnB_prev;
@@ -378,6 +380,7 @@ void gui_singlestep(void){
         touchRectangle.x = x;
         touchRectangle.y = 203;
         touchRectangle.width = 8;
+        touchRectangle.width = 8;
         touchRectangle.height = 8;
         if(step == edit_step){
             DrawRectangleRec(touchRectangle,YELLOW);
@@ -495,7 +498,7 @@ void gui_SingleChannel(void){
                     edit_step = SingleChannelOffset+column;
                     ClearScreenOverlays();
                     DisplayPage = SingleStep;
-                    ScreenOverlays.SingleStep = 1; 
+                    ActiveOverlays |= ovl_SingleStep; 
                     encoder_focus = none;
                     btnA_func = btnA_none;
                     btnB_func = btnB_prev;
@@ -941,12 +944,12 @@ void gui_grid(void){
  * displayed page
  */
 void ShowScreenOverlays(void){
-    if(ScreenOverlays.MainMenu == 1){
+    if(ActiveOverlays & ovl_MainMenu){
         ClearScreenOverlays();
-        ScreenOverlays.MainMenu = 1;
+        ActiveOverlays |= ovl_MainMenu;
         gui_MainMenu();
     }
-    if(ScreenOverlays.ModalDialog == 1){
+    if(ActiveOverlays & ovl_ModalDialog){
         DrawTexture(TopBarTexture,0,0,WHITE);
         DrawRectangle(5,28, 309, 184, CLR_LIGHTBLUE);
         int txt_len = MeasureText(modal_dialog_txt1,20);
@@ -959,7 +962,7 @@ void ShowScreenOverlays(void){
         DrawText(modal_dialog_txt4,158-(txt_len/2),140,20,DARKGRAY);
         
     }
-    if(ScreenOverlays.SetZero == 1){
+    if(ActiveOverlays & ovl_SetZero){
         int track = 0;
         char str[80];
         char strTrack[5];
@@ -1005,7 +1008,7 @@ void ShowScreenOverlays(void){
             //else set_loop_point(UP);
         }
     }
-    if(ScreenOverlays.SetTen == 1){
+    if(ActiveOverlays & ovl_SetTen){
         int track = 0;
         char str[80];
         char strTrack[5];
@@ -1051,7 +1054,7 @@ void ShowScreenOverlays(void){
             //else set_loop_point(UP);
         }
     }
-    if(ScreenOverlays.SetLoop == 1){
+    if(ActiveOverlays & ovl_SetLoop){
         int track = 0;
         char str[80];
         char strTrack[5];
@@ -1098,7 +1101,7 @@ void ShowScreenOverlays(void){
         }
 
     }
-    if(ScreenOverlays.SetSlew == 1){
+    if(ActiveOverlays & ovl_SetSlew){
         //TODO: This isn't finished yet, and probably needs a 
         //double-height control panel to get all the detail in 
         int track = 0;
@@ -1157,7 +1160,7 @@ void ShowScreenOverlays(void){
         }
 
     }
-    if(ScreenOverlays.SetPitch == 1){ 
+    if(ActiveOverlays & ovl_SetPitch){ 
         int track = 0;
         char strTrack[5];
         char strStep[5];
@@ -1244,7 +1247,7 @@ void ShowScreenOverlays(void){
         }
        
     }
-    if(ScreenOverlays.SetQuantise == 1){
+    if(ActiveOverlays & ovl_SetQuantise){
         int track = 0;
         char str[80];
         char strTrack[5];
@@ -1292,7 +1295,7 @@ void ShowScreenOverlays(void){
  
    }
 
-    if(ScreenOverlays.SetDirection == 1){   // track Direction
+    if(ActiveOverlays & ovl_SetDirection){   // track Direction
         int track = 0;
         char str[80];
         char strTrack[5];
@@ -1356,7 +1359,7 @@ void ShowScreenOverlays(void){
 
     
     
-    if(ScreenOverlays.Keyboard == 1){
+    if(ActiveOverlays & ovl_Keyboard){
 //        lastGesture = currentGesture;
         Rectangle btnHighlight = {0,0,0,0};
 //        touchPosition = GetTouchPosition(0);
@@ -1390,7 +1393,7 @@ void ShowScreenOverlays(void){
             }
         }
     }
-    if(ScreenOverlays.FileOpen == 1){
+    if(ActiveOverlays & ovl_FileOpen){
         Rectangle fileHighlight = {0,0,0,0};
         //touchPosition = GetTouchPosition(0);
         //currentGesture = GetGestureDetected();
@@ -1436,7 +1439,7 @@ void ShowScreenOverlays(void){
         }
         
     }
-    if(ScreenOverlays.FileSaveAs == 1){
+    if(ActiveOverlays & ovl_FileSaveAs){
         // Top data entry bar
         DrawTexture(TopBarTexture,0,0,WHITE);
         DrawTexture(TextInputTexture,103,1,WHITE);
@@ -1473,7 +1476,7 @@ void ShowScreenOverlays(void){
             }
         }       
     }
-    if(ScreenOverlays.VerticalScrollBar == 1){
+    if(ActiveOverlays & ovl_VerticalScrollBar){
         // Vertical scroll bar on RHS of screen
         DrawTexture(VerticalScrollBarTexture,303,4,WHITE);
         int ScrollHandlePosn = (((VERTICAL_SCROLL_MAX-VERTICAL_SCROLL_MIN) * VerticalScrollPercent) / 100) + VERTICAL_SCROLL_MIN;
@@ -1501,7 +1504,7 @@ void ShowScreenOverlays(void){
             }
         }
     }
-    if(ScreenOverlays.SingleStep == 1){
+    if(ActiveOverlays & ovl_SingleStep){
             char strTrack[5];
             char strStep[5];
             DrawTexture(TopBarTexture,0,0,WHITE);
@@ -1534,7 +1537,7 @@ void ShowScreenOverlays(void){
             }
 
     }
-    if(ScreenOverlays.SingleChannel == 1){
+    if(ActiveOverlays & ovl_SingleChannel){
         char strTrack[5];
         DrawTexture(TopBarTexture,0,0,WHITE);
         DrawTexture(Text2chTexture,75,2,WHITE); // Box for Track Number
@@ -1565,7 +1568,7 @@ void ShowScreenOverlays(void){
             SwitchChannelFunction(edit_track);
         }
     }
-    if(ScreenOverlays.SingleAD == 1){
+    if(ActiveOverlays & ovl_SingleAD){
         char strTrack[5];
         DrawTexture(TopBarTexture,0,0,WHITE);
         DrawTexture(Text2chTexture,75,2,WHITE); // Box for Track Number
@@ -1596,7 +1599,7 @@ void ShowScreenOverlays(void){
             SwitchChannelFunction(edit_track);
         }
     }
-    if(ScreenOverlays.SingleADSR == 1){
+    if(ActiveOverlays & ovl_SingleADSR){
         char strTrack[5];
         DrawTexture(TopBarTexture,0,0,WHITE);
         DrawTexture(Text2chTexture,75,2,WHITE); // Box for Track Number
@@ -1679,8 +1682,8 @@ void gui_ButtonBar(void){
             DrawText("Menu",95,217,20,DARKGRAY);
             if (btnB_state == 1){
                 btnB_state = 0;
-                ScreenOverlays.MainMenu ^= 1;
-                if(ScreenOverlays.MainMenu == 1){
+                ActiveOverlays ^= ovl_MainMenu;
+                if(ActiveOverlays & ovl_MainMenu){
                     encoder_focus = menu_on;
                 }
                 else {
@@ -1697,7 +1700,7 @@ void gui_ButtonBar(void){
             if (btnB_state == 1){
                 btnB_state = 0;
                 //Check what we're saving...
-                if(ScreenOverlays.FileSaveAs == 1){
+                if(ActiveOverlays & ovl_FileSaveAs){
                     ClearScreenOverlays();
                     buttonsDefault();
                     ClearMenus();
@@ -1717,7 +1720,7 @@ void gui_ButtonBar(void){
         break;
         case btnB_cancel:
             DrawText("Cancel",86,217,20,DARKGRAY);
-            if ((ScreenOverlays.ModalDialog == 1) && (btnB_state == 1)){
+            if ((ActiveOverlays & ovl_ModalDialog) && (btnB_state == 1)){
                 btnB_state = 0;
                 // Cancel Modal Dialog
                 ClearScreenOverlays();

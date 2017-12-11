@@ -35,8 +35,8 @@
 
 #include "europi.h"
 //#include "quantizer_scales.h"
-#include "../raylib/release/rpi/raylib.h"
-
+//#include "../raylib/release/libs/rpi/raylib.h"
+#include "../raylib/src/raylib.h"
 unsigned hw_version;			/* Type 1: 2,3 Type 2: 4,5,6 & 15 Type 3: 16 or Greater */
 struct fb_var_screeninfo vinfo;
 struct fb_fix_screeninfo finfo; 
@@ -189,6 +189,7 @@ struct europi Europi;
 struct europi_hw Europi_hw;
 enum display_page_t DisplayPage = GridView;
 struct screen_overlays ScreenOverlays;
+uint32_t ActiveOverlays;
 
 
 // application entry point 

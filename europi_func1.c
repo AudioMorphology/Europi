@@ -41,7 +41,7 @@
 //#include "touch.h"
 //#include "touch.c"
 //#include "quantizer_scales.h"
-#include "../raylib/release/rpi/raylib.h"
+#include "../raylib/src/raylib.h"
 
 //extern struct europi;
 extern struct fb_var_screeninfo vinfo;
@@ -121,7 +121,8 @@ extern int btnD_state;
 extern struct europi Europi;
 extern struct europi_hw Europi_hw;
 extern enum display_page_t DisplayPage;
-extern struct screen_overlays ScreenOverlays;
+//extern struct screen_overlays ScreenOverlays;
+extern uint32_t ActiveOverlays;
 extern int kbd_char_selected;
 extern struct MENU Menu[];
 extern pthread_attr_t detached_attr;		
@@ -1396,12 +1397,12 @@ void encoder_button(int gpio, int level, uint32_t tick)
             toggle_menu();
 			break;
 		case track_select:
-				if(ScreenOverlays.SetZero == 1)	encoder_focus = set_zerolevel;
-				else if (ScreenOverlays.SetTen == 1) encoder_focus = set_maxlevel;
-				else if (ScreenOverlays.SetLoop == 1) encoder_focus = set_loop;
-				else if (ScreenOverlays.SetPitch == 1) encoder_focus = step_select;
-				else if (ScreenOverlays.SetQuantise == 1) encoder_focus = set_quantise;
-                else if (ScreenOverlays.SetDirection == 1) encoder_focus = set_direction;
+				if(ActiveOverlays && ovl_SetZero) 	encoder_focus = set_zerolevel;
+				else if (ActiveOverlays && ovl_SetTen)  encoder_focus = set_maxlevel;
+				else if (ActiveOverlays && ovl_SetLoop) encoder_focus = set_loop;
+				else if (ActiveOverlays && ovl_SetPitch) encoder_focus = step_select;
+				else if (ActiveOverlays && ovl_SetQuantise) encoder_focus = set_quantise;
+                else if (ActiveOverlays && ovl_SetDirection) encoder_focus = set_direction;
 			break;
         case file_open_focus:{
             char filename[100];

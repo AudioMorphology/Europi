@@ -287,7 +287,7 @@ void select_next_direction(int dir);
 void set_step_pitch(int dir,int vel);
 void seq_new(void);
 void ClearScreenOverlays(void);
-int OverlayActive(void);
+int OverlayActive(uint32_t IgnoreOverlays);
 void buttonsDefault(void);
 void seq_quantise(void);
 void seq_setdir(void);
@@ -431,10 +431,36 @@ enum display_page_t {
 
 /* Overlays are things such as Menus, 
  * which can be overlaid on top of whatever
- * page is currently being displayed
+ * page is currently being displayed. Using
+ * single-bit values makes it easy to check
+ * whether any Overlays are active, but also
+ * to pass in overlays to ignore (such as the 
+ * vertical scroll bar).
+ * 
+ * NOTE: Don't use more than 32 Bits!!
  */ 
+ enum overlays{
+	 ovl_MainMenu 				= (1 << 0),
+	 ovl_SetZero					= (1 << 1),
+	 ovl_SetTen					= (1 << 2),
+	 ovl_ScaleValue				= (1 << 3),
+	 ovl_SetLoop					= (1 << 4),
+	 ovl_SetPitch					= (1 << 5),
+     ovl_SetSlew					= (1 << 6),
+     ovl_SetDirection			= (1 << 7),
+	 ovl_SetQuantise			= (1 << 8),
+     ovl_Keyboard				= (1 << 9),
+     ovl_FileOpen					= (1 << 10),
+     ovl_TextInput				= (1 << 11),
+     ovl_FileSaveAs				= (1 << 12),
+     ovl_VerticalScrollBar	= (1 << 13),
+     ovl_SingleStep				= (1 << 14),
+     ovl_SingleChannel		= (1 << 15),
+     ovl_SingleAD				= (1 << 16),
+     ovl_SingleADSR			= (1 << 17),
+     ovl_ModalDialog			= (1 << 18)
+ };
  
- //To Do: This needs to be a bitwise field, rather than a sstructure of Ints !!!
  struct screen_overlays{
 	 int MainMenu;
 	 int SetZero;

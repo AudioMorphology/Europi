@@ -1,6 +1,6 @@
 // Copyright 2016 Richard R. Goodwin / Audio Morphology
 //
-// Author: Richard R. Goodwin (richard.goodwin@morphology.co.uk)
+// Author: Richard R. Goodwin (richard.goodwin@morphology.co.uk) 
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -38,7 +38,7 @@
 #include <signal.h>
 
 #include "europi.h"
-#include "../raylib/release/rpi/raylib.h"
+#include "../raylib/src/raylib.h"
 
 extern int run_stop;
 extern int save_run_stop;
@@ -58,7 +58,8 @@ extern char modal_dialog_txt4[];
 extern int selected_step;
 extern struct europi Europi;
 extern struct europi_hw Europi_hw;
-extern struct screen_overlays ScreenOverlays;
+//extern struct screen_overlays ScreenOverlays;
+extern uint32_t ActiveOverlays;
 extern enum display_page_t DisplayPage;
 extern int prog_running;
 extern int impersonate_hw;
@@ -115,6 +116,7 @@ void seq_new(void){
 		Europi.tracks[track].current_step = 0;
 		Europi.tracks[track].channels[CV_OUT].quantise = 1;	// default quantization = semitones	
 		Europi.tracks[track].channels[CV_OUT].transpose = 0;	
+		Europi.tracks[track].channels[CV_OUT].function = CV;
 		for(step = 0;step < MAX_STEPS;step++){
 			Europi.tracks[track].channels[CV_OUT].steps[step].raw_value = 0;
 			Europi.tracks[track].channels[CV_OUT].steps[step].scaled_value = scale_value(track,0);
@@ -122,6 +124,7 @@ void seq_new(void){
 			Europi.tracks[track].channels[CV_OUT].steps[step].slew_length = 0;
 			Europi.tracks[track].channels[GATE_OUT].steps[step].ratchets = 1;
 			Europi.tracks[track].channels[GATE_OUT].steps[step].repetitions = 1;
+			Europi.tracks[track].channels[GATE_OUT].steps[step].fill = 0;
 			Europi.tracks[track].channels[GATE_OUT].steps[step].gate_type = Gate_75;
 		}
 	}
@@ -133,25 +136,7 @@ void seq_new(void){
  * menu functions to take care of it
  */
 void ClearScreenOverlays(void){
-	ScreenOverlays.MainMenu = 0;
-	ScreenOverlays.SetZero = 0;
-	ScreenOverlays.SetTen = 0;
-	ScreenOverlays.ScaleValue = 0;
-	ScreenOverlays.SetLoop = 0;
-	ScreenOverlays.SetPitch = 0;
-    ScreenOverlays.SetSlew = 0;
-	ScreenOverlays.SetQuantise = 0;
-    ScreenOverlays.SetDirection = 0;
-    ScreenOverlays.Keyboard = 0;
-    ScreenOverlays.FileOpen = 0;
-    ScreenOverlays.TextInput = 0;
-    ScreenOverlays.FileSaveAs = 0;
-    ScreenOverlays.VerticalScrollBar = 0;
-    ScreenOverlays.SingleStep = 0;
-    ScreenOverlays.SingleChannel = 0;
-    ScreenOverlays.SingleAD = 0;
-    ScreenOverlays.SingleADSR = 0;
-    ScreenOverlays.ModalDialog = 0;
+	ActiveOverlays = 0;
 }
 
 /*
@@ -159,28 +144,14 @@ void ClearScreenOverlays(void){
  * screen overlays are currently active
  * This is useful to ensure touch
  * events are only taken by the Overlay
+ * 
+ * The IgnoreOverlay argument can pass in any
+ * number of Overlays that are ignored when deciding
+ * if any overlays are active or not
  */
-int OverlayActive(void){
-    if((ScreenOverlays.SetZero == 1) ||
-        (ScreenOverlays.SetTen == 1) ||
-        (ScreenOverlays.ScaleValue == 1) ||
-        (ScreenOverlays.SetLoop == 1) ||
-        (ScreenOverlays.SetPitch == 1) ||
-        (ScreenOverlays.SetSlew == 1) ||
-        (ScreenOverlays.SetQuantise == 1) ||
-        (ScreenOverlays.SetDirection == 1) ||
-        (ScreenOverlays.Keyboard == 1) ||
-        (ScreenOverlays.FileOpen == 1) ||
-        (ScreenOverlays.TextInput == 1) ||
-        (ScreenOverlays.FileSaveAs == 1) ||
-        (ScreenOverlays.VerticalScrollBar == 1)||
-        (ScreenOverlays.SingleStep == 1) ||
-        (ScreenOverlays.SingleChannel == 1) ||
-        (ScreenOverlays.SingleAD == 1) ||
-        (ScreenOverlays.SingleADSR == 1) ||
-        (ScreenOverlays.ModalDialog == 1)
-        ) return 1;
-    else return 0;        
+int OverlayActive(uint32_t IgnoreOverlay){
+    if((ActiveOverlays & !IgnoreOverlay) > 0) return 1;
+    else return 0;
 }
 
 /*
@@ -328,7 +299,7 @@ void SwitchChannelFunction(int track){
             default:
             case CV:
                 DisplayPage = SingleChannel;
-                ScreenOverlays.SingleChannel = 1;
+				ActiveOverlays |= ovl_SingleChannel;
                 SingleChannelOffset = 0;
                 encoder_focus = none;
                 btnA_func = btnA_none;
@@ -339,7 +310,7 @@ void SwitchChannelFunction(int track){
             break;
             case AD:
                 DisplayPage = SingleAD;
-                ScreenOverlays.SingleAD = 1;
+				ActiveOverlays |= ovl_SingleAD;
                 SingleChannelOffset = 0;
                 encoder_focus = none;
                 btnA_func = btnA_none;
@@ -350,7 +321,7 @@ void SwitchChannelFunction(int track){
             break;
             case ADSR:
                 DisplayPage = SingleADSR;
-                ScreenOverlays.SingleADSR = 1;
+				ActiveOverlays |= ovl_SingleADSR;
                 SingleChannelOffset = 0;
                 encoder_focus = none;
                 btnA_func = btnA_none;
@@ -533,7 +504,7 @@ void set_step_pitch(int dir, int vel){
 void seq_quantise(void){
     save_run_stop = run_stop;
 	ClearScreenOverlays();
-	ScreenOverlays.SetQuantise = 1;
+	ActiveOverlays |= ovl_SetQuantise;
     ClearMenus();
     MenuSelectItem(0,0);
     btnA_func = btnA_select;
@@ -549,7 +520,7 @@ void seq_quantise(void){
 void seq_setdir(void){
     save_run_stop = run_stop;
 	ClearScreenOverlays();
-	ScreenOverlays.SetDirection = 1;
+	ActiveOverlays |= ovl_SetDirection;
     ClearMenus();
     MenuSelectItem(0,0);
     btnA_func = btnA_select;
@@ -566,7 +537,7 @@ void seq_setpitch(void){
     save_run_stop = run_stop;
 	run_stop = STOP;
 	ClearScreenOverlays();
-	ScreenOverlays.SetPitch = 1;
+	ActiveOverlays |= ovl_SetPitch;
     ClearMenus();
     MenuSelectItem(0,0);
     btnA_func = btnA_select;
@@ -582,7 +553,7 @@ void seq_setpitch(void){
 void seq_setloop(void){
     save_run_stop = run_stop;
 	ClearScreenOverlays();
-	ScreenOverlays.SetLoop = 1;
+	ActiveOverlays |= ovl_SetLoop;
     ClearMenus();
     MenuSelectItem(0,0);
     btnA_func = btnA_select;
@@ -599,7 +570,7 @@ void seq_setslew(void){
     save_run_stop = run_stop;
 	run_stop = STOP;
 	ClearScreenOverlays();
-	ScreenOverlays.SetSlew = 1;
+	ActiveOverlays |= ovl_SetSlew;
     ClearMenus();
     MenuSelectItem(0,0);
     btnA_func = btnA_select;
@@ -620,7 +591,7 @@ void test_scalevalue(void){
     save_run_stop = run_stop;
 	run_stop = STOP;
 	ClearScreenOverlays();
-	ScreenOverlays.ScaleValue = 1;
+	ActiveOverlays |= ovl_ScaleValue;
     ClearMenus();
     MenuSelectItem(0,0);
     btnA_func = btnA_none;
@@ -645,7 +616,7 @@ void test_scalevalue(void){
 void test_keyboard(void){
     save_run_stop = run_stop;
     ClearScreenOverlays();
-    ScreenOverlays.Keyboard = 1;
+	ActiveOverlays |= ovl_Keyboard;
     encoder_focus = keyboard_input;
 } 
 /*  
@@ -661,7 +632,7 @@ void file_open(void){
     btnB_func = btnB_open;
     btnC_func = btnC_cancel;
     btnD_func = btnD_none;
-    ScreenOverlays.FileOpen = 1;
+	ActiveOverlays |= ovl_FileOpen;
     encoder_focus = file_open_focus;
     // Read the list of files in the resources/sequences directory
     file_count = file_list("resources/sequences", &files);
@@ -701,7 +672,7 @@ void file_saveas(void){
     btnB_func = btnB_save;
     btnC_func = btnC_cancel;
     btnD_func = btnD_none;
-    ScreenOverlays.FileSaveAs = 1;
+	ActiveOverlays |= ovl_FileSaveAs;
     encoder_focus = keyboard_input;
     //sprintf(input_txt,"");
     *input_txt = 0;
@@ -719,7 +690,7 @@ void config_setzero(void){
     btnC_func = btnC_val_up;
     btnD_func = btnD_done;
 	ClearScreenOverlays();
-	ScreenOverlays.SetZero = 1;
+	ActiveOverlays |= ovl_SetZero;
 	encoder_focus = track_select;
 	select_first_track();
 	/* Slight pause to give some threads time to exist */
@@ -744,7 +715,7 @@ void config_setten(void){
     btnB_func = btnB_val_down;
     btnC_func = btnC_val_up;
     btnD_func = btnD_done;
-	ScreenOverlays.SetTen = 1;
+	ActiveOverlays |= ovl_SetTen;
 	encoder_focus = track_select;
 	select_first_track();
 	/* Slight pause to give some threads time to exist */
@@ -766,7 +737,7 @@ void config_setten(void){
     else debug = TRUE;
     ClearMenus();
     MenuSelectItem(0,0);
-    ScreenOverlays.MainMenu = 0;
+	ActiveOverlays &= !ovl_MainMenu;
  }
 
 /*
@@ -778,7 +749,7 @@ void config_setten(void){
     else TuningOn = TRUE;
     ClearMenus();
     MenuSelectItem(0,0);
-    ScreenOverlays.MainMenu = 0;
+	ActiveOverlays &= !ovl_MainMenu;
  }
 
 
@@ -1246,7 +1217,7 @@ void hardware_config(void){
             sprintf(modal_dialog_txt3,"It is strongly recommended");
             sprintf(modal_dialog_txt4,"that you re-run Setup");
             ClearScreenOverlays();
-            ScreenOverlays.ModalDialog = 1;
+			ActiveOverlays |= ovl_ModalDialog;
             btnA_func = btnA_none;
             btnB_func = btnB_cancel;
             btnC_func = btnC_OK;
