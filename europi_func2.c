@@ -150,7 +150,7 @@ void ClearScreenOverlays(void){
  * if any overlays are active or not
  */
 int OverlayActive(uint32_t IgnoreOverlay){
-    if((ActiveOverlays & !IgnoreOverlay) > 0) return 1;
+    if((ActiveOverlays & ~IgnoreOverlay) > 0) return 1;
     else return 0;
 }
 
@@ -616,7 +616,7 @@ void test_scalevalue(void){
 void test_keyboard(void){
     save_run_stop = run_stop;
     ClearScreenOverlays();
-	ActiveOverlays |= ovl_Keyboard;
+	//ActiveOverlays |= ovl_Keyboard;
     encoder_focus = keyboard_input;
 } 
 /*  
@@ -673,8 +673,9 @@ void file_saveas(void){
     btnC_func = btnC_cancel;
     btnD_func = btnD_none;
 	ActiveOverlays |= ovl_FileSaveAs;
+	ActiveOverlays |= ovl_Keyboard;
     encoder_focus = keyboard_input;
-    //sprintf(input_txt,"");
+    //sprintf(input_txt,""); 
     *input_txt = 0;
 }
 

@@ -97,8 +97,8 @@ void gui_8x8(void){
     if(last_track > 8){
         start_track = ((last_track-8) * VerticalScrollPercent) / 100;
         /* Don't display the Vertical Scroll Bar in certain situations */
-        if(ActiveOverlays & ovl_ModalDialog) { 
-        ActiveOverlays &= !ovl_VerticalScrollBar;
+        if(ActiveOverlays & ovl_Keyboard) { 
+			ActiveOverlays &= ~ovl_VerticalScrollBar;
         }
         else {
             ActiveOverlays |= ovl_VerticalScrollBar;
@@ -106,7 +106,7 @@ void gui_8x8(void){
     }
     else {
         start_track = 0;
-        ActiveOverlays &= !ovl_VerticalScrollBar;
+        ActiveOverlays &= ~ovl_VerticalScrollBar;
     }
     BeginDrawing();
     DrawTexture(MainScreenTexture,0,0,WHITE);
@@ -123,8 +123,7 @@ void gui_8x8(void){
         trackRectangle.y = 8 + (track * 25);
         trackRectangle.width = 67;
         trackRectangle.height = 26;
-//        if(ScreenOverlays.MainMenu == 0){
-		if(OverlayActive( 0 ) == 0){
+		if(OverlayActive( ovl_VerticalScrollBar ) == 0){
             // Only if no menus or overlays active
             if (CheckCollisionPointRec(touchPosition, trackRectangle) && (currentGesture1 != GESTURE_NONE)){
                 // Open this track in a Single Channel view
@@ -149,7 +148,7 @@ void gui_8x8(void){
                     select_track(start_track+track);
                     ClearScreenOverlays();
                     DisplayPage = SingleStep;
-                    ActiveOverlays |= ovl_SingleStep;
+                    ActiveOverlays |= ovl_SingleStep; 
                     encoder_focus = none;
                     btnA_func = btnA_none;
                     btnB_func = btnB_prev;
@@ -1445,37 +1444,8 @@ void ShowScreenOverlays(void){
         DrawTexture(TextInputTexture,103,1,WHITE);
         DrawText("Save As:",10,MENU_TOP_MARGIN,20,DARKGRAY);
         DrawText(input_txt,110,4,20,DARKGRAY);
-        // Keyboard
-         Rectangle btnHighlight = {0,0,0,0};
-        int button;
-        int row, col;
-        DrawTexture(KeyboardTexture,KBD_GRID_TL_X,KBD_GRID_TL_Y,WHITE);
-        for(button=0;button < (KBD_ROWS * KBD_COLS);button++){
-            row = button / KBD_COLS;
-            col = button % KBD_COLS;
-            btnHighlight.x = (KBD_GRID_TL_X + KBD_BTN_TL_X) + (col * KBD_COL_WIDTH);
-            btnHighlight.y = (KBD_GRID_TL_Y + KBD_BTN_TL_Y) + (row * KBD_ROW_HEIGHT);
-            btnHighlight.width = KBD_BTN_WIDTH;
-            btnHighlight.height = KBD_BTN_HEIGHT;
-            if(button == kbd_char_selected){
-                //Highlight this button
-                DrawRectangleLines((KBD_GRID_TL_X + KBD_BTN_TL_X) + (col * KBD_COL_WIDTH),
-                (KBD_GRID_TL_Y + KBD_BTN_TL_Y) + (row * KBD_ROW_HEIGHT),
-                KBD_BTN_WIDTH,
-                KBD_BTN_HEIGHT,WHITE);
-            }
-            // Check for touch input
-            if (CheckCollisionPointRec(touchPosition, btnHighlight) && (currentGesture1 != GESTURE_NONE)){
-                if(currentGesture1 != lastGesture){
-                    kbd_char_selected = button;
-                    row = button / KBD_COLS;
-                    col = button % KBD_COLS;
-                    //Add this to the input_txt buffer
-                    sprintf(input_txt,"%s%s", input_txt,kbd_chars[row][col]);
-                }
-            }
-        }       
     }
+
     if(ActiveOverlays & ovl_VerticalScrollBar){
         // Vertical scroll bar on RHS of screen
         DrawTexture(VerticalScrollBarTexture,303,4,WHITE);

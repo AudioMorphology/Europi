@@ -1397,12 +1397,12 @@ void encoder_button(int gpio, int level, uint32_t tick)
             toggle_menu();
 			break;
 		case track_select:
-				if(ActiveOverlays && ovl_SetZero) 	encoder_focus = set_zerolevel;
-				else if (ActiveOverlays && ovl_SetTen)  encoder_focus = set_maxlevel;
-				else if (ActiveOverlays && ovl_SetLoop) encoder_focus = set_loop;
-				else if (ActiveOverlays && ovl_SetPitch) encoder_focus = step_select;
-				else if (ActiveOverlays && ovl_SetQuantise) encoder_focus = set_quantise;
-                else if (ActiveOverlays && ovl_SetDirection) encoder_focus = set_direction;
+				if(ActiveOverlays & ovl_SetZero) 	encoder_focus = set_zerolevel;
+				else if (ActiveOverlays & ovl_SetTen)  encoder_focus = set_maxlevel;
+				else if (ActiveOverlays & ovl_SetLoop) encoder_focus = set_loop;
+				else if (ActiveOverlays & ovl_SetPitch) encoder_focus = step_select;
+				else if (ActiveOverlays & ovl_SetQuantise) encoder_focus = set_quantise;
+                else if (ActiveOverlays & ovl_SetDirection) encoder_focus = set_direction;
 			break;
         case file_open_focus:{
             char filename[100];
