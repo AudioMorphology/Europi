@@ -23,7 +23,7 @@
 // See http://creativecommons.org/licenses/MIT/ for more information.
 
 #include <stdio.h>
- 
+#include <string.h>
 #include "europi.h"
 #include "../raylib/src/raylib.h"
 
@@ -245,7 +245,9 @@ void gui_singlestep(void){
     // Print the end-step number at the RHS of each row
     sprintf(txt,":%d",(offset * 8)+8);
     DrawText(txt,270,34,20,DARKGRAY);
-    
+    touchRectangle.x = 8;
+    touchRectangle.width = 128;
+    touchRectangle.height = 20;
     DrawText("Slew Type:",30,58,20,DARKGRAY);
     switch(Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_type){
         default:
@@ -262,6 +264,30 @@ void gui_singlestep(void){
             DrawText("Reverse Exp",140,58,20,BLUE);
         break;
     }
+    touchRectangle.y = 58;
+    if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+		// Work out what % of the way along the touchRectangle we are
+		 switch((int)(((touchPosition.x - 8) / (float)128) * 9)){
+				default:
+				case 0:
+						Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].slew_type = Linear;
+				break;
+				case 1:
+						Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].slew_type = Linear;
+				break;
+				case 2:
+						Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].slew_type = Exponential;
+				break;
+				case 3:
+						Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].slew_type = RevExp;
+				break;
+				case 4:
+						Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].slew_type = Log;
+				break;
+		 }
+	}
+
+	
     DrawText("Slew Shape:",20,78,20,DARKGRAY);
     if(Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_type != Off){
         //Only draw the shape if the Slew Type isn't Off
@@ -278,11 +304,15 @@ void gui_singlestep(void){
             break;
         }
     }
+    touchRectangle.y = 78;
+
     DrawText("Slew Length:",12,98,20,DARKGRAY);
     if(Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_type != Off){
         sprintf(txt,"%d",Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_length);
         DrawText(txt,140,98,20,BLUE); 
     }
+    touchRectangle.y = 98;
+
     DrawText("Gate Type:",26,118,20,DARKGRAY);
     switch(Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].gate_type){
         default:
@@ -308,13 +338,25 @@ void gui_singlestep(void){
             DrawText("95%",140,118,20,BLUE);
         break;
     }
+    touchRectangle.y = 118;
+
+
     DrawText("Ratchets:",40,138,20,DARKGRAY);
     sprintf(txt,"%d",Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].ratchets);
-    DrawText(txt,140,138,20,BLUE);    
-    
+    DrawText(txt,140,138,20,BLUE);   
+    touchRectangle.y = 138;
+    if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+		// Work out what % of the way along the touchRectangle we are
+		Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].ratchets = (int)(((touchPosition.x - 8) / (float)128) * 16);
+	}
     DrawText("Fill:",104,158,20,DARKGRAY);
     sprintf(txt,"%d",Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].fill);
     DrawText(txt,140,158,20,BLUE);    
+    touchRectangle.y = 158;
+    if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+		// Work out what % of the way along the touchRectangle we are
+		Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].fill = (int)(((touchPosition.x - 8) / (float)128) * 16);
+	}
 
     // Draw the Pitch 'Bar Graph' display
     DrawRectangleLines(280,81,20,120,BLACK);
@@ -1387,7 +1429,16 @@ void ShowScreenOverlays(void){
                     row = button / KBD_COLS;
                     col = button % KBD_COLS;
                     //Add this to the input_txt buffer
-                    sprintf(input_txt,"%s%s", input_txt,kbd_chars[row][col]);
+					if(strcmp(kbd_chars[row][col],"~") == 0){
+						// This is BackSpace
+						if(strlen(input_txt) >= 1){
+							input_txt[strlen(input_txt)-1] = '\0';
+						}
+					}
+					else if(strcmp(kbd_chars[row][col],"]") == 0){
+						btnB_state = 1;	// Simulate clicking OK
+					}
+					else  sprintf(input_txt,"%s%s", input_txt,kbd_chars[row][col]);
                 }
             }
         }
