@@ -120,7 +120,7 @@ void seq_new(void){
 		for(step = 0;step < MAX_STEPS;step++){
 			Europi.tracks[track].channels[CV_OUT].steps[step].raw_value = 0;
 			Europi.tracks[track].channels[CV_OUT].steps[step].scaled_value = scale_value(track,0);
-			Europi.tracks[track].channels[CV_OUT].steps[step].slew_type = Linear;
+			Europi.tracks[track].channels[CV_OUT].steps[step].slew_type = RevExp;
 			Europi.tracks[track].channels[CV_OUT].steps[step].slew_length = 0;
 			Europi.tracks[track].channels[GATE_OUT].steps[step].ratchets = 1;
 			Europi.tracks[track].channels[GATE_OUT].steps[step].repetitions = 1;

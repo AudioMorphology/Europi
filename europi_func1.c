@@ -1002,6 +1002,7 @@ int startup(void)
     ButtonBarTexture = LoadTexture("resources/images/button_bar.png");
     VerticalScrollBarTexture = LoadTexture("resources/images/vertical_scroll_bar.png");
     ScrollHandleTexture = LoadTexture("resources/images/scroll_handle.png");
+	
 
 	//Splash screen
 	Splash = LoadTexture("resources/images/splash_screen.png");
@@ -1023,7 +1024,8 @@ int startup(void)
 	hardware_init();
 
 	//initialise the sequence for testing purposes
-	init_sequence();
+//	init_sequence();
+	load_sequence("resources/sequences/16dec");
 	/* Start the internal sequencer clock */
 	run_stop = STOP;		/* master clock is running, but step generator is halted */
 	gpioHardwarePWM(MASTER_CLK,clock_freq,500000);

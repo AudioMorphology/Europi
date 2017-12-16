@@ -188,6 +188,7 @@ enum btnD_func_t {
 };
 
 enum slew_t {
+	Off,
 	Linear,
     Exponential,
 	RevExp,
@@ -195,8 +196,7 @@ enum slew_t {
     RevLog,
     Sine,
     RevSine,
-    Cosine,
-    Off
+    Cosine
 };
 
 enum slew_shape_t {

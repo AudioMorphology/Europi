@@ -246,71 +246,148 @@ void gui_singlestep(void){
     sprintf(txt,":%d",(offset * 8)+8);
     DrawText(txt,270,34,20,DARKGRAY);
     touchRectangle.x = 8;
-    touchRectangle.width = 128;
     touchRectangle.height = 20;
-    DrawText("Slew Type:",30,58,20,DARKGRAY);
+	// Slew Type
+    touchRectangle.y = 58;
     switch(Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_type){
         default:
         case Off:
             DrawText("Off",140,58,20,BLUE);
+			touchRectangle.width = 2;
+			DrawRectangleRec(touchRectangle, LIGHTGRAY);
         break;
         case Linear:
+			touchRectangle.width = 16;
+			DrawRectangleRec(touchRectangle, LIGHTGRAY);
             DrawText("Linear",140,58,20,BLUE);
         break;
         case Exponential:
+			touchRectangle.width = 32;
+			DrawRectangleRec(touchRectangle, LIGHTGRAY);
             DrawText("Exponential",140,58,20,BLUE);
         break;
         case RevExp:
+			touchRectangle.width = 48;
+			DrawRectangleRec(touchRectangle, LIGHTGRAY);
             DrawText("Reverse Exp",140,58,20,BLUE);
         break;
+        case Log:
+			touchRectangle.width = 64;
+			DrawRectangleRec(touchRectangle, LIGHTGRAY);
+            DrawText("Logarithmic",140,58,20,BLUE);
+        break;
+		case RevLog:
+			touchRectangle.width = 80;
+			DrawRectangleRec(touchRectangle, LIGHTGRAY);
+            DrawText("Reverse Log",140,58,20,BLUE);
+        break;
+        case Sine:
+			touchRectangle.width = 96;
+			DrawRectangleRec(touchRectangle, LIGHTGRAY);
+            DrawText("Sine",140,58,20,BLUE);
+        break;
+        case RevSine:
+			touchRectangle.width = 112;
+			DrawRectangleRec(touchRectangle, LIGHTGRAY);
+            DrawText("Reverse Sine",140,58,20,BLUE);
+        break;
+        case Cosine:
+			touchRectangle.width = 128;
+			DrawRectangleRec(touchRectangle, LIGHTGRAY);
+            DrawText("Cosine",140,58,20,BLUE);
+        break;
     }
-    touchRectangle.y = 58;
-    if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+	touchRectangle.width = 128;
+	DrawText("Slew Type:",30,58,20,DARKGRAY);
+	if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
 		// Work out what % of the way along the touchRectangle we are
-		 switch((int)(((touchPosition.x - 8) / (float)128) * 9)){
+		 switch((int)(((touchPosition.x - 8) / (float)128) * 8)){
 				default:
 				case 0:
-						Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].slew_type = Linear;
+						Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_type = Off;
 				break;
 				case 1:
-						Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].slew_type = Linear;
+						Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_type = Linear;
 				break;
 				case 2:
-						Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].slew_type = Exponential;
+						Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_type = Exponential;
 				break;
 				case 3:
-						Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].slew_type = RevExp;
+						Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_type = RevExp;
 				break;
 				case 4:
-						Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].slew_type = Log;
+						Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_type = Log;
+				break;
+				case 5:
+						Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_type = RevLog;
+				break;
+				case 6:
+						Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_type = Sine;
+				break;
+				case 7:
+						Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_type = RevSine;
+				break;
+				case 8:
+						Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_type = Cosine;
 				break;
 		 }
 	}
 
-	
-    DrawText("Slew Shape:",20,78,20,DARKGRAY);
+	// Slew Shape
+	touchRectangle.y = 78;
     if(Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_type != Off){
         //Only draw the shape if the Slew Type isn't Off
         switch(Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_shape){
             default:
             case Both:
+				touchRectangle.width = 44;
+				DrawRectangleRec(touchRectangle, LIGHTGRAY);
                 DrawText("Both",140,78,20,BLUE);
             break;
             case Rising:
+				touchRectangle.width = 88;
+				DrawRectangleRec(touchRectangle, LIGHTGRAY);
                 DrawText("Rising",140,78,20,BLUE);
             break;
             case Falling:
+				touchRectangle.width = 128;
+				DrawRectangleRec(touchRectangle, LIGHTGRAY);
                 DrawText("Falling",140,78,20,BLUE);
-            break;
+             break;
         }
     }
-    touchRectangle.y = 78;
+	touchRectangle.width = 128;
+    DrawText("Slew Shape:",20,78,20,DARKGRAY);
 
-    DrawText("Slew Length:",12,98,20,DARKGRAY);
+	if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+		// Work out what % of the way along the touchRectangle we are
+		 switch((int)(((touchPosition.x - 8) / (float)128) * 3)){
+				default:
+				case 0:
+						Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_shape = Both;
+				break;
+				case 1:
+						Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_shape = Rising;
+				break;
+				case 2:
+						Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_shape = Falling;
+				break;
+		 }
+	}
+
+	// Slew Length
     if(Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_type != Off){
         sprintf(txt,"%d",Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_length);
         DrawText(txt,140,98,20,BLUE); 
     }
+	touchRectangle.width = (int)((Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_length/(float)3000)*128);
+	DrawRectangleRec(touchRectangle, LIGHTGRAY);
+    DrawText("Slew Length:",12,98,20,DARKGRAY);
+	if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+		// Work out what % of the way along the touchRectangle we are
+		Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_length = (int)(((float)(touchPosition.x - 8) / (float)128) * (float)3000);
+	}
+	
     touchRectangle.y = 98;
 
     DrawText("Gate Type:",26,118,20,DARKGRAY);
@@ -349,6 +426,7 @@ void gui_singlestep(void){
 		// Work out what % of the way along the touchRectangle we are
 		Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].ratchets = (int)(((touchPosition.x - 8) / (float)128) * 16);
 	}
+	
     DrawText("Fill:",104,158,20,DARKGRAY);
     sprintf(txt,"%d",Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].fill);
     DrawText(txt,140,158,20,BLUE);    
