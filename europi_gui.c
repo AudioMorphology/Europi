@@ -204,6 +204,16 @@ void gui_singlestep(void){
     sprintf(txt,"%02d-%d:",edit_track+1,(offset * 8)+1);
     txt_len = MeasureText(txt,20);
     DrawText(txt,68-txt_len,34,20,DARKGRAY);
+	// Check for tap on this to switch to Track view
+	touchRectangle.x = 8;
+	touchRectangle.y = 34;
+	touchRectangle.width = 60;
+	touchRectangle.height = 20;
+	if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+		// Switch to Track View
+		ClearScreenOverlays();
+		SwitchChannelFunction(edit_track);		
+	}
     for(column=0;column<8;column++){
         stepRectangle.x = 70 + (column * 25);
         stepRectangle.y = 33;
@@ -340,12 +350,12 @@ void gui_singlestep(void){
         switch(Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_shape){
             default:
             case Both:
-				touchRectangle.width = 44;
+				touchRectangle.width = 4;
 				DrawRectangleRec(touchRectangle, LIGHTGRAY);
                 DrawText("Both",140,78,20,BLUE);
             break;
             case Rising:
-				touchRectangle.width = 88;
+				touchRectangle.width = 64;
 				DrawRectangleRec(touchRectangle, LIGHTGRAY);
                 DrawText("Rising",140,78,20,BLUE);
             break;
@@ -380,57 +390,107 @@ void gui_singlestep(void){
         sprintf(txt,"%d",Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_length);
         DrawText(txt,140,98,20,BLUE); 
     }
-	touchRectangle.width = (int)((Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_length/(float)3000)*128);
+	touchRectangle.y = 98;
+	touchRectangle.width = (int)((Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_length/(float)500000)*128);
 	DrawRectangleRec(touchRectangle, LIGHTGRAY);
     DrawText("Slew Length:",12,98,20,DARKGRAY);
+	touchRectangle.width = 128;
 	if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
 		// Work out what % of the way along the touchRectangle we are
-		Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_length = (int)(((float)(touchPosition.x - 8) / (float)128) * (float)3000);
+		Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_length = (int)(((float)(touchPosition.x - 8) / (float)128) * (float)500000);
 	}
 	
-    touchRectangle.y = 98;
-
-    DrawText("Gate Type:",26,118,20,DARKGRAY);
+   
+	touchRectangle.y = 118;
     switch(Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].gate_type){
         default:
         case Gate_Off:
+			touchRectangle.width = 4;
+			DrawRectangleRec(touchRectangle, LIGHTGRAY);
             DrawText("Off",140,118,20,BLUE);
         break;
         case Gate_On:
+			touchRectangle.width = 24;
+			DrawRectangleRec(touchRectangle, LIGHTGRAY);
             DrawText("On",140,118,20,BLUE);
         break;
         case Trigger:
+			touchRectangle.width = 44;
+			DrawRectangleRec(touchRectangle, LIGHTGRAY);
             DrawText("Trigger",140,118,20,BLUE);
         break;
         case Gate_25:
+			touchRectangle.width = 64;
+			DrawRectangleRec(touchRectangle, LIGHTGRAY);
             DrawText("25%",140,118,20,BLUE);
         break;
         case Gate_50:
+			touchRectangle.width = 84;
+			DrawRectangleRec(touchRectangle, LIGHTGRAY);
             DrawText("50%",140,118,20,BLUE);
         break;
         case Gate_75:
+			touchRectangle.width = 104;
+			DrawRectangleRec(touchRectangle, LIGHTGRAY);
             DrawText("75%",140,118,20,BLUE);
         break;
         case Gate_95:
+			touchRectangle.width = 128;
+			DrawRectangleRec(touchRectangle, LIGHTGRAY);
             DrawText("95%",140,118,20,BLUE);
         break;
     }
-    touchRectangle.y = 118;
+    DrawText("Gate Type:",26,118,20,DARKGRAY);
+	touchRectangle.width = 128;
+		if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+		// Work out what % of the way along the touchRectangle we are
+		 switch((int)(((touchPosition.x - 8) / (float)128) * 6)){
+				default:
+				case 0:
+						Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].gate_type = Gate_Off;
+				break;
+				case 1:
+						Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].gate_type = Gate_On;
+				break;
+				case 2:
+						Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].gate_type = Trigger;
+				break;
+				case 3:
+						Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].gate_type = Gate_25;
+				break;
+				case 4:
+						Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].gate_type = Gate_50;
+				break;
+				case 5:
+						Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].gate_type = Gate_75;
+				break;
+				case 6:
+						Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].gate_type = Gate_95;
+				break;
+		 }
+	}
 
 
-    DrawText("Ratchets:",40,138,20,DARKGRAY);
+
     sprintf(txt,"%d",Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].ratchets);
     DrawText(txt,140,138,20,BLUE);   
     touchRectangle.y = 138;
+	touchRectangle.width = (int)((Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].ratchets/(float)16)*128);
+	DrawRectangleRec(touchRectangle, LIGHTGRAY);
+    DrawText("Ratchets:",40,138,20,DARKGRAY);
+	touchRectangle.width = 128;
     if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
 		// Work out what % of the way along the touchRectangle we are
 		Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].ratchets = (int)(((touchPosition.x - 8) / (float)128) * 16);
 	}
 	
-    DrawText("Fill:",104,158,20,DARKGRAY);
     sprintf(txt,"%d",Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].fill);
     DrawText(txt,140,158,20,BLUE);    
     touchRectangle.y = 158;
+	touchRectangle.width = (int)((Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].fill/(float)16)*128);
+	DrawRectangleRec(touchRectangle, LIGHTGRAY);
+    DrawText("Fill:",104,158,20,DARKGRAY);
+	touchRectangle.width = 128;
     if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
 		// Work out what % of the way along the touchRectangle we are
 		Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].fill = (int)(((touchPosition.x - 8) / (float)128) * 16);
@@ -1752,6 +1812,7 @@ void gui_ButtonBar(void){
     buttonRectangle.height = 17;
     if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture1 != GESTURE_NONE)){
         btnA_state = 1;
+		currentGesture1 = GESTURE_NONE;
     }
     switch(btnA_func){
         case btnA_quit:
@@ -1775,6 +1836,7 @@ void gui_ButtonBar(void){
     buttonRectangle.height = 17;
     if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture1 != GESTURE_NONE)){
         btnB_state = 1;
+		currentGesture1 = GESTURE_NONE;
     }
     switch(btnB_func){
         case btnB_menu:
@@ -1848,6 +1910,7 @@ void gui_ButtonBar(void){
     buttonRectangle.height = 17;
     if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture1 != GESTURE_NONE)){
         btnC_state = 1;
+		currentGesture1 = GESTURE_NONE;
     }
     switch(btnC_func){
         case btnC_bpm_dn:
@@ -1901,6 +1964,7 @@ void gui_ButtonBar(void){
     buttonRectangle.height = 17;
     if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture1 != GESTURE_NONE)){
         btnD_state = 1;
+		currentGesture1 = GESTURE_NONE;
     }
     switch(btnD_func){
         case btnD_bpm_up:
@@ -1925,6 +1989,7 @@ void gui_ButtonBar(void){
                 ClearMenus();
                 MenuSelectItem(0,0);
                 run_stop = save_run_stop;   // Restores the previous run_stop state
+				currentGesture1 = GESTURE_NONE;
             }
 
         case btnD_none:

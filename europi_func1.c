@@ -1024,7 +1024,7 @@ int startup(void)
 	hardware_init();
 
 	//initialise the sequence for testing purposes
-//	init_sequence();
+	//init_sequence();
 	load_sequence("resources/sequences/16dec");
 	/* Start the internal sequencer clock */
 	run_stop = STOP;		/* master clock is running, but step generator is halted */
