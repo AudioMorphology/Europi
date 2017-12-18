@@ -35,7 +35,7 @@ extern int save_run_stop;
 extern int last_track;
 extern int SingleChannelOffset;
 extern Vector2 touchPosition;
-extern int currentGesture1;
+extern int currentGesture;
 extern int lastGesture;
 extern menu Menu[]; 
 extern char input_txt[]; 
@@ -125,7 +125,7 @@ void gui_8x8(void){
         trackRectangle.height = 26;
 		if(OverlayActive( ovl_VerticalScrollBar ) == 0){
             // Only if no menus or overlays active
-            if (CheckCollisionPointRec(touchPosition, trackRectangle) && (currentGesture1 != GESTURE_NONE)){
+            if (CheckCollisionPointRec(touchPosition, trackRectangle) && (currentGesture != GESTURE_NONE)){
                 // Open this track in a Single Channel view
                 edit_track = start_track+track;
                 select_track(start_track+track);
@@ -141,7 +141,7 @@ void gui_8x8(void){
             // Check gesture collision
             if(OverlayActive(ovl_VerticalScrollBar) == 0){
                 // Only if no Menus or Overlays active
-                if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture1 != GESTURE_NONE)){
+                if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture != GESTURE_NONE)){
                     // Open this step in the Single Step editor
                     edit_track = start_track+track;
                     edit_step = (offset*8)+column;
@@ -209,7 +209,7 @@ void gui_singlestep(void){
 	touchRectangle.y = 34;
 	touchRectangle.width = 60;
 	touchRectangle.height = 20;
-	if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+	if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture != GESTURE_NONE)){
 		// Switch to Track View
 		ClearScreenOverlays();
 		SwitchChannelFunction(edit_track);		
@@ -220,7 +220,7 @@ void gui_singlestep(void){
         stepRectangle.width = 22;
         stepRectangle.height = 22;
         // Check gesture collision
-        if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture1 != GESTURE_NONE)){
+        if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture != GESTURE_NONE)){
             // Open this step in the Single Step editor
             edit_step = (offset*8)+column;
             ClearScreenOverlays();
@@ -309,7 +309,7 @@ void gui_singlestep(void){
     }
 	touchRectangle.width = 128;
 	DrawText("Slew Type:",30,58,20,DARKGRAY);
-	if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+	if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture != GESTURE_NONE)){
 		// Work out what % of the way along the touchRectangle we are
 		 switch((int)(((touchPosition.x - 8) / (float)128) * 8)){
 				default:
@@ -369,7 +369,7 @@ void gui_singlestep(void){
 	touchRectangle.width = 128;
     DrawText("Slew Shape:",20,78,20,DARKGRAY);
 
-	if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+	if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture != GESTURE_NONE)){
 		// Work out what % of the way along the touchRectangle we are
 		 switch((int)(((touchPosition.x - 8) / (float)128) * 3)){
 				default:
@@ -395,7 +395,7 @@ void gui_singlestep(void){
 	DrawRectangleRec(touchRectangle, LIGHTGRAY);
     DrawText("Slew Length:",12,98,20,DARKGRAY);
 	touchRectangle.width = 128;
-	if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+	if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture != GESTURE_NONE)){
 		// Work out what % of the way along the touchRectangle we are
 		Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].slew_length = (int)(((float)(touchPosition.x - 8) / (float)128) * (float)500000);
 	}
@@ -442,7 +442,7 @@ void gui_singlestep(void){
     }
     DrawText("Gate Type:",26,118,20,DARKGRAY);
 	touchRectangle.width = 128;
-		if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+		if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture != GESTURE_NONE)){
 		// Work out what % of the way along the touchRectangle we are
 		 switch((int)(((touchPosition.x - 8) / (float)128) * 6)){
 				default:
@@ -479,7 +479,7 @@ void gui_singlestep(void){
 	DrawRectangleRec(touchRectangle, LIGHTGRAY);
     DrawText("Ratchets:",40,138,20,DARKGRAY);
 	touchRectangle.width = 128;
-    if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+    if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture != GESTURE_NONE)){
 		// Work out what % of the way along the touchRectangle we are
 		Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].ratchets = (int)(((touchPosition.x - 8) / (float)128) * 16);
 	}
@@ -491,7 +491,7 @@ void gui_singlestep(void){
 	DrawRectangleRec(touchRectangle, LIGHTGRAY);
     DrawText("Fill:",104,158,20,DARKGRAY);
 	touchRectangle.width = 128;
-    if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+    if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture != GESTURE_NONE)){
 		// Work out what % of the way along the touchRectangle we are
 		Europi.tracks[edit_track].channels[GATE_OUT].steps[edit_step].fill = (int)(((touchPosition.x - 8) / (float)128) * 16);
 	}
@@ -506,7 +506,7 @@ void gui_singlestep(void){
     stepRectangle.y = 81;
     stepRectangle.width = 20-5;
     stepRectangle.height = 120;
-    if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture1 != GESTURE_NONE)){
+    if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture != GESTURE_NONE)){
         // Work out how far up the Partial bar we are
         if((touchPosition.y >= (float)81) && (touchPosition.y <= (float)(81+120))) {
             Partial = (int)(((120-(touchPosition.y - (float)81)) / (float)(120)) * 5999);
@@ -528,7 +528,7 @@ void gui_singlestep(void){
         stepRectangle.y = (i*12)+83;
         stepRectangle.width = 15;
         stepRectangle.height = 10;
-        if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture1 != GESTURE_NONE)){
+        if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture != GESTURE_NONE)){
             // Set the Octave for this Step & Quantize the RAW value
             int newpitch = quantize((6000 * (9-i)) + Partial,Europi.tracks[edit_track].channels[CV_OUT].quantise);
             Europi.tracks[edit_track].channels[CV_OUT].steps[edit_step].raw_value = newpitch;
@@ -570,7 +570,7 @@ void gui_singlestep(void){
         else{
             DrawRectangleRec(touchRectangle,RED);
         }
-        if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+        if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture != GESTURE_NONE)){
             //Move the displayed 8-step segment to this position
             edit_step = step;
         }
@@ -611,7 +611,7 @@ void gui_SingleChannel(void){
                 touchRectangle.y = 30;
                 touchRectangle.width = 18-5;    
                 touchRectangle.height = 120;
-                if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+                if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture != GESTURE_NONE)){
                     // Work out how far up the Partial bar we are
                     if((touchPosition.y >= (float)30) && (touchPosition.y <= (float)(30+120))) {
                         Partial = (int)(((120-(touchPosition.y - (float)30)) / (float)(120)) * 5999);
@@ -638,7 +638,7 @@ void gui_SingleChannel(void){
                     touchRectangle.y = (i*12)+32;
                     touchRectangle.width = 15;
                     touchRectangle.height = 10;
-                    if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+                    if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture != GESTURE_NONE)){
                         // Set the Octave for this Step & Quantize the RAW value
                         int newpitch = quantize((6000 * (9-i)) + Partial,Europi.tracks[track].channels[CV_OUT].quantise);
                         Europi.tracks[track].channels[CV_OUT].steps[SingleChannelOffset+column].raw_value = newpitch;
@@ -671,7 +671,7 @@ void gui_SingleChannel(void){
                 touchRectangle.y = 160; //Ignores touches in the top few pixels, as it's close to the Partial bar
                 touchRectangle.width = 33;
                 touchRectangle.height = 12;
-                if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+                if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture == GESTURE_TAP)){
                     //Open this Step in the Single Step editor
                     edit_track = track;
                     edit_step = SingleChannelOffset+column;
@@ -771,7 +771,7 @@ void gui_SingleChannel(void){
                 else{
                     DrawRectangleRec(touchRectangle,RED);
                 }
-                if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture1 != GESTURE_NONE)){
+                if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture != GESTURE_NONE)){
                     //Move the displayed 8-step segment to this position
                     if(Europi.tracks[track].last_step >= 8){
                         if(step <= (Europi.tracks[track].last_step - 8)) SingleChannelOffset = step;
@@ -1539,10 +1539,7 @@ void ShowScreenOverlays(void){
     
     
     if(ActiveOverlays & ovl_Keyboard){
-//        lastGesture = currentGesture;
         Rectangle btnHighlight = {0,0,0,0};
-//        touchPosition = GetTouchPosition(0);
-//        currentGesture = GetGestureDetected();
         int button;
         int row, col;
         DrawTexture(KeyboardTexture,KBD_GRID_TL_X,KBD_GRID_TL_Y,WHITE);
@@ -1561,8 +1558,8 @@ void ShowScreenOverlays(void){
                 KBD_BTN_HEIGHT,WHITE);
             }
             // Check for touch input
-            if (CheckCollisionPointRec(touchPosition, btnHighlight) && (currentGesture1 != GESTURE_NONE)){
-                if(currentGesture1 != lastGesture){
+            if (CheckCollisionPointRec(touchPosition, btnHighlight) && (currentGesture != GESTURE_NONE)){
+                if(currentGesture != lastGesture){
                     kbd_char_selected = button;
                     row = button / KBD_COLS;
                     col = button % KBD_COLS;
@@ -1583,8 +1580,6 @@ void ShowScreenOverlays(void){
     }
     if(ActiveOverlays & ovl_FileOpen){
         Rectangle fileHighlight = {0,0,0,0};
-        //touchPosition = GetTouchPosition(0);
-        //currentGesture = GetGestureDetected();
         DrawTexture(DialogTexture,0,0,WHITE);
         DrawText("File Open",10,5,20,DARKGRAY);
         // List the files
@@ -1597,7 +1592,7 @@ void ShowScreenOverlays(void){
                 fileHighlight.width=310;
                 fileHighlight.height=20;
                 // Check for touch input
-                if (CheckCollisionPointRec(touchPosition, fileHighlight) && (currentGesture1 != GESTURE_NONE)){
+                if (CheckCollisionPointRec(touchPosition, fileHighlight) && (currentGesture != GESTURE_NONE)){
                     file_selected = i;
                 }
 
@@ -1644,18 +1639,18 @@ void ShowScreenOverlays(void){
         Rectangle scrollUpButton = {303,4,13,15};
         Rectangle scrollDownButton = {303,198,13,15};
         Rectangle scrollHandleRec = {303,ScrollHandlePosn-2,14,15}; //note: setting the collision box a couple of pixels above the actual button makes it easier to drag upwards!!
-        if (CheckCollisionPointRec(touchPosition, scrollUpButton) && (currentGesture1 != GESTURE_NONE)){
+        if (CheckCollisionPointRec(touchPosition, scrollUpButton) && (currentGesture != GESTURE_NONE)){
             DrawRectangleLines(304, 4, 12, 14, CLR_DARKBLUE);
             DrawRectangleLines(305, 5, 10, 12, CLR_DARKBLUE);
             if(VerticalScrollPercent >= 1) VerticalScrollPercent--;
         }
-        if (CheckCollisionPointRec(touchPosition, scrollDownButton) && (currentGesture1 != GESTURE_NONE)){
+        if (CheckCollisionPointRec(touchPosition, scrollDownButton) && (currentGesture != GESTURE_NONE)){
             DrawRectangleLines(304, 199, 12, 14, CLR_DARKBLUE); 
             DrawRectangleLines(305, 200, 10, 12, CLR_DARKBLUE); 
             if(VerticalScrollPercent <= 99) VerticalScrollPercent++;
         }
         
-        if (CheckCollisionPointRec(touchPosition, scrollHandleRec) && (currentGesture1 == GESTURE_DRAG)){
+        if (CheckCollisionPointRec(touchPosition, scrollHandleRec) && (currentGesture == GESTURE_DRAG)){
             DrawRectangleLines(303, ScrollHandlePosn, 14, 13, CLR_DARKBLUE);
             DrawRectangleLines(304, ScrollHandlePosn+1, 12, 11, CLR_DARKBLUE);
             if((touchPosition.y >= (float)VERTICAL_SCROLL_MIN) && (touchPosition.y <= (float)VERTICAL_SCROLL_MAX)) {
@@ -1810,9 +1805,10 @@ void gui_ButtonBar(void){
     buttonRectangle.y = 213;
     buttonRectangle.width = 80;
     buttonRectangle.height = 17;
-    if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture1 != GESTURE_NONE)){
+	
+    if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture == GESTURE_TAP)){
         btnA_state = 1;
-		currentGesture1 = GESTURE_NONE;
+		currentGesture = GESTURE_NONE;
     }
     switch(btnA_func){
         case btnA_quit:
@@ -1834,9 +1830,9 @@ void gui_ButtonBar(void){
     buttonRectangle.y = 213;
     buttonRectangle.width = 80;
     buttonRectangle.height = 17;
-    if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture1 != GESTURE_NONE)){
+    if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture == GESTURE_TAP)){
         btnB_state = 1;
-		currentGesture1 = GESTURE_NONE;
+		currentGesture = GESTURE_NONE;
     }
     switch(btnB_func){
         case btnB_menu:
@@ -1908,9 +1904,9 @@ void gui_ButtonBar(void){
     buttonRectangle.y = 213;
     buttonRectangle.width = 80;
     buttonRectangle.height = 17;
-    if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture1 != GESTURE_NONE)){
+    if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture == GESTURE_TAP)){
         btnC_state = 1;
-		currentGesture1 = GESTURE_NONE;
+		currentGesture = GESTURE_NONE;
     }
     switch(btnC_func){
         case btnC_bpm_dn:
@@ -1962,9 +1958,9 @@ void gui_ButtonBar(void){
     buttonRectangle.y = 213;
     buttonRectangle.width = 80;
     buttonRectangle.height = 17;
-    if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture1 != GESTURE_NONE)){
+    if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture == GESTURE_TAP)){
         btnD_state = 1;
-		currentGesture1 = GESTURE_NONE;
+		currentGesture = GESTURE_NONE;
     }
     switch(btnD_func){
         case btnD_bpm_up:
@@ -1989,7 +1985,7 @@ void gui_ButtonBar(void){
                 ClearMenus();
                 MenuSelectItem(0,0);
                 run_stop = save_run_stop;   // Restores the previous run_stop state
-				currentGesture1 = GESTURE_NONE;
+				currentGesture = GESTURE_NONE;
             }
 
         case btnD_none:
@@ -2004,9 +2000,6 @@ void gui_MainMenu(void){
     int PanelHeight = MENU_FONT_SIZE + MENU_TB_MARGIN;
     Color menu_colour;
     Rectangle menuRectangle = {0,0,0,0}; 
-    //lastGesture = currentGesture;
-    //currentGesture = GetGestureDetected();
-    //touchPosition = GetTouchPosition(0);
     // Top Bar
     DrawTexture(TopBarTexture,0,0,WHITE);
     int i = 0;
@@ -2018,7 +2011,7 @@ void gui_MainMenu(void){
         menuRectangle.y = 2;
         menuRectangle.width = txt_len+(MENU_LR_MARGIN * 2);
         menuRectangle.height = PanelHeight;
-        if (CheckCollisionPointRec(touchPosition, menuRectangle) && (currentGesture1 == GESTURE_HOLD)){
+        if (CheckCollisionPointRec(touchPosition, menuRectangle) && (currentGesture == GESTURE_TAP)){
             // Toggle the expansion of this menu item
             if (Menu[i].highlight == 0) {
                 // this Menu item not currently highlighted, so
@@ -2066,7 +2059,7 @@ void gui_MainMenu(void){
                 menuRectangle.y = y;
                 menuRectangle.width = sub_len+(MENU_LR_MARGIN * 2);
                 menuRectangle.height = PanelHeight;
-                if (CheckCollisionPointRec(touchPosition, menuRectangle) && (currentGesture1 == GESTURE_HOLD)){
+                if (CheckCollisionPointRec(touchPosition, menuRectangle) && (currentGesture == GESTURE_TAP)){
                     // Call function pointed to by this menu item
                     MenuSelectItem(i,j);
                     if (Menu[i].child[j]->funcPtr != NULL) Menu[i].child[j]->funcPtr();

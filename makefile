@@ -9,7 +9,8 @@
 # this builds ../raylib/release/rpi/libraylib.a
 OBJS := europi.o europi_func1.o europi_func2.o europi_gui.o
 INCLUDES = -I. -I../raylib/src -I../raylib/src/external -I../raylib/release/libs/rpi -I/opt/vc/include -I/opt/vc/include/interface/vcos/pthreads
-LIBS = -lpigpio -lrt -lraylib -lGLESv2 -lEGL -lpthread -lrt -lm -lbcm_host -lopenal
+#LIBS = -lpigpio -lrt -lraylib -lGLESv2 -lEGL -lpthread -lrt -lm -lbcm_host -lopenal
+LIBS = -lpigpio -lraylib -lbrcmGLESv2 -lbrcmEGL -lpthread -lrt -lm -lbcm_host -lopenal
 LFLAGS = -L. -L../raylib/src -L../raylib/release/libs/rpi -L/opt/vc/lib
 CFLAGS = -O2 -s -Wall -std=gnu99 -fgnu89-inline -Wno-unused-variable
 PLATFORM = PLATFORM_RPI

@@ -80,7 +80,7 @@ uint32_t step_ticks = 250000;	/* Records the length of each step in ticks (used 
 uint32_t slew_interval = 1000; /* number of microseconds between each sucessive level change during a slew */
 /* global variables used by the touchscreen interface */
 Vector2 touchPosition = { 0, 0 };
-int currentGesture1;
+int currentGesture;
 int lastGesture;
 
 int  xres,yres,x;
@@ -191,6 +191,7 @@ enum display_page_t DisplayPage = GridView;
 struct screen_overlays ScreenOverlays;
 uint32_t ActiveOverlays;
 
+#define MAX_GESTURE_STRINGS   20
 
 // application entry point 
 int main(int argc, char* argv[])
@@ -208,15 +209,37 @@ int main(int argc, char* argv[])
 	//run_stop = STOP; 
 	//clock_source = INT_CLK;
     //debug = TRUE;
-    currentGesture1 = GESTURE_NONE;
+    currentGesture = GESTURE_NONE;
     lastGesture = GESTURE_NONE;
     //SetGesturesEnabled(0b0000000011100011);   //None, tap & DoubleTap 
- 
-while (prog_running == 1){
 
-    lastGesture = currentGesture1;
-    currentGesture1 = GetGestureDetected();
+    SetTargetFPS(60);		// Seems this is necessary, or GESTURE_TAP & SWIPE aren't detected!!
+ 
+while (!WindowShouldClose() && (prog_running ==1)) {
+	
+    lastGesture = currentGesture;
+    currentGesture = GetGestureDetected();
     touchPosition = GetTouchPosition(0);
+/*
+	if (currentGesture != lastGesture)
+		{
+
+		  switch (currentGesture)
+			{
+				case GESTURE_TAP: log_msg("GESTURE TAP"); break;
+				case GESTURE_DOUBLETAP: log_msg( "GESTURE DOUBLETAP"); break;
+				case GESTURE_HOLD: log_msg("GESTURE HOLD"); break;
+				case GESTURE_DRAG: log_msg("GESTURE DRAG"); break;
+				case GESTURE_SWIPE_RIGHT: log_msg("GESTURE SWIPE RIGHT"); break;
+				case GESTURE_SWIPE_LEFT: log_msg("GESTURE SWIPE LEFT"); break;
+				case GESTURE_SWIPE_UP: log_msg("GESTURE SWIPE UP"); break;
+				case GESTURE_SWIPE_DOWN: log_msg("GESTURE SWIPE DOWN"); break;
+				case GESTURE_PINCH_IN: log_msg("GESTURE PINCH IN"); break;
+				case GESTURE_PINCH_OUT: log_msg("GESTURE PINCH OUT"); break;
+				default: break;
+			}
+		}
+*/
     switch(DisplayPage){
         case GridView:
             gui_8x8();
@@ -235,69 +258,6 @@ while (prog_running == 1){
         break;
     }
  
-/*
-    if(ScreenElements.SetZero == 1){
-        int track = 0;
-        char str[80];
-        for(track = 0; track < MAX_TRACKS; track++) {
-            if (Europi.tracks[track].selected == TRUE){
-                if(encoder_focus == track_select){
-                    sprintf(str,"Track: [%02d] Value for Zero output: %05d\0",track+1,Europi.tracks[track].channels[CV_OUT].scale_zero);
-                }
-                else if (encoder_focus == set_zerolevel) {
-                    sprintf(str,"Track: %02d Value for Zero output: [%05d]\0",track+1,Europi.tracks[track].channels[CV_OUT].scale_zero);
-                }
-                DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].scale_zero);
-                DrawRectangle(20, 30, 250, 20, BLACK);
-                DrawText(str,25,35,10,WHITE);
-                
-            }
-        }
-    }
-    if(ScreenElements.SetTen == 1){
-        int track = 0;
-        char str[80];
-        for(track = 0; track < MAX_TRACKS; track++) {
-            if (Europi.tracks[track].selected == TRUE){
-                if (encoder_focus == track_select) {
-                    sprintf(str,"Track: [%02d] Value for 10v output: %05d\0",track+1,Europi.tracks[track].channels[CV_OUT].scale_max);
-                }
-                else if (encoder_focus == set_maxlevel) {
-                    sprintf(str,"Track: %02d Value for 10v output: [%05d]\0",track+1,Europi.tracks[track].channels[CV_OUT].scale_max);
-                }
-                DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].scale_max);
-                DrawRectangle(20, 30, 250, 20, BLACK);
-                DrawText(str,25,35,10,WHITE);
-                
-            }
-        }
-    }
-    if(ScreenElements.ScaleValue == 1){
-        int track = 0;
-        char str[80];
-        char str1[80];
-        for(track = 0; track < MAX_TRACKS; track++) {
-            if (Europi.tracks[track].selected == TRUE){
-                if (encoder_focus == track_select) {
-                    sprintf(str,"Trk: [%02d] Zero: %05d Max: %05d\0",track+1,Europi.tracks[track].channels[CV_OUT].scale_zero,Europi.tracks[track].channels[CV_OUT].scale_max);
-                    sprintf(str1,"Raw: %05d Scaled: %05d\0",Europi.tracks[track].channels[CV_OUT].steps[12].raw_value,scale_value(track,Europi.tracks[track].channels[CV_OUT].steps[12].raw_value));
-                }
-                else if (encoder_focus == set_maxlevel) {
-                    sprintf(str,"Track: %02d Value for 10v output: [%05d]\0",track+1,Europi.tracks[track].channels[CV_OUT].scale_max);
-                }
-                DACSingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].scale_max);
-                DrawRectangle(20, 30, 250, 40, BLACK);
-                DrawText(str,25,35,10,WHITE);
-                DrawText(str1,25,55,10,WHITE);
-                
-            }
-        }
-    }
-     */
-    if (currentGesture1 != GESTURE_NONE){ 
-        DrawCircleV(touchPosition, 2, BLACK);
-    }  
-    //UpdateGestures();
     usleep(100); 
 }
     ThreadEnd = TRUE;
