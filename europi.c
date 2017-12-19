@@ -145,6 +145,7 @@ Texture2D TopBarTexture;            // Top (menu) bar texture
 Texture2D MainScreenTexture;        // Main screen
 Texture2D ButtonBarTexture;         // Soft-button graphic bar
 Texture2D VerticalScrollBarTexture; // Vertical scroll bar for RHS of screen
+Texture2D VerticalScrollBarShortTexture; // Short Vertical scroll bar for RHS of screen
 Texture2D ScrollHandleTexture;      // Scroll handle for Vewrtical Scroll Bar
 
 

@@ -53,6 +53,7 @@ extern Texture2D MainScreenTexture;
 extern Texture2D TopBarTexture;
 extern Texture2D ButtonBarTexture; 
 extern Texture2D VerticalScrollBarTexture;
+extern Texture2D VerticalScrollBarShortTexture;
 extern Texture2D ScrollHandleTexture;
 extern int VerticalScrollPercent;
 extern char *kbd_chars[4][11];
@@ -638,7 +639,8 @@ void gui_SingleChannel(void){
                     touchRectangle.y = (i*12)+32;
                     touchRectangle.width = 15;
                     touchRectangle.height = 10;
-                    if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture != GESTURE_NONE)){
+					// Octave buttons only respond to tap, not any old gesture
+                    if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture == GESTURE_TAP)){
                         // Set the Octave for this Step & Quantize the RAW value
                         int newpitch = quantize((6000 * (9-i)) + Partial,Europi.tracks[track].channels[CV_OUT].quantise);
                         Europi.tracks[track].channels[CV_OUT].steps[SingleChannelOffset+column].raw_value = newpitch;
@@ -1151,7 +1153,20 @@ void ShowScreenOverlays(void){
         DrawTexture(Text5chTexture,210,2,WHITE);// Box for Zero value
         DrawText("Track",5,5,20,DARKGRAY);
         DrawText("Zero Val",112,5,20,DARKGRAY);
-        
+        // Check for Tap within Track or Value boxes, and set 
+		// focus accordingly
+		Rectangle touchRectangle = {71,3,30,22};
+		if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture == GESTURE_TAP)){
+			encoder_focus = track_select;
+		}
+		touchRectangle.x = 210;
+		touchRectangle.y = 3;
+		touchRectangle.width = 67;
+		touchRectangle.height = 22;
+		if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture == GESTURE_TAP)){
+			encoder_focus = set_zerolevel;
+		}
+		
         for(track = 0; track < MAX_TRACKS; track++) {
             if (Europi.tracks[track].selected == TRUE){
                 sprintf(strTrack,"%02d",track+1);
@@ -1197,6 +1212,19 @@ void ShowScreenOverlays(void){
         DrawTexture(Text5chTexture,210,2,WHITE);// Box for Zero value
         DrawText("Track",5,5,20,DARKGRAY);
         DrawText("10v Value",112,5,20,DARKGRAY);
+        // Check for Tap within Track or Value boxes, and set 
+		// focus accordingly
+		Rectangle touchRectangle = {71,3,30,22};
+		if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture == GESTURE_TAP)){
+			encoder_focus = track_select;
+		}
+		touchRectangle.x = 210;
+		touchRectangle.y = 3;
+		touchRectangle.width = 67;
+		touchRectangle.height = 22;
+		if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture == GESTURE_TAP)){
+			encoder_focus = set_maxlevel;
+		}
         
         for(track = 0; track < MAX_TRACKS; track++) {
             if (Europi.tracks[track].selected == TRUE){
@@ -1224,13 +1252,11 @@ void ShowScreenOverlays(void){
             // Check for Val -
             btnB_state = 0;
             if(encoder_focus == track_select) select_next_track(DOWN);
-            //else set_loop_point(DOWN);
         }
         if (btnC_state == 1){
             // Check for Val +
             btnC_state = 0;
             if(encoder_focus == track_select) select_next_track(UP);
-            //else set_loop_point(UP);
         }
     }
     if(ActiveOverlays & ovl_SetLoop){
@@ -1243,6 +1269,19 @@ void ShowScreenOverlays(void){
         DrawTexture(Text2chTexture,185,2,WHITE); // Box for Step Number
         DrawText("Track",5,5,20,DARKGRAY);
         DrawText("Length",112,5,20,DARKGRAY);
+        // Check for Tap within Track or Value boxes, and set 
+		// focus accordingly
+		Rectangle touchRectangle = {71,3,30,22};
+		if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture == GESTURE_TAP)){
+			encoder_focus = track_select;
+		}
+		touchRectangle.x = 186;
+		touchRectangle.y = 3;
+		touchRectangle.width = 30;
+		touchRectangle.height = 22;
+		if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture == GESTURE_TAP)){
+			encoder_focus = set_loop;
+		}
         
         for(track = 0; track < MAX_TRACKS; track++) {
             if (Europi.tracks[track].selected == TRUE){
@@ -1435,7 +1474,20 @@ void ShowScreenOverlays(void){
         DrawTexture(Text2chTexture,70,2,WHITE); 
         DrawTexture(TextInputTexture,103,2,WHITE);
         DrawText("Track",5,5,20,DARKGRAY);
-        
+		// Check for Tap within Track or Value boxes, and set 
+		// focus accordingly
+		Rectangle touchRectangle = {71,3,30,22};
+		if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture == GESTURE_TAP)){
+			encoder_focus = track_select;
+		}
+		touchRectangle.x = 103;
+		touchRectangle.y = 3;
+		touchRectangle.width = 213;
+		touchRectangle.height = 22;
+		if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture == GESTURE_TAP)){
+			encoder_focus = set_quantise;
+		}
+ 
         for(track = 0; track < MAX_TRACKS; track++) {
             if (Europi.tracks[track].selected == TRUE){
                 sprintf(strTrack,"%02d",track+1);
@@ -1483,6 +1535,20 @@ void ShowScreenOverlays(void){
         DrawTexture(Text2chTexture,70,2,WHITE); 
         DrawTexture(TextInputTexture,103,2,WHITE);
         DrawText("Track",5,5,20,DARKGRAY);
+		// Check for Tap within Track or Value boxes, and set 
+		// focus accordingly
+		Rectangle touchRectangle = {71,3,30,22};
+		if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture == GESTURE_TAP)){
+			encoder_focus = track_select;
+		}
+		touchRectangle.x = 103;
+		touchRectangle.y = 3;
+		touchRectangle.width = 213;
+		touchRectangle.height = 22;
+		if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture == GESTURE_TAP)){
+			encoder_focus = set_direction;
+		}
+
         for(track = 0; track < MAX_TRACKS; track++) {
             if (Europi.tracks[track].selected == TRUE){
                 sprintf(strTrack,"%02d",track+1);
@@ -1631,32 +1697,40 @@ void ShowScreenOverlays(void){
     }
 
     if(ActiveOverlays & ovl_VerticalScrollBar){
-        // Vertical scroll bar on RHS of screen
-        DrawTexture(VerticalScrollBarTexture,303,4,WHITE);
-        int ScrollHandlePosn = (((VERTICAL_SCROLL_MAX-VERTICAL_SCROLL_MIN) * VerticalScrollPercent) / 100) + VERTICAL_SCROLL_MIN;
-        DrawTexture(ScrollHandleTexture,304,ScrollHandlePosn,WHITE);
-        // test rectangles for buttons
-        Rectangle scrollUpButton = {303,4,13,15};
-        Rectangle scrollDownButton = {303,198,13,15};
-        Rectangle scrollHandleRec = {303,ScrollHandlePosn-2,14,15}; //note: setting the collision box a couple of pixels above the actual button makes it easier to drag upwards!!
-        if (CheckCollisionPointRec(touchPosition, scrollUpButton) && (currentGesture != GESTURE_NONE)){
-            DrawRectangleLines(304, 4, 12, 14, CLR_DARKBLUE);
-            DrawRectangleLines(305, 5, 10, 12, CLR_DARKBLUE);
-            if(VerticalScrollPercent >= 1) VerticalScrollPercent--;
-        }
-        if (CheckCollisionPointRec(touchPosition, scrollDownButton) && (currentGesture != GESTURE_NONE)){
-            DrawRectangleLines(304, 199, 12, 14, CLR_DARKBLUE); 
-            DrawRectangleLines(305, 200, 10, 12, CLR_DARKBLUE); 
-            if(VerticalScrollPercent <= 99) VerticalScrollPercent++;
-        }
-        
-        if (CheckCollisionPointRec(touchPosition, scrollHandleRec) && (currentGesture == GESTURE_DRAG)){
-            DrawRectangleLines(303, ScrollHandlePosn, 14, 13, CLR_DARKBLUE);
-            DrawRectangleLines(304, ScrollHandlePosn+1, 12, 11, CLR_DARKBLUE);
-            if((touchPosition.y >= (float)VERTICAL_SCROLL_MIN) && (touchPosition.y <= (float)VERTICAL_SCROLL_MAX)) {
-                VerticalScrollPercent = (int)(((touchPosition.y - (float)VERTICAL_SCROLL_MIN) / (float)(VERTICAL_SCROLL_MAX - VERTICAL_SCROLL_MIN)) * 100);
-            }
-        }
+		// Check whether this is normal scroll bar or short one
+		if(ActiveOverlays & (ovl_SetZero | ovl_SetTen)) {
+			// Short scroll bar
+			DrawTexture(VerticalScrollBarShortTexture,303,27,WHITE);
+			
+		}
+		else {
+			// Tall vertical scroll bar on RHS of screen
+			DrawTexture(VerticalScrollBarTexture,303,4,WHITE);
+			int ScrollHandlePosn = (((VERTICAL_SCROLL_MAX-VERTICAL_SCROLL_MIN) * VerticalScrollPercent) / 100) + VERTICAL_SCROLL_MIN;
+			DrawTexture(ScrollHandleTexture,304,ScrollHandlePosn,WHITE);
+			// test rectangles for buttons
+			Rectangle scrollUpButton = {303,4,13,15};
+			Rectangle scrollDownButton = {303,198,13,15};
+			Rectangle scrollHandleRec = {303,ScrollHandlePosn-2,14,15}; //note: setting the collision box a couple of pixels above the actual button makes it easier to drag upwards!!
+			if (CheckCollisionPointRec(touchPosition, scrollUpButton) && (currentGesture != GESTURE_NONE)){
+				DrawRectangleLines(304, 4, 12, 14, CLR_DARKBLUE);
+				DrawRectangleLines(305, 5, 10, 12, CLR_DARKBLUE);
+				if(VerticalScrollPercent >= 1) VerticalScrollPercent--;
+			}
+			if (CheckCollisionPointRec(touchPosition, scrollDownButton) && (currentGesture != GESTURE_NONE)){
+				DrawRectangleLines(304, 199, 12, 14, CLR_DARKBLUE); 
+				DrawRectangleLines(305, 200, 10, 12, CLR_DARKBLUE); 
+				if(VerticalScrollPercent <= 99) VerticalScrollPercent++;
+			}
+			
+			if (CheckCollisionPointRec(touchPosition, scrollHandleRec) && (currentGesture == GESTURE_DRAG)){
+				DrawRectangleLines(303, ScrollHandlePosn, 14, 13, CLR_DARKBLUE);
+				DrawRectangleLines(304, ScrollHandlePosn+1, 12, 11, CLR_DARKBLUE);
+				if((touchPosition.y >= (float)VERTICAL_SCROLL_MIN) && (touchPosition.y <= (float)VERTICAL_SCROLL_MAX)) {
+					VerticalScrollPercent = (int)(((touchPosition.y - (float)VERTICAL_SCROLL_MIN) / (float)(VERTICAL_SCROLL_MAX - VERTICAL_SCROLL_MIN)) * 100);
+				}
+			}
+		}
     }
     if(ActiveOverlays & ovl_SingleStep){
             char strTrack[5];

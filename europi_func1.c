@@ -144,6 +144,7 @@ extern Texture2D MainScreenTexture;
 extern Texture2D TopBarTexture;
 extern Texture2D ButtonBarTexture; 
 extern Texture2D VerticalScrollBarTexture;
+extern Texture2D VerticalScrollBarShortTexture;
 extern Texture2D ScrollHandleTexture;
 extern int disp_menu;	
 extern char **files;
@@ -1001,6 +1002,7 @@ int startup(void)
     TopBarTexture = LoadTexture("resources/images/top_bar.png");
     ButtonBarTexture = LoadTexture("resources/images/button_bar.png");
     VerticalScrollBarTexture = LoadTexture("resources/images/vertical_scroll_bar.png");
+    VerticalScrollBarShortTexture = LoadTexture("resources/images/vertical_scroll_bar_short.png");
     ScrollHandleTexture = LoadTexture("resources/images/scroll_handle.png");
 	
 
