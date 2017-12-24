@@ -200,15 +200,15 @@ int main(int argc, char* argv[])
 	unsigned int iseed = (unsigned int)time(NULL);
 	srand (iseed);
 	/* things to do when prog first starts */
-	impersonate_hw = FALSE; //TRUE;	/* !!! uncomment this line if testing software without full hardware present */
+	impersonate_hw = TRUE;	/* !!! uncomment this line if testing software without full hardware present */
 	startup();
 	/* Read and set the states of the run/stop and int/ext switches */
 	log_msg("Run/stop: %d, Int/ext: %d\n",gpioRead(RUNSTOP_IN),gpioRead(INTEXT_IN));
 	run_stop = gpioRead(RUNSTOP_IN);
 	clock_source = gpioRead(INTEXT_IN);
 	//Temp for testing
-	//run_stop = STOP; 
-	//clock_source = INT_CLK;
+	run_stop = RUN; //STOP; 
+	clock_source = INT_CLK;
     //debug = TRUE;
     currentGesture = GESTURE_NONE;
     lastGesture = GESTURE_NONE;

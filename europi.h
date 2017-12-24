@@ -288,6 +288,7 @@ void set_step_pitch(int dir,int vel);
 void seq_new(void);
 void ClearScreenOverlays(void);
 int OverlayActive(uint32_t IgnoreOverlays);
+int ShortScroll(void);
 void buttonsDefault(void);
 void seq_quantise(void);
 void seq_setdir(void);
@@ -332,7 +333,7 @@ void gui_grid(void);
 
 /* function prototypes in touch.c */
 //void *TouchThread(void *arg);
-//void InitTouch(void);
+//void InitTouch(void); 
 
 /* Global Constants */
 #define X_MAX 320 
@@ -350,6 +351,9 @@ void gui_grid(void);
 #define DLG_ROWS 9
 #define VERTICAL_SCROLL_MAX 187
 #define VERTICAL_SCROLL_MIN 18
+#define SHORT_VERTICAL_SCROLL_MAX 187
+#define SHORT_VERTICAL_SCROLL_MIN 41
+
 
 // Two shades of BLUE used in menus etc.
 #define CLR_DARKBLUE (Color){ 153, 181, 208, 255 } 

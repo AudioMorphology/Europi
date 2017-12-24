@@ -45,6 +45,7 @@ extern int save_run_stop;
 extern int disp_menu;
 extern int debug;
 extern int TuningOn;
+extern int edit_track;
 extern uint16_t TuningVoltage; 
 extern int SingleChannelOffset;
 extern int VerticalScrollPercent;
@@ -80,13 +81,16 @@ extern int first_file;
 
 /*
  * menu callback for Single Channel view
- * !!!!To Do: worry about what sort of Single channel this is (AD, ADSR etc)
+ * This switches the display page to a single
+ * page of the track noted in the global variable
+ * edit_track
  */
 void seq_singlechnl(void) {
 	ClearScreenOverlays();
+	ActiveOverlays |= ovl_SingleChannel;
 	DisplayPage = SingleChannel;
 	encoder_focus = track_select;
-	select_first_track();	
+	SwitchChannelFunction(edit_track);
 }
 /*
  * menu callback for Grid Channel view
@@ -137,6 +141,7 @@ void seq_new(void){
  */
 void ClearScreenOverlays(void){
 	ActiveOverlays = 0;
+	//log_msg("Clear Overlays %d",gpioTick());
 }
 
 /*
@@ -153,6 +158,26 @@ int OverlayActive(uint32_t IgnoreOverlay){
     if((ActiveOverlays & ~IgnoreOverlay) > 0) return 1;
     else return 0;
 }
+
+/*
+ * simple function that just returns True or False
+ * if there is something at the top of the screen and
+ * therefore the Scroll Bar should be shorter, and the 
+ * track displays etc should start lower down the screen
+ */
+int ShortScroll(){
+	if(ActiveOverlays & (
+	ovl_MainMenu |
+	ovl_SetZero | 
+	ovl_SetTen | 
+	ovl_SetLoop | 
+	ovl_SetPitch | 
+	ovl_SetSlew | 
+	ovl_SetDirection | 
+	ovl_SetQuantise)) return 1;
+	else return 0;
+}
+
 
 /*
  * Sets the default soft menu buttons
@@ -183,6 +208,7 @@ void select_first_track(void){
 	while(track < MAX_TRACKS){
 		if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE) {
 			Europi.tracks[track].selected = TRUE;
+			edit_track = track;
 			GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
 			break;
 		}
@@ -218,6 +244,7 @@ void select_next_track(int dir){
                 while(track < MAX_TRACKS){
                     if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE){
                         Europi.tracks[track].selected = TRUE;
+						edit_track = track;
                         found_new = TRUE;
                         GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
                         break;
@@ -230,6 +257,7 @@ void select_next_track(int dir){
         // Didn't find a new one to select, so re-select the previous one
         if (found_new == FALSE){
             Europi.tracks[prev_selected].selected = TRUE;
+			edit_track = prev_selected;
         }
     }
     else {
@@ -247,6 +275,7 @@ void select_next_track(int dir){
                 while(track >= 0){
                     if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE){
                         Europi.tracks[track].selected = TRUE;
+						edit_track = track;
                         found_new = TRUE;
                         GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
                         break;
@@ -259,6 +288,7 @@ void select_next_track(int dir){
         // Didn't find a new one to select, so re-select the previous one
         if (found_new == FALSE){
             Europi.tracks[prev_selected].selected = TRUE;
+			edit_track = prev_selected;
         }
     }
     
@@ -301,7 +331,7 @@ void SwitchChannelFunction(int track){
                 DisplayPage = SingleChannel;
 				ActiveOverlays |= ovl_SingleChannel;
                 SingleChannelOffset = 0;
-                encoder_focus = none;
+                encoder_focus = track_select;
                 btnA_func = btnA_none;
                 btnB_func = btnB_tr_minus;
                 btnC_func = btnC_tr_plus;

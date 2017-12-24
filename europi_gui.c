@@ -111,17 +111,19 @@ void gui_8x8(void){
     }
     BeginDrawing();
     DrawTexture(MainScreenTexture,0,0,WHITE);
+	int vOffset = 0;
+	if(ShortScroll()) vOffset=20;
     for(track = 0; track < 8; track++){
         // Can only display 8 tracks, so need to know which
         // track we are starting with, and display the next 7
         offset = Europi.tracks[start_track+track].current_step / 8;
         sprintf(txt,"%02d-%d:",start_track+track+1,(offset * 8)+1);
         txt_len = MeasureText(txt,20);
-        DrawText(txt,68-txt_len,12+(track * 25),20,DARKGRAY);
-        DrawRectangleLines(4,8+(track * 25),67,26,DARKGRAY);
+        DrawText(txt,68-txt_len,12+(vOffset+(track * 25)),20,DARKGRAY);
+        DrawRectangleLines(4,vOffset+8+(track * 25),67,26,DARKGRAY);
         // Check for Track select
         trackRectangle.x = 4;
-        trackRectangle.y = 8 + (track * 25);
+        trackRectangle.y = vOffset + 8 + (track * 25);
         trackRectangle.width = 67;
         trackRectangle.height = 26;
 		if(OverlayActive( ovl_VerticalScrollBar ) == 0){
@@ -132,11 +134,12 @@ void gui_8x8(void){
                 select_track(start_track+track);
                 ClearScreenOverlays();
                 SwitchChannelFunction(edit_track);
+				encoder_focus = track_select;
             }
         }
         for(column=0;column<8;column++){
             stepRectangle.x = 70 + (column * 25);
-            stepRectangle.y = 10 + (track * 25);
+            stepRectangle.y = vOffset + 10 + (track * 25);
             stepRectangle.width = 22;
             stepRectangle.height = 22;
             // Check gesture collision
@@ -150,7 +153,7 @@ void gui_8x8(void){
                     ClearScreenOverlays();
                     DisplayPage = SingleStep;
                     ActiveOverlays |= ovl_SingleStep; 
-                    encoder_focus = none;
+                    encoder_focus = step_select;
                     btnA_func = btnA_none;
                     btnB_func = btnB_prev;
                     btnC_func = btnC_next;
@@ -213,7 +216,8 @@ void gui_singlestep(void){
 	if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture != GESTURE_NONE)){
 		// Switch to Track View
 		ClearScreenOverlays();
-		SwitchChannelFunction(edit_track);		
+		SwitchChannelFunction(edit_track);
+		encoder_focus = track_select;		
 	}
     for(column=0;column<8;column++){
         stepRectangle.x = 70 + (column * 25);
@@ -227,7 +231,7 @@ void gui_singlestep(void){
             ClearScreenOverlays();
             DisplayPage = SingleStep;
             ActiveOverlays |= ovl_SingleStep;
-            encoder_focus = none;
+            encoder_focus = step_select;
             btnA_func = btnA_none;
             btnB_func = btnB_prev;
             btnC_func = btnC_next;
@@ -1126,8 +1130,6 @@ void gui_grid(void){
  */
 void ShowScreenOverlays(void){
     if(ActiveOverlays & ovl_MainMenu){
-        ClearScreenOverlays();
-        ActiveOverlays |= ovl_MainMenu;
         gui_MainMenu();
     }
     if(ActiveOverlays & ovl_ModalDialog){
@@ -1698,10 +1700,33 @@ void ShowScreenOverlays(void){
 
     if(ActiveOverlays & ovl_VerticalScrollBar){
 		// Check whether this is normal scroll bar or short one
-		if(ActiveOverlays & (ovl_SetZero | ovl_SetTen)) {
+		if(ShortScroll()) {
 			// Short scroll bar
 			DrawTexture(VerticalScrollBarShortTexture,303,27,WHITE);
+			int ScrollHandlePosn = (((SHORT_VERTICAL_SCROLL_MAX-SHORT_VERTICAL_SCROLL_MIN) * VerticalScrollPercent) / 100) + SHORT_VERTICAL_SCROLL_MIN;
+			DrawTexture(ScrollHandleTexture,304,ScrollHandlePosn,WHITE);
+			// test rectangles for buttons
+			Rectangle scrollUpButton = {303,26,13,15};
+			Rectangle scrollDownButton = {303,198,13,15};
+			Rectangle scrollHandleRec = {303,ScrollHandlePosn-2,14,15}; //note: setting the collision box a couple of pixels above the actual button makes it easier to drag upwards!!
+			if (CheckCollisionPointRec(touchPosition, scrollUpButton) && (currentGesture != GESTURE_NONE)){
+				DrawRectangleLines(304, 4, 12, 14, CLR_DARKBLUE);
+				DrawRectangleLines(305, 5, 10, 12, CLR_DARKBLUE);
+				if(VerticalScrollPercent >= 1) VerticalScrollPercent--;
+			}
+			if (CheckCollisionPointRec(touchPosition, scrollDownButton) && (currentGesture != GESTURE_NONE)){
+				DrawRectangleLines(304, 199, 12, 14, CLR_DARKBLUE); 
+				DrawRectangleLines(305, 200, 10, 12, CLR_DARKBLUE); 
+				if(VerticalScrollPercent <= 99) VerticalScrollPercent++;
+			}
 			
+			if (CheckCollisionPointRec(touchPosition, scrollHandleRec) && (currentGesture == GESTURE_DRAG)){
+				DrawRectangleLines(303, ScrollHandlePosn, 14, 13, CLR_DARKBLUE);
+				DrawRectangleLines(304, ScrollHandlePosn+1, 12, 11, CLR_DARKBLUE);
+				if((touchPosition.y >= (float)SHORT_VERTICAL_SCROLL_MIN) && (touchPosition.y <= (float)SHORT_VERTICAL_SCROLL_MAX)) {
+					VerticalScrollPercent = (int)(((touchPosition.y - (float)SHORT_VERTICAL_SCROLL_MIN) / (float)(SHORT_VERTICAL_SCROLL_MAX - SHORT_VERTICAL_SCROLL_MIN)) * 100);
+				}
+			}
 		}
 		else {
 			// Tall vertical scroll bar on RHS of screen
@@ -1772,6 +1797,11 @@ void ShowScreenOverlays(void){
         DrawText("Track:",5,5,20,DARKGRAY);
         sprintf(strTrack,"%02d",edit_track+1);
         DrawText(strTrack,80,5,20,DARKGRAY);
+		if(encoder_focus == track_select){
+			DrawRectangleLines(76,3,30,22,RED);
+			DrawRectangleLines(77,4,28,20,RED);
+		}
+
         if (btnB_state == 1){
             // Check for Prev
             btnB_state = 0;
@@ -1784,6 +1814,7 @@ void ShowScreenOverlays(void){
             SingleChannelOffset = 0;
             select_track(edit_track);
             SwitchChannelFunction(edit_track);
+			encoder_focus = track_select;
         }
         if (btnC_state == 1){
             // Check for Next
@@ -1794,6 +1825,7 @@ void ShowScreenOverlays(void){
             SingleChannelOffset = 0;
             select_track(edit_track);
             SwitchChannelFunction(edit_track);
+			encoder_focus = track_select;
         }
     }
     if(ActiveOverlays & ovl_SingleAD){
@@ -1916,10 +1948,6 @@ void gui_ButtonBar(void){
                 ActiveOverlays ^= ovl_MainMenu;
                 if(ActiveOverlays & ovl_MainMenu){
                     encoder_focus = menu_on;
-                }
-                else {
-                    ClearMenus();
-                    MenuSelectItem(0,0);    // Select just the first item of the first branch
                 }
             }
         break;

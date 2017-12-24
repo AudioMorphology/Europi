@@ -1853,6 +1853,8 @@ void hardware_init(void)
 			Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_channel = 0;
 
 		 }
+		 last_track = MAX_TRACKS;
+		 select_track(0);
 		 return;
 	 }
 	/* 
