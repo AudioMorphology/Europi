@@ -1028,6 +1028,8 @@ int startup(void)
 	//initialise the sequence for testing purposes
 	//init_sequence();
 	load_sequence("resources/sequences/16dec");
+	//reapply the current hardware config to loaded sequence
+	reapply_config();
 	/* Start the internal sequencer clock */
 	run_stop = STOP;		/* master clock is running, but step generator is halted */
 	gpioHardwarePWM(MASTER_CLK,clock_freq,500000);
@@ -1037,6 +1039,21 @@ int startup(void)
     return(0);
 }
 
+/*
+ * ReapplyConfig
+ * the problem with loadcing a sequence direct from disk is that this also
+ * saved the hardware configuration at that point in time. So, if a sequence 
+ * is re-loaded from disk, we need to re-apply the CURRENT hardware 
+ * configuration in order to ensure compatibility with the current hardware
+ * config. In practice, this just involves enabling or disabling channels
+ */
+void reapply_config(void) {
+	int track;
+   for(track=0;track<MAX_TRACKS;track++){
+		Europi.tracks[track].channels[CV_OUT].enabled = Europi_hw.hw_tracks[track].hw_channels[CV_OUT].enabled;
+		Europi.tracks[track].channels[GATE_OUT].enabled = Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].enabled;
+   }
+}
 /* SHUTDOWN
  * Main program shutdown routine - called 
  * once when the prog closes. Aims to shut 
@@ -1814,6 +1831,7 @@ void hardware_init(void)
 	 */
 	 if (impersonate_hw == TRUE){
 		 is_europi = TRUE;
+		 log_msg("Impersonating Europi Hardare\n");
 		 for (track = 0; track < MAX_TRACKS;track++){
 			/* These are just dummy values to fool the software
 			 * into thinking it has the full hardware present
@@ -1962,6 +1980,9 @@ void hardware_init(void)
 		 * no need to set them to anything specific, and we don't really
 		 * want them appearing as additional tracks*/
 		track++;	/* Minion tracks will therefore start from Track 2 */
+	}
+	else {
+		log_msg("No Europi hardare found\n");
 	}
 	/* 
 	 * scan for Minions - these will be on addresses

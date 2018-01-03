@@ -126,9 +126,9 @@ void gui_8x8(void){
         trackRectangle.y = vOffset + 8 + (track * 25);
         trackRectangle.width = 67;
         trackRectangle.height = 26;
-		if(OverlayActive( ovl_VerticalScrollBar ) == 0){
-            // Only if no menus or overlays active
-            if (CheckCollisionPointRec(touchPosition, trackRectangle) && (currentGesture != GESTURE_NONE)){
+		// Only if no menus or overlays active
+		if (CheckCollisionPointRec(touchPosition, trackRectangle) && (currentGesture != GESTURE_NONE)){
+			if(OverlayActive( ovl_VerticalScrollBar ) == 0){
                 // Open this track in a Single Channel view
                 edit_track = start_track+track;
                 select_track(start_track+track);
@@ -136,6 +136,11 @@ void gui_8x8(void){
                 SwitchChannelFunction(edit_track);
 				encoder_focus = track_select;
             }
+			else {
+				// Just update the selected track
+				select_track(start_track+track);
+				encoder_focus = track_select;
+			}
         }
         for(column=0;column<8;column++){
             stepRectangle.x = 70 + (column * 25);
@@ -143,9 +148,9 @@ void gui_8x8(void){
             stepRectangle.width = 22;
             stepRectangle.height = 22;
             // Check gesture collision
-            if(OverlayActive(ovl_VerticalScrollBar) == 0){
+			if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture != GESTURE_NONE)){
+				if(OverlayActive(ovl_VerticalScrollBar) == 0){
                 // Only if no Menus or Overlays active
-                if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture != GESTURE_NONE)){
                     // Open this step in the Single Step editor
                     edit_track = start_track+track;
                     edit_step = (offset*8)+column;
@@ -160,9 +165,14 @@ void gui_8x8(void){
                     btnD_func = btnD_done; 
                     save_run_stop = run_stop;
                 }
+				else {
+					select_track(start_track+track);
+                    edit_step = (offset*8)+column;
+                    encoder_focus = step_select;
+				}
             }
-            if((offset*8)+column == Europi.tracks[start_track+track].last_step){
-                // Paint last step
+            if((offset*8)+column >= Europi.tracks[start_track+track].last_step){
+                // beyon the last step, just paint black squares
                 DrawRectangleRec(stepRectangle, BLACK); 
             }
             else if((offset*8)+column == Europi.tracks[start_track+track].current_step){
@@ -1685,7 +1695,7 @@ void ShowScreenOverlays(void){
         if (btnC_state == 1){
             // Cancel Button Touched
             btnC_state = 0;
-            ClearScreenOverlays();
+			ClearScreenOverlays();
             buttonsDefault();
         }
         
@@ -1804,13 +1814,8 @@ void ShowScreenOverlays(void){
 
         if (btnB_state == 1){
             // Check for Prev
-            btnB_state = 0;
-            if(edit_track <= 0){
-                edit_track = last_track-1;
-            }
-            else {
-                edit_track--;
-            }
+			btnB_state = 0;
+			select_next_track(-1);
             SingleChannelOffset = 0;
             select_track(edit_track);
             SwitchChannelFunction(edit_track);
@@ -1818,10 +1823,8 @@ void ShowScreenOverlays(void){
         }
         if (btnC_state == 1){
             // Check for Next
-            if(++edit_track >= last_track){
-                edit_track=0;
-            }
             btnC_state = 0;
+			select_next_track(1);
             SingleChannelOffset = 0;
             select_track(edit_track);
             SwitchChannelFunction(edit_track);

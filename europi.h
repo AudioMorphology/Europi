@@ -265,6 +265,7 @@ void MIDISingleChannelWrite(unsigned handle, uint8_t channel, uint8_t velocity, 
 void DACSingleChannelWrite(int track, unsigned handle, uint8_t address, uint8_t channel, uint16_t voltage);
 void GATESingleOutput(unsigned handle, uint8_t channel,int Device,int Value);
 void hardware_init(void); 
+void reapply_config(void) ;
 int quantize(int raw, int scale);
 int pitch2midi(uint16_t voltage);
 void *SlewThread(void *arg); 
@@ -463,28 +464,6 @@ enum display_page_t {
      ovl_SingleAD				= (1 << 16),
      ovl_SingleADSR			= (1 << 17),
      ovl_ModalDialog			= (1 << 18)
- };
- 
- struct screen_overlays{
-	 int MainMenu;
-	 int SetZero;
-	 int SetTen;
-	 int ScaleValue;
-	 int SetLoop;
-	 int SetPitch;
-     int SetSlew;
-	 int SetQuantise;
-     int SetDirection;
-     int Keyboard;
-     int FileOpen;
-     int TextInput;
-     int FileSaveAs;
-     int VerticalScrollBar;
-     int SingleStep;
-     int SingleChannel;
-     int SingleAD;
-     int SingleADSR;
-     int ModalDialog;
  };
  
 /*

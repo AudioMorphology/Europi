@@ -226,7 +226,7 @@ void select_track(int track){
     }
 }
 /*
- * Select Next Track - dir specifies whether to select next up or down
+ * Select Next Track - dir specifies whether to select next up or down (+/-1)
  */
 void select_next_track(int dir){
     if(dir == 1){
@@ -243,6 +243,7 @@ void select_next_track(int dir){
                 if(track < MAX_TRACKS - 1) track++;
                 while(track < MAX_TRACKS){
                     if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE){
+						log_msg("Found enabled: %d",track);
                         Europi.tracks[track].selected = TRUE;
 						edit_track = track;
                         found_new = TRUE;
