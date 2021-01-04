@@ -2057,8 +2057,7 @@ void gui_ButtonBar(void){
                 ClearScreenOverlays();
                 buttonsDefault();
                 ClearMenus();
-                MenuSelectItem(0,0);
-                
+                MenuSelectItem(0,0);  
             }
         break;
         case btnC_val_up:
