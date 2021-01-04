@@ -2058,6 +2058,7 @@ void gui_ButtonBar(void){
                 buttonsDefault();
                 ClearMenus();
                 MenuSelectItem(0,0);
+                
             }
         break;
         case btnC_val_up:
