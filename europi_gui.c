@@ -172,7 +172,7 @@ void gui_8x8(void){
 				}
             }
             if((offset*8)+column >= Europi.tracks[start_track+track].last_step){
-                // beyon the last step, just paint black squares
+                // beyond the last step, just paint black squares
                 DrawRectangleRec(stepRectangle, BLACK); 
             }
             else if((offset*8)+column == Europi.tracks[start_track+track].current_step){
@@ -186,8 +186,7 @@ void gui_8x8(void){
         }  
         // Print the end-step number at the RHS of each row
         sprintf(txt,":%d",(offset * 8)+8);
-        DrawText(txt,270,12+(track * 25),20,DARKGRAY);
-
+        DrawText(txt,270,12+(vOffset+(track * 25)),20,DARKGRAY);
     }
     // Handle any screen overlays - these need to 
     // be added within the Drawing loop
@@ -1720,8 +1719,8 @@ void ShowScreenOverlays(void){
 			Rectangle scrollDownButton = {303,198,13,15};
 			Rectangle scrollHandleRec = {303,ScrollHandlePosn-2,14,15}; //note: setting the collision box a couple of pixels above the actual button makes it easier to drag upwards!!
 			if (CheckCollisionPointRec(touchPosition, scrollUpButton) && (currentGesture != GESTURE_NONE)){
-				DrawRectangleLines(304, 4, 12, 14, CLR_DARKBLUE);
-				DrawRectangleLines(305, 5, 10, 12, CLR_DARKBLUE);
+				DrawRectangleLines(304, 27, 12, 14, CLR_DARKBLUE);
+				DrawRectangleLines(305, 28, 10, 12, CLR_DARKBLUE);
 				if(VerticalScrollPercent >= 1) VerticalScrollPercent--;
 			}
 			if (CheckCollisionPointRec(touchPosition, scrollDownButton) && (currentGesture != GESTURE_NONE)){
@@ -1919,6 +1918,12 @@ void gui_ButtonBar(void){
         btnA_state = 1;
 		currentGesture = GESTURE_NONE;
     }
+    // Highlight the button
+    if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture != GESTURE_NONE)){
+        DrawRectangleLines(buttonRectangle.x+1, buttonRectangle.y+3, buttonRectangle.width-3, buttonRectangle.height+4, CLR_DARKBLUE);
+        DrawRectangleLines(buttonRectangle.x+2, buttonRectangle.y+4, buttonRectangle.width-5, buttonRectangle.height+2, CLR_DARKBLUE);
+    }
+
     switch(btnA_func){
         case btnA_quit:
             DrawText("Quit",17,217,20,DARKGRAY);
@@ -1942,6 +1947,11 @@ void gui_ButtonBar(void){
     if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture == GESTURE_TAP)){
         btnB_state = 1;
 		currentGesture = GESTURE_NONE;
+    }
+    // Highlight the button
+    if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture != GESTURE_NONE)){
+        DrawRectangleLines(buttonRectangle.x+1, buttonRectangle.y+3, buttonRectangle.width-3, buttonRectangle.height+4, CLR_DARKBLUE);
+        DrawRectangleLines(buttonRectangle.x+2, buttonRectangle.y+4, buttonRectangle.width-5, buttonRectangle.height+2, CLR_DARKBLUE);
     }
     switch(btnB_func){
         case btnB_menu:
@@ -2013,6 +2023,11 @@ void gui_ButtonBar(void){
         btnC_state = 1;
 		currentGesture = GESTURE_NONE;
     }
+    // Highlight the button
+    if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture != GESTURE_NONE)){
+        DrawRectangleLines(buttonRectangle.x+1, buttonRectangle.y+3, buttonRectangle.width-3, buttonRectangle.height+4, CLR_DARKBLUE);
+        DrawRectangleLines(buttonRectangle.x+2, buttonRectangle.y+4, buttonRectangle.width-5, buttonRectangle.height+2, CLR_DARKBLUE);
+    }
     switch(btnC_func){
         case btnC_bpm_dn:
             DrawText("BPM-",177,217,20,DARKGRAY);
@@ -2066,6 +2081,11 @@ void gui_ButtonBar(void){
     if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture == GESTURE_TAP)){
         btnD_state = 1;
 		currentGesture = GESTURE_NONE;
+    }
+    // Highlight the button
+    if (CheckCollisionPointRec(touchPosition, buttonRectangle) && (currentGesture != GESTURE_NONE)){
+        DrawRectangleLines(buttonRectangle.x+1, buttonRectangle.y+3, buttonRectangle.width-3, buttonRectangle.height+4, CLR_DARKBLUE);
+        DrawRectangleLines(buttonRectangle.x+2, buttonRectangle.y+4, buttonRectangle.width-5, buttonRectangle.height+2, CLR_DARKBLUE);
     }
     switch(btnD_func){
         case btnD_bpm_up:

@@ -47,7 +47,7 @@ int kbfd = 0;
 int is_europi = FALSE;	/* whether we are running on Europi hardware - set to True in hardware_init() */
 int print_messages = TRUE; /* controls whether log_msg outputs to std_err or not */
 int debug = FALSE;		/* controls whether debug messages are printed to the main screen */
-int impersonate_hw = FALSE;	/* allows the software to bypass hardware checks (useful when testing sw without full hw ) */ 
+int impersonate_hw = TRUE;	/* Forces the software to bypass hardware checks (useful when testing sw without full hw ) */ 
 char input_txt[100];    /* buffer for capturing user input */
 char current_filename[100]; /* The File we have Open, which is used in File-Save */
 char modal_dialog_txt1[50]; /* 1st Line of text for display in Modal Dialog box */
@@ -199,15 +199,14 @@ int main(int argc, char* argv[])
 	unsigned int iseed = (unsigned int)time(NULL);
 	srand (iseed);
 	/* things to do when prog first starts */
-	impersonate_hw =  FALSE; //TRUE;	/* !!! uncomment this line if testing software without full hardware present */
 	startup();
 	/* Read and set the states of the run/stop and int/ext switches */
 	log_msg("Run/stop: %d, Int/ext: %d\n",gpioRead(RUNSTOP_IN),gpioRead(INTEXT_IN));
 	run_stop = gpioRead(RUNSTOP_IN);
 	clock_source = gpioRead(INTEXT_IN);
 	//Temp for testing
-	//run_stop = RUN; //STOP; 
-	//clock_source = INT_CLK;
+	run_stop = RUN; //STOP; 
+	clock_source = INT_CLK;
     //debug = TRUE;
     currentGesture = GESTURE_NONE;
     lastGesture = GESTURE_NONE;

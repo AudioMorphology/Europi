@@ -991,8 +991,10 @@ int startup(void)
 	//Raylib Initialisation
 	InitWindow(X_MAX, Y_MAX, "Europi by Audio Morpholgy");
 	ToggleFullscreen();
-	DisableCursor();
-	font1 = LoadSpriteFont("resources/fonts/mecha.rbmf");
+	if (!impersonate_hw) {
+		DisableCursor();	// Cursor enabled when Hardware impersonation is ON
+	}
+	//font1 = LoadSpriteFont("resources/fonts/mecha.rbmf");
     KeyboardTexture = LoadTexture("resources/images/keyboard.png");
     DialogTexture = LoadTexture("resources/images/dialog.png");
     TextInputTexture = LoadTexture("resources/images/text_input.png");
@@ -1032,6 +1034,9 @@ int startup(void)
 	reapply_config();
 	/* Start the internal sequencer clock */
 	run_stop = STOP;		/* master clock is running, but step generator is halted */
+	if (impersonate_hw) {
+		run_stop = RUN;
+	}
 	gpioHardwarePWM(MASTER_CLK,clock_freq,500000);
 	gpioSetAlertFunc(MASTER_CLK, master_clock);
 	prog_running = 1;
@@ -1100,7 +1105,7 @@ int shutdown(void)
     UnloadTexture(MainScreenTexture);
     UnloadTexture(TopBarTexture);
     UnloadTexture(ButtonBarTexture);
-	UnloadSpriteFont(font1);
+	//UnloadSpriteFont(font1);
 	UnloadTexture(Splash);
 	CloseWindow();        			// Close window and OpenGL context
 	// Set screen resolution back to Original values
