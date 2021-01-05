@@ -119,10 +119,10 @@ void seq_new(void){
 		Europi.tracks[track].last_step = MAX_STEPS;
 		Europi.tracks[track].current_step = 0;
 		Europi.tracks[track].channels[CV_OUT].quantise = 1;	// default quantization = semitones	
-		Europi.tracks[track].channels[CV_OUT].transpose = 0;	
+		Europi.tracks[track].channels[CV_OUT].transpose = 0;	 
 		Europi.tracks[track].channels[CV_OUT].function = CV;
 		for(step = 0;step < MAX_STEPS;step++){
-			Europi.tracks[track].channels[CV_OUT].steps[step].raw_value = 0;
+			Europi.tracks[track].channels[CV_OUT].steps[step].raw_value = (6000*4) + 3000;   //half way up
 			Europi.tracks[track].channels[CV_OUT].steps[step].scaled_value = scale_value(track,0);
 			Europi.tracks[track].channels[CV_OUT].steps[step].slew_type = RevExp;
 			Europi.tracks[track].channels[CV_OUT].steps[step].slew_length = 0;
