@@ -46,6 +46,7 @@ extern char modal_dialog_txt3[];
 extern char modal_dialog_txt4[];
 extern Texture2D KeyboardTexture;
 extern Texture2D DialogTexture;
+extern Texture2D SmallDialogTexture;
 extern Texture2D TextInputTexture;
 extern Texture2D Text2chTexture;
 extern Texture2D Text5chTexture;
@@ -80,6 +81,8 @@ extern size_t file_count;
 extern int file_selected;
 extern int first_file;
 extern int debug;
+extern pthread_attr_t detached_attr;		
+extern pthread_t ThreadId; 
 
 
 /*
@@ -148,7 +151,7 @@ void gui_8x8(void){
             stepRectangle.width = 22;
             stepRectangle.height = 22;
             // Check gesture collision
-			if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture != GESTURE_NONE)){
+			if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture == GESTURE_DOUBLETAP)){
 				if(OverlayActive(ovl_VerticalScrollBar) == 0){
                 // Only if no Menus or Overlays active
                     // Open this step in the Single Step editor
@@ -1141,6 +1144,13 @@ void ShowScreenOverlays(void){
     if(ActiveOverlays & ovl_MainMenu){
         gui_MainMenu();
     }
+    if(ActiveOverlays & ovl_BPM){
+        char strBPM[10];
+        sprintf(strBPM,"%02d BPM",clock_freq);
+        DrawTexture(SmallDialogTexture,150,150,WHITE);
+        DrawText(strBPM,160,160,20,DARKGRAY);
+    }
+
     if(ActiveOverlays & ovl_ModalDialog){
         DrawTexture(TopBarTexture,0,0,WHITE);
         DrawRectangle(5,28, 309, 184, CLR_LIGHTBLUE);
@@ -1349,8 +1359,6 @@ void ShowScreenOverlays(void){
         for(track = 0; track < MAX_TRACKS; track++) {
             if (Europi.tracks[track].selected == TRUE){
                 sprintf(strTrack,"%02d",track+1);
-                sprintf(strStep,"%02d",Europi.tracks[track].current_step+1);
-                sprintf(strSlew,"%05d",Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);
                 DrawText(strTrack,75,5,20,DARKGRAY);
                 DrawText(strStep,160,5,20,DARKGRAY);
                 DrawText(strSlew,250,5,20,DARKGRAY);
@@ -1468,10 +1476,7 @@ void ShowScreenOverlays(void){
                     select_next_step(UP);
                 break;
                 case set_pitch:
-                    set_step_pitch(UP,1);  // no velocity available
-                break;
-                default:
-                break;
+                    set_step_pitch(UP,1);  // no velocity availab~ovl_BPM
             }
         }
        
@@ -1585,11 +1590,6 @@ void ShowScreenOverlays(void){
                     DrawRectangleLines(71,3,30,22,RED);
                     DrawRectangleLines(72,4,28,20,RED);
                 }
-                else if (encoder_focus == set_direction) {
-                    DrawRectangleLines(103,3,213,22,RED);
-                    DrawRectangleLines(104,4,211,20,RED);
-
-                }
             }
         }
         // Check for Select button
@@ -1635,7 +1635,7 @@ void ShowScreenOverlays(void){
                 KBD_BTN_HEIGHT,WHITE);
             }
             // Check for touch input
-            if (CheckCollisionPointRec(touchPosition, btnHighlight) && (currentGesture != GESTURE_NONE)){
+            if (CheckCollisionPointRec(touchPosition, btnHighlight) && (currentGesture == GESTURE_TAP)){
                 if(currentGesture != lastGesture){
                     kbd_char_selected = button;
                     row = button / KBD_COLS;
@@ -2036,6 +2036,17 @@ void gui_ButtonBar(void){
                 clock_freq -= 10;
                 if (clock_freq < 1) clock_freq = 1;
                 gpioHardwarePWM(MASTER_CLK,clock_freq,500000);
+                // Display the current BPM on a floating overlay
+                // and launch a timed Thread to turn it off
+                ActiveOverlays |= ovl_BPM;  // Display BPM Overlay
+                struct ovl_timer sOvlTimer; 
+                sOvlTimer.sleeptime = 500000;
+                sOvlTimer.overlays = ~ovl_BPM;
+                struct ovl_timer *pOvlTimer = malloc(sizeof(struct ovl_timer));
+                memcpy(pOvlTimer, &sOvlTimer, sizeof(struct ovl_timer));
+                if(pthread_create(&ThreadId, &detached_attr, &OvlTimerThread,pOvlTimer)){
+                log_msg("OvlTimer thread creation error\n");
+                }
             }
         break;
         case btnC_OK:
@@ -2094,6 +2105,17 @@ void gui_ButtonBar(void){
                 btnD_state = 0;
                 clock_freq += 10;
                 gpioHardwarePWM(MASTER_CLK,clock_freq,500000);
+                // Display the current BPM on a floating overlay
+                // and launch a timed Thread to turn it off
+                ActiveOverlays |= ovl_BPM;  // Display BPM Overlay
+                struct ovl_timer sOvlTimer; 
+                sOvlTimer.sleeptime = 500000;
+                sOvlTimer.overlays = ~ovl_BPM;
+                struct ovl_timer *pOvlTimer = malloc(sizeof(struct ovl_timer));
+                memcpy(pOvlTimer, &sOvlTimer, sizeof(struct ovl_timer));
+                if(pthread_create(&ThreadId, &detached_attr, &OvlTimerThread,pOvlTimer)){
+                log_msg("OvlTimer thread creation error\n");
+                }
             }
         break;
         case btnD_done:

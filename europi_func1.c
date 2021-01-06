@@ -137,6 +137,7 @@ extern SpriteFont font1;
 extern Texture2D Splash;
 extern Texture2D KeyboardTexture;
 extern Texture2D DialogTexture;
+extern Texture2D SmallDialogTexture;
 extern Texture2D TextInputTexture;
 extern Texture2D Text2chTexture;
 extern Texture2D Text5chTexture;
@@ -856,6 +857,17 @@ void *MidiThread(void *arg)
     return NULL;
 }
 /*
+ * Delay thread, which sleeps for the passed time
+ * then applies the passed bit-mask to the ActiveOverlays Global
+ * This is ued to Eg. turn off temporary small Dialogs
+ * after an amount of time
+ */
+void *OvlTimerThread(void *arg){
+	struct ovl_timer *pOvlTimer = (struct ovl_timer *)arg;
+	usleep(pOvlTimer->sleeptime);
+	ActiveOverlays &= pOvlTimer->overlays;
+}
+/*
  * STARTUP
  * Main initialisation function, called once when the
  * prog starts.
@@ -997,6 +1009,7 @@ int startup(void)
 	//font1 = LoadSpriteFont("resources/fonts/mecha.rbmf");
     KeyboardTexture = LoadTexture("resources/images/keyboard.png");
     DialogTexture = LoadTexture("resources/images/dialog.png");
+	SmallDialogTexture = LoadTexture("resources/images/small_dialog.png");
     TextInputTexture = LoadTexture("resources/images/text_input.png");
     Text2chTexture = LoadTexture("resources/images/text_2ch.png");
     Text5chTexture = LoadTexture("resources/images/text_5ch.png");

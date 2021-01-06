@@ -138,6 +138,7 @@ SpriteFont font1;
 Texture2D Splash;	                // Splash screen texture
 Texture2D KeyboardTexture;          // Keyboard Overlay texture
 Texture2D DialogTexture;            // Common dialog control
+Texture2D SmallDialogTexture;       // small floating dialog
 Texture2D TextInputTexture;         // text input dialog box
 Texture2D Text2chTexture;           // 2 Character text box (used for Channel number, step number etc)
 Texture2D Text5chTexture;           // 5 Character text box 
@@ -178,7 +179,7 @@ menu sub_end = {0,0,dir_none,NULL,NULL,{NULL}}; //set of NULLs to mark the end o
 menu Menu[]={
 	{0,1,dir_down,"File",NULL,{&mnu_file_open,&mnu_file_save,&mnu_file_saveas,&mnu_file_new,&mnu_file_quit,&sub_end}},
 	{0,0,dir_down,"Sequence",NULL,{&mnu_seq_setslew,&mnu_seq_setloop,&mnu_seq_setpitch,&mnu_seq_setdir,&mnu_seq_quantise,&mnu_seq_gridview,&mnu_seq_singlechnl,&mnu_seq_new,&sub_end}},
-	{0,0,dir_down,"Config",NULL,{&mnu_config_setzero,&mnu_config_set10v,&mnu_config_debug,&mnu_config_tune,&sub_end}},
+	{0,0,dir_down,"Conf",NULL,{&mnu_config_setzero,&mnu_config_set10v,&mnu_config_debug,&mnu_config_tune,&sub_end}},
 	{0,0,dir_down,"Test",NULL,{&mnu_test_scalevalue,&mnu_config_setzero,&mnu_test_keyboard,&sub_end}},
 	{0,0,dir_down,"Play",NULL,{&sub_end}},
 	{0,0,dir_down,NULL,NULL,{NULL}}

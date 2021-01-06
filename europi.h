@@ -273,6 +273,7 @@ void *GateThread(void *arg);
 void *AdThread(void *arg); 
 void *AdsrThread(void *arg); 
 void *MidiThread(void *arg); 
+void *OvlTimerThread(void *arg);
 
 /* Function Prototypes in europi_func2 */ 
 void seq_singlechnl(void);
@@ -463,7 +464,8 @@ enum display_page_t {
      ovl_SingleChannel		= (1 << 15),
      ovl_SingleAD				= (1 << 16),
      ovl_SingleADSR			= (1 << 17),
-     ovl_ModalDialog			= (1 << 18)
+     ovl_ModalDialog			= (1 << 18),
+	 ovl_BPM				= (1 << 19)
  };
  
 /*
@@ -523,6 +525,11 @@ struct ad {
 	uint16_t d_end_value;	/* End value for Decay Ramp */
 	uint32_t d_length;		/* Length of Decay Ramp */
 	enum shot_type_t shot_type; /* One-shot or Repeat */
+};
+
+struct ovl_timer {
+	uint32_t overlays;		// Bit field of overlays affected by the timer
+	uint32_t sleeptime;		// Time in microseconds before the bitfield is applied to the ActiveOverlays global variable
 };
 
 /* One of these per track - holds the 

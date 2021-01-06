@@ -116,7 +116,7 @@ void seq_new(void){
 	for(track = 0;track < MAX_TRACKS;track++){
 		Europi.tracks[track].selected = FALSE;
 		Europi.tracks[track].track_busy = FALSE;
-		Europi.tracks[track].last_step = MAX_STEPS;
+		Europi.tracks[track].last_step = 8;
 		Europi.tracks[track].current_step = 0;
 		Europi.tracks[track].channels[CV_OUT].quantise = 1;	// default quantization = semitones	
 		Europi.tracks[track].channels[CV_OUT].transpose = 0;	 
@@ -177,7 +177,6 @@ int ShortScroll(){
 	ovl_SetQuantise)) return 1;
 	else return 0;
 }
-
 
 /*
  * Sets the default soft menu buttons
