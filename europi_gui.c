@@ -1092,47 +1092,120 @@ void gui_SingleChannel_Old(void){
  * experiment in displaying a lot of data on a small screen
  */
 void gui_grid(void){
-    ClearBackground(RAYWHITE);
-    int track;
-    int step;
+    Rectangle stepRectangle = {0,0,0,0};
+    Rectangle trackRectangle = {0,0,0,0};
+    int start_track,track, column;
+    int step, offset, txt_len;
+    char txt[20]; 
+    /* Depending on the total number of tracks, and the position 
+     * of the vertical scroll bar, the starting track will vary
+     */
+    if(last_track > 21){
+        start_track = ((last_track-21) * VerticalScrollPercent) / 100;
+        /* Don't display the Vertical Scroll Bar in certain situations */
+        if(ActiveOverlays & ovl_Keyboard) { 
+			ActiveOverlays &= ~ovl_VerticalScrollBar;
+        }
+        else {
+            ActiveOverlays |= ovl_VerticalScrollBar;
+        }
+    }
+    else {
+        start_track = 0;
+        ActiveOverlays &= ~ovl_VerticalScrollBar;
+    }
+    BeginDrawing();
+    DrawTexture(MainScreenTexture,0,0,WHITE);
+	int vOffset = 7;
+	if(ShortScroll()) vOffset=29;
     char track_no[20];
-    int txt_len;
-
-    for(track=0;track<24;track++){
+    for(track=0;track<21;track++){
         // Track Number
         sprintf(track_no,"%d",track+1);
         txt_len = MeasureText(track_no,10);
-        DrawText(track_no,12-txt_len,track * 10,10,DARKGRAY);
+        DrawText(track_no,17-txt_len,vOffset+(track * 10),10,DARKGRAY);
+        // Check for Track select
+        trackRectangle.x = 5;
+        trackRectangle.y = vOffset+(track * 10);
+        trackRectangle.width = 13;
+        trackRectangle.height = 9;
+ 		if (CheckCollisionPointRec(touchPosition, trackRectangle) && (currentGesture != GESTURE_NONE)){
+			if(OverlayActive( ovl_VerticalScrollBar ) == 0){
+                // Open this track in a Single Channel view
+                edit_track = start_track+track;
+                select_track(start_track+track);
+                ClearScreenOverlays();
+                SwitchChannelFunction(edit_track);
+				encoder_focus = track_select;
+            }
+			else {
+				// Just update the selected track
+				select_track(start_track+track);
+				encoder_focus = track_select;
+			}
+        }
+       
         for(step=0;step<32;step++){
+            stepRectangle.x = 19+(step * 9);
+            stepRectangle.y = vOffset+(track*10);
+            stepRectangle.width = 8;
+            stepRectangle.height = 9;
+            // Check gesture collision (provided it's not beyond the last step of the track)
+			if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture == GESTURE_TAP) && (step < Europi.tracks[track].last_step)){
+                // Toggle Gate
+                // To Do - this only toggles between Gate_Off and 50% gate - what we really
+                // need is for the step structure to include a Gate On/Off switch, and for the gate
+                // type to still be preserved 
+                if (Europi.tracks[track].channels[GATE_OUT].steps[step].gate_type != Gate_Off){
+                    Europi.tracks[track].channels[GATE_OUT].steps[step].gate_type = Gate_Off;
+                 }
+                 else {
+                    Europi.tracks[track].channels[GATE_OUT].steps[step].gate_type = Gate_50;
+                }
+            }
+            else if (checkCollisionPointRec(touchPosition, stepRectangle) && (currentGesture == GESTURE_DRAG) && (step == Europi.tracks[track].last_step)){
+                // Drag on last step - need to move the last-step
+                
+
+            }
             if(step == Europi.tracks[track].last_step){
                 // Paint last step
-                DrawRectangle(15 + (step * 9), track * 10, 8, 9, BLACK); 
+                DrawRectangleRec(stepRectangle, BLACK);
             }
-            else if(step == Europi.tracks[track].current_step){
-                // Paint current step
-                DrawRectangle(15 + (step * 9), track * 10, 8, 9, LIME); 
-                // Gate state for current step
-                if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_type != Gate_Off){
-                    if (Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repetitions > 1) {
-                        DrawRectangle(15 + (32 * 9), track * 10, 8, 9, BLACK);	
-                    }
-                    else {
-                        DrawRectangle(15 + (32 * 9), track * 10, 8, 9, VIOLET);	
-                    }	
-                }
-                else {
-                    DrawRectangle(15 + (32 * 9), track * 10, 8, 9, WHITE);	
-                }
+            else if(step > Europi.tracks[track].last_step){
+                // Anything beyond the last step is greyed out
+                DrawRectangleRec(stepRectangle, LIGHTGRAY);
             }
             else {
-                // paint blank step
-                DrawRectangle(15 + (step * 9), track * 10, 8, 9, MAROON); 
+                // paint this step
+                if (Europi.tracks[track].channels[GATE_OUT].steps[step].gate_type != Gate_Off){
+                    // Some sort of gate
+                    if(step == Europi.tracks[track].current_step){
+                        DrawRectangleRec(stepRectangle,RED);
+                        DrawRectangleLinesEx(stepRectangle,1,DARKGRAY);
+                    }
+                    else{
+                        DrawRectangleRec(stepRectangle,MAROON);
+                    }
+                }
+                else {
+                    // Blank step (no gate)
+                    if(step == Europi.tracks[track].current_step){
+                        DrawRectangleRec(stepRectangle,WHITE);
+                        DrawRectangleLinesEx(stepRectangle,1,DARKGRAY);
+                    }
+                    else {
+                        DrawRectangleRec(stepRectangle,WHITE);
+                    }
+                }
             }
         }
     }
-    
+    // Handle any screen overlays - these need to 
+    // be added within the Drawing loop
+    ShowScreenOverlays();
+    EndDrawing();
 }
-
 /*
  * ShowScreenOverlays is called from within the 
  * drawing loop of each main type of display

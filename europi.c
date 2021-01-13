@@ -242,7 +242,8 @@ while (!WindowShouldClose() && (prog_running ==1)) {
 */
     switch(DisplayPage){
         case GridView:
-            gui_8x8();
+            //gui_8x8();
+			gui_grid();
         break;
         case SingleStep:
             gui_singlestep();
