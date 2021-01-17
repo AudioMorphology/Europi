@@ -154,7 +154,7 @@ Texture2D ScrollHandleTexture;      // Scroll handle for Vewrtical Scroll Bar
 menu mnu_file_open = 	{0,0,dir_none,"Open",&file_open,{NULL}};
 menu mnu_file_save = 	{0,0,dir_none,"Save",&file_save,{NULL}};
 menu mnu_file_saveas = 	{0,0,dir_none,"Save As",&file_saveas,{NULL}};
-menu mnu_file_new = 	{0,0,dir_none,"New",NULL,{NULL}};
+menu mnu_file_new = 	{0,0,dir_none,"New",&file_new,{NULL}};
 menu mnu_file_quit = 	{0,0,dir_none,"Quit",&file_quit,{NULL}};
 
 menu mnu_seq_new = 		{0,0,dir_none,"New",&seq_new,{NULL}};
@@ -174,6 +174,8 @@ menu mnu_config_tune = {0,0,dir_left,"Tuning on/off",&config_tune,{NULL}};
 menu mnu_test_scalevalue = {0,0,dir_left,"Test scale value",&test_scalevalue,{NULL}};
 menu mnu_test_keyboard = {0,0,dir_left,"Test Keyboard",&test_keyboard,{NULL}};
 
+menu mnu_play_step_one = {0,0,dir_left,"Step One",&set_step_one,{NULL}};
+
 menu sub_end = {0,0,dir_none,NULL,NULL,{NULL}}; //set of NULLs to mark the end of a sub menu
 
 menu Menu[]={
@@ -181,7 +183,7 @@ menu Menu[]={
 	{0,0,dir_down,"Sequence",NULL,{&mnu_seq_setslew,&mnu_seq_setloop,&mnu_seq_setpitch,&mnu_seq_setdir,&mnu_seq_quantise,&mnu_seq_gridview,&mnu_seq_singlechnl,&mnu_seq_new,&sub_end}},
 	{0,0,dir_down,"Conf",NULL,{&mnu_config_setzero,&mnu_config_set10v,&mnu_config_debug,&mnu_config_tune,&sub_end}},
 	{0,0,dir_down,"Test",NULL,{&mnu_test_scalevalue,&mnu_config_setzero,&mnu_test_keyboard,&sub_end}},
-	{0,0,dir_down,"Play",NULL,{&sub_end}},
+	{0,0,dir_down,"Play",NULL,{&mnu_play_step_one,&sub_end}},
 	{0,0,dir_down,NULL,NULL,{NULL}}
 	};
 

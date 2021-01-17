@@ -210,6 +210,13 @@ void reset_input(int gpio, int level, uint32_t tick)
 {
 	if (level == 1)	step_one = TRUE;
 }
+/*
+* Manually force Step One to tbe the next step 
+*/
+void set_step_one(void)
+{
+	step_one = TRUE;	
+}
 /* Function called to advance the sequence on to the next step */
 void next_step(void)
 {
@@ -1849,7 +1856,7 @@ void hardware_init(void)
 	 */
 	 if (impersonate_hw == TRUE){
 		 is_europi = TRUE;
-		 log_msg("Impersonating Europi Hardare\n");
+		 log_msg("Impersonating Europi Hardware\n");
 		 for (track = 0; track < MAX_TRACKS;track++){
 			/* These are just dummy values to fool the software
 			 * into thinking it has the full hardware present
@@ -2000,7 +2007,7 @@ void hardware_init(void)
 		track++;	/* Minion tracks will therefore start from Track 2 */
 	}
 	else {
-		log_msg("No Europi hardare found\n");
+		log_msg("No Europi hardware found\n");
 	}
 	/* 
 	 * scan for Minions - these will be on addresses

@@ -61,6 +61,7 @@ extern char *kbd_chars[4][11];
 extern char debug_messages[10][80];
 extern int next_debug_slot;
 extern int kbd_char_selected;
+extern int selected_step;
 extern enum encoder_focus_t encoder_focus;
 extern enum btnA_func_t btnA_func;
 extern enum btnB_func_t btnB_func;
@@ -1087,9 +1088,9 @@ void gui_SingleChannel_Old(void){
 }
 
 /*
- * GUI_GRID Displays a grid of 32 steps by 24 channels - a bit
- * too dense to be useable on a TFT display, but an interesting
- * experiment in displaying a lot of data on a small screen
+ * GUI_GRID Displays a grid of 32 steps by 21 channels - a bit
+ * dense, but an interesting experiment in displaying a lot of
+ * data on a small screen
  */
 void gui_grid(void){
     Rectangle stepRectangle = {0,0,0,0};
@@ -1121,7 +1122,7 @@ void gui_grid(void){
     char track_no[20];
     for(track=0;track<21;track++){
         // Track Number
-        sprintf(track_no,"%d",track+1);
+        sprintf(track_no,"%d",start_track+track+1);
         txt_len = MeasureText(track_no,10);
         DrawText(track_no,17-txt_len,vOffset+(track * 10),10,DARKGRAY);
         // Check for Track select
@@ -1151,36 +1152,55 @@ void gui_grid(void){
             stepRectangle.width = 8;
             stepRectangle.height = 9;
             // Check gesture collision (provided it's not beyond the last step of the track)
-			if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture == GESTURE_TAP) && (step < Europi.tracks[track].last_step)){
+			if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture == GESTURE_TAP) && (step < Europi.tracks[track].last_step) && (OverlayActive(ovl_VerticalScrollBar) == 0)){
                 // Toggle Gate
                 // To Do - this only toggles between Gate_Off and 50% gate - what we really
                 // need is for the step structure to include a Gate On/Off switch, and for the gate
                 // type to still be preserved 
-                if (Europi.tracks[track].channels[GATE_OUT].steps[step].gate_type != Gate_Off){
-                    Europi.tracks[track].channels[GATE_OUT].steps[step].gate_type = Gate_Off;
+                if (Europi.tracks[start_track+track].channels[GATE_OUT].steps[step].gate_type != Gate_Off){
+                    Europi.tracks[start_track+track].channels[GATE_OUT].steps[step].gate_type = Gate_Off;
                  }
                  else {
-                    Europi.tracks[track].channels[GATE_OUT].steps[step].gate_type = Gate_50;
+                    Europi.tracks[start_track+track].channels[GATE_OUT].steps[step].gate_type = Gate_50;
                 }
             }
-            else if (checkCollisionPointRec(touchPosition, stepRectangle) && (currentGesture == GESTURE_DRAG) && (step == Europi.tracks[track].last_step)){
-                // Drag on last step - need to move the last-step
-                
-
+            else if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture == GESTURE_TAP) && (step == Europi.tracks[track].last_step) && (OverlayActive(ovl_VerticalScrollBar) == 0)){
+                // Tap on last step - selects it for moving
+                if(Europi.tracks[start_track+track].selected == TRUE){
+                    // If it already selected, a second tap de-selects it
+                    Europi.tracks[start_track+track].selected = FALSE;
+                }
+                else {
+                    select_track(start_track+track);
+                    selected_step = step;
+                }
             }
-            if(step == Europi.tracks[track].last_step){
+            else if ((Europi.tracks[start_track+track].selected == TRUE) && (CheckCollisionPointRec(touchPosition, stepRectangle)) && (Europi.tracks[track].last_step == selected_step) && (currentGesture == GESTURE_HOLD) && (OverlayActive(ovl_VerticalScrollBar) == 0)){
+                // If last step on this track is selected, and current gesture is
+                // GESTURE_HOLD, then move the Last step to the current step
+                Europi.tracks[start_track+track].last_step = step;
+                selected_step = step;
+            }
+            if(step == Europi.tracks[start_track+track].last_step){
                 // Paint last step
-                DrawRectangleRec(stepRectangle, BLACK);
+                if((step == selected_step) && (Europi.tracks[start_track+track].selected == TRUE)){
+                    // If the last step on this track is selected for moving,
+                    // colour it yellow
+                    DrawRectangleRec(stepRectangle,YELLOW);
+                }
+                else {
+                    DrawRectangleRec(stepRectangle, BLACK);
+                }
             }
-            else if(step > Europi.tracks[track].last_step){
+            else if(step > Europi.tracks[start_track+track].last_step){
                 // Anything beyond the last step is greyed out
                 DrawRectangleRec(stepRectangle, LIGHTGRAY);
             }
             else {
                 // paint this step
-                if (Europi.tracks[track].channels[GATE_OUT].steps[step].gate_type != Gate_Off){
+                if (Europi.tracks[start_track+track].channels[GATE_OUT].steps[step].gate_type != Gate_Off){
                     // Some sort of gate
-                    if(step == Europi.tracks[track].current_step){
+                    if(step == Europi.tracks[start_track+track].current_step){
                         DrawRectangleRec(stepRectangle,RED);
                         DrawRectangleLinesEx(stepRectangle,1,DARKGRAY);
                     }
@@ -1190,7 +1210,7 @@ void gui_grid(void){
                 }
                 else {
                     // Blank step (no gate)
-                    if(step == Europi.tracks[track].current_step){
+                    if(step == Europi.tracks[start_track+track].current_step){
                         DrawRectangleRec(stepRectangle,WHITE);
                         DrawRectangleLinesEx(stepRectangle,1,DARKGRAY);
                     }
@@ -1199,8 +1219,12 @@ void gui_grid(void){
                     }
                 }
             }
+            // Draw demarcation lines after each multiple of 8 steps
+            if((step == 7) || (step == 15) || (step == 23)){
+                DrawLine(stepRectangle.x+stepRectangle.width+1,stepRectangle.y - 1,stepRectangle.x+stepRectangle.width+1,stepRectangle.y+stepRectangle.height,DARKGRAY);
+            }
         }
-    }
+    } 
     // Handle any screen overlays - these need to 
     // be added within the Drawing loop
     ShowScreenOverlays();
@@ -1220,8 +1244,8 @@ void ShowScreenOverlays(void){
     if(ActiveOverlays & ovl_BPM){
         char strBPM[10];
         sprintf(strBPM,"%02d BPM",clock_freq);
-        DrawTexture(SmallDialogTexture,150,150,WHITE);
-        DrawText(strBPM,160,160,20,DARKGRAY);
+        DrawTexture(SmallDialogTexture,157,180,WHITE);
+        DrawText(strBPM,167,188,20,DARKGRAY);
     }
 
     if(ActiveOverlays & ovl_ModalDialog){
@@ -1732,6 +1756,13 @@ void ShowScreenOverlays(void){
         Rectangle fileHighlight = {0,0,0,0};
         DrawTexture(DialogTexture,0,0,WHITE);
         DrawText("File Open",10,5,20,DARKGRAY);
+        // Calculate first fiile tto show based on scroll bar position
+        if (file_count <= DLG_ROWS){
+            first_file = 0;
+        }
+        else{
+            first_file = ((file_count - DLG_ROWS) * VerticalScrollPercent) / 100;
+        }
         // List the files
         int i;
         int j=0;

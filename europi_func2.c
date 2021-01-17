@@ -129,7 +129,7 @@ void seq_new(void){
 			Europi.tracks[track].channels[GATE_OUT].steps[step].ratchets = 1;
 			Europi.tracks[track].channels[GATE_OUT].steps[step].repetitions = 1;
 			Europi.tracks[track].channels[GATE_OUT].steps[step].fill = 0;
-			Europi.tracks[track].channels[GATE_OUT].steps[step].gate_type = Gate_75;
+			Europi.tracks[track].channels[GATE_OUT].steps[step].gate_type = Gate_Off;
 		}
 	}
 }
@@ -691,6 +691,25 @@ void file_save(void){
     }
 }
 
+/*  
+ * menu callback for File->New
+ */
+void file_new(void){
+    seq_new();
+    save_run_stop = run_stop;
+	//run_stop = STOP;
+	ClearScreenOverlays();
+    btnA_func = btnA_none;
+    btnB_func = btnB_save;
+    btnC_func = btnC_cancel;
+    btnD_func = btnD_none;
+	ActiveOverlays |= ovl_FileSaveAs;
+	ActiveOverlays |= ovl_Keyboard;
+    encoder_focus = keyboard_input;
+    //sprintf(input_txt,""); 
+    *input_txt = 0;
+}
+
 /*
  * menu callback for File->SaveAs
  */
@@ -949,7 +968,7 @@ void init_sequence(void)
 			}
 		}
 	}
-	Europi.tracks[0].last_step = 32; /* track 0 always 32 steps */
+	//Europi.tracks[0].last_step = 32; /* track 0 always 32 steps */
 
     // AD Profile on channel 4
     Europi.tracks[3].channels[CV_OUT].function = AD;
