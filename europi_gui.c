@@ -1462,7 +1462,7 @@ void ShowScreenOverlays(void){
 		}
         touchRectangle.x = 223;
         touchRectangle.y = 3;
-        touchRectangle.width = 88;
+        touchRectangle.width = 87;
         touchRectangle.height = 22;
         if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture == GESTURE_TAP)){
 			encoder_focus = slew_type;
@@ -1479,31 +1479,31 @@ void ShowScreenOverlays(void){
                 switch (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type){
                     default:
                     case Off:
-                        DrawText("Off",230,5,20,DARKGRAY);
+                        DrawText("Off",228,5,20,DARKGRAY);
                     break;
                     case Linear:
-                        DrawText("Lin",230,5,20,DARKGRAY);
+                        DrawText("Lin",228,5,20,DARKGRAY);
                     break;
                     case Exponential:
-                        DrawText("Exp",230,5,20,DARKGRAY);
+                        DrawText("Exp",228,5,20,DARKGRAY);
                     break;
                     case RevExp:
-                        DrawText("RevExp",230,5,20,DARKGRAY);
+                        DrawText("RevExp",228,5,20,DARKGRAY);
                     break;
                     case Log:
-                        DrawText("Log",230,5,20,DARKGRAY);
+                        DrawText("Log",228,5,20,DARKGRAY);
                     break;
                     case RevLog:
-                        DrawText("RevLog",230,5,20,DARKGRAY);
+                        DrawText("RevLog",228,5,20,DARKGRAY);
                     break;
                     case Sine:
-                        DrawText("Sine",230,5,20,DARKGRAY);
+                        DrawText("Sine",228,5,20,DARKGRAY);
                     break;
                     case RevSine:
-                        DrawText("RevSine",230,5,20,DARKGRAY);
+                        DrawText("RevSine",228,5,20,DARKGRAY);
                     break;
                     case Cosine:
-                        DrawText("Cosine",230,5,20,DARKGRAY);
+                        DrawText("Cosine",228,5,20,DARKGRAY);
                     break;
                     
                 }
@@ -1519,8 +1519,8 @@ void ShowScreenOverlays(void){
                     DrawRectangleLines(137,4,28,20,RED);
                 }
                 else if (encoder_focus == slew_type){
-                    DrawRectangleLines(223,3,88,22,RED);
-                    DrawRectangleLines(224,4,86,20,RED);
+                    DrawRectangleLines(223,3,87,22,RED);
+                    DrawRectangleLines(224,4,85,20,RED);
                 }
             }
         }
