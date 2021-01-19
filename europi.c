@@ -142,6 +142,7 @@ Texture2D SmallDialogTexture;       // small floating dialog
 Texture2D TextInputTexture;         // text input dialog box
 Texture2D Text2chTexture;           // 2 Character text box (used for Channel number, step number etc)
 Texture2D Text5chTexture;           // 5 Character text box 
+Texture2D Text10chTexture;          // 10 Character text box 
 Texture2D TopBarTexture;            // Top (menu) bar texture
 Texture2D MainScreenTexture;        // Main screen
 Texture2D ButtonBarTexture;         // Soft-button graphic bar
@@ -165,6 +166,7 @@ menu mnu_seq_setdir =   {0,0,dir_none,"Set Track Direction",&seq_setdir,{NULL}};
 menu mnu_seq_quantise = {0,0,dir_none,"Set Quantization",&seq_quantise,{NULL}};
 menu mnu_seq_singlechnl = {0,0,dir_none,"Single Channel View",&seq_singlechnl,{NULL}};
 menu mnu_seq_gridview = {0,0,dir_none,"Grid View",&seq_gridview,{NULL}};
+menu mnu_seq_grid8x8 = {0,0,dir_none,"8x8 Grid View",&seq_grid8x8,{NULL}};
 
 menu mnu_config_setzero = {0,0,dir_left,"Set Zero",&config_setzero,{NULL}};
 menu mnu_config_set10v = {0,0,dir_left,"Set 10 Volt",&config_setten,{NULL}};
@@ -180,7 +182,8 @@ menu sub_end = {0,0,dir_none,NULL,NULL,{NULL}}; //set of NULLs to mark the end o
 
 menu Menu[]={
 	{0,1,dir_down,"File",NULL,{&mnu_file_open,&mnu_file_save,&mnu_file_saveas,&mnu_file_new,&mnu_file_quit,&sub_end}},
-	{0,0,dir_down,"Sequence",NULL,{&mnu_seq_setslew,&mnu_seq_setloop,&mnu_seq_setpitch,&mnu_seq_setdir,&mnu_seq_quantise,&mnu_seq_gridview,&mnu_seq_singlechnl,&mnu_seq_new,&sub_end}},
+	{0,0,dir_down,"Sequence",NULL,{&mnu_seq_setslew,&mnu_seq_setloop,&mnu_seq_setpitch,&mnu_seq_setdir,&mnu_seq_grid8x8,&mnu_seq_gridview,&mnu_seq_singlechnl,&mnu_seq_new,&sub_end}},
+//	{0,0,dir_down,"Sequence",NULL,{&mnu_seq_setslew,&mnu_seq_setloop,&mnu_seq_setpitch,&mnu_seq_setdir,&mnu_seq_quantise,&mnu_seq_gridview,&mnu_seq_singlechnl,&mnu_seq_new,&sub_end}},
 	{0,0,dir_down,"Conf",NULL,{&mnu_config_setzero,&mnu_config_set10v,&mnu_config_debug,&mnu_config_tune,&sub_end}},
 	{0,0,dir_down,"Test",NULL,{&mnu_test_scalevalue,&mnu_config_setzero,&mnu_test_keyboard,&sub_end}},
 	{0,0,dir_down,"Play",NULL,{&mnu_play_step_one,&sub_end}},
@@ -244,9 +247,11 @@ while (!WindowShouldClose() && (prog_running ==1)) {
 */
     switch(DisplayPage){
         case GridView:
-            //gui_8x8();
 			gui_grid();
         break;
+		case Grid8x8:
+			gui_8x8();
+		break;
         case SingleStep:
             gui_singlestep();
         break;

@@ -50,6 +50,7 @@ extern Texture2D SmallDialogTexture;
 extern Texture2D TextInputTexture;
 extern Texture2D Text2chTexture;
 extern Texture2D Text5chTexture;
+extern Texture2D Text10chTexture;
 extern Texture2D MainScreenTexture;
 extern Texture2D TopBarTexture;
 extern Texture2D ButtonBarTexture; 
@@ -1445,31 +1446,81 @@ void ShowScreenOverlays(void){
         char strStep[5];
         char strSlew[9];
         DrawTexture(TopBarTexture,0,0,WHITE);
-        DrawTexture(Text2chTexture,70,2,WHITE); // Box for Track Number
-        DrawTexture(Text2chTexture,155,2,WHITE); // Box for Step Number
-        DrawTexture(Text5chTexture,245,2,WHITE); // Box for Slew Value
-        
-        DrawText("Track",5,5,20,DARKGRAY);
-        DrawText("Step",105,5,20,DARKGRAY);
-        DrawText("Slew",190,5,20,DARKGRAY);
+        DrawTexture(Text2chTexture,45,2,WHITE); // Box for Track Number
+        DrawTexture(Text2chTexture,135,2,WHITE); // Box for Step Number
+        DrawTexture(Text10chTexture,222,2,WHITE); // Box for Slew Value
+        Rectangle touchRectangle = {46,3,30,22};
+		if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture == GESTURE_TAP)){
+			encoder_focus = track_select;
+		}
+        touchRectangle.x = 136;
+        touchRectangle.y = 3;
+        touchRectangle.width = 30;
+        touchRectangle.height = 22;
+        if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture == GESTURE_TAP)){
+			encoder_focus = step_select;
+		}
+        touchRectangle.x = 223;
+        touchRectangle.y = 3;
+        touchRectangle.width = 88;
+        touchRectangle.height = 22;
+        if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture == GESTURE_TAP)){
+			encoder_focus = slew_type;
+		}
+
+        DrawText("Trk",5,5,20,DARKGRAY);
+        DrawText("Step",85,5,20,DARKGRAY);         // was 105
+        DrawText("Slew",175,5,20,DARKGRAY);
         
         for(track = 0; track < MAX_TRACKS; track++) {
             if (Europi.tracks[track].selected == TRUE){
                 sprintf(strTrack,"%02d",track+1);
-                DrawText(strTrack,75,5,20,DARKGRAY);
-                DrawText(strStep,160,5,20,DARKGRAY);
-                DrawText(strSlew,250,5,20,DARKGRAY);
+                sprintf(strStep,"%02d",Europi.tracks[track].current_step+1);
+                switch (Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type){
+                    default:
+                    case Off:
+                        DrawText("Off",230,5,20,DARKGRAY);
+                    break;
+                    case Linear:
+                        DrawText("Lin",230,5,20,DARKGRAY);
+                    break;
+                    case Exponential:
+                        DrawText("Exp",230,5,20,DARKGRAY);
+                    break;
+                    case RevExp:
+                        DrawText("RevExp",230,5,20,DARKGRAY);
+                    break;
+                    case Log:
+                        DrawText("Log",230,5,20,DARKGRAY);
+                    break;
+                    case RevLog:
+                        DrawText("RevLog",230,5,20,DARKGRAY);
+                    break;
+                    case Sine:
+                        DrawText("Sine",230,5,20,DARKGRAY);
+                    break;
+                    case RevSine:
+                        DrawText("RevSine",230,5,20,DARKGRAY);
+                    break;
+                    case Cosine:
+                        DrawText("Cosine",230,5,20,DARKGRAY);
+                    break;
+                    
+                }
+
+                DrawText(strTrack,50,5,20,DARKGRAY);
+                DrawText(strStep,140,5,20,DARKGRAY);
                 if(encoder_focus == track_select){
-                    DrawRectangleLines(71,3,30,22,RED);
-                    DrawRectangleLines(72,4,28,20,RED);
+                    DrawRectangleLines(46,3,30,22,RED);
+                    DrawRectangleLines(47,4,28,20,RED);
                 }
                 else if (encoder_focus == step_select) {
-                    DrawRectangleLines(156,3,30,22,RED);
-                    DrawRectangleLines(157,4,28,20,RED);
+                    DrawRectangleLines(136,3,30,22,RED);
+                    DrawRectangleLines(137,4,28,20,RED);
                 }
                 else if (encoder_focus == slew_type){
-                    DrawRectangleLines(246,3,66,22,RED);
-                    DrawRectangleLines(247,4,64,20,RED);
+                    DrawRectangleLines(223,3,88,22,RED);
+                    DrawRectangleLines(224,4,86,20,RED);
                 }
             }
         }
@@ -1484,13 +1535,15 @@ void ShowScreenOverlays(void){
             // Check for Val -
             btnB_state = 0;
             if(encoder_focus == track_select) select_next_track(DOWN);
-            else set_loop_point(DOWN);
+            else if(encoder_focus == step_select) select_next_step(DOWN); 
+            else select_next_slew(DOWN);
         }
         if (btnC_state == 1){
             // Check for Val +
             btnC_state = 0;
             if(encoder_focus == track_select) select_next_track(UP);
-            else set_loop_point(UP);
+            else if(encoder_focus == step_select) select_next_step(UP); 
+            else select_next_slew(UP);
         }
 
     }
@@ -1503,7 +1556,25 @@ void ShowScreenOverlays(void){
         DrawTexture(Text2chTexture,70,2,WHITE); // Box for Track Number
         DrawTexture(Text2chTexture,155,2,WHITE); // Box for Step Number
         DrawTexture(Text5chTexture,245,2,WHITE); // Box for Pitch Value
-        
+        Rectangle touchRectangle = {71,3,30,22};
+		if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture == GESTURE_TAP)){
+			encoder_focus = track_select;
+		}
+        touchRectangle.x = 156;
+        touchRectangle.y = 3;
+        touchRectangle.width = 30;
+        touchRectangle.height = 22;
+        if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture == GESTURE_TAP)){
+			encoder_focus = step_select;
+		}
+        touchRectangle.x = 246;
+        touchRectangle.y = 3;
+        touchRectangle.width = 66;
+        touchRectangle.height = 22;
+        if (CheckCollisionPointRec(touchPosition, touchRectangle) && (currentGesture == GESTURE_TAP)){
+			encoder_focus = set_pitch;
+		}
+
         DrawText("Track",5,5,20,DARKGRAY);
         DrawText("Step",105,5,20,DARKGRAY);
         DrawText("Pitch",190,5,20,DARKGRAY);
@@ -1687,6 +1758,10 @@ void ShowScreenOverlays(void){
                     DrawRectangleLines(71,3,30,22,RED);
                     DrawRectangleLines(72,4,28,20,RED);
                 }
+                else if(encoder_focus == set_direction){
+                    DrawRectangleLines(103,3,213,22,RED);
+                    DrawRectangleLines(104,4,211,20,RED);
+                }
             }
         }
         // Check for Select button
@@ -1794,6 +1869,7 @@ void ShowScreenOverlays(void){
             load_sequence(current_filename);
             ClearScreenOverlays();
             buttonsDefault();
+            VerticalScrollPercent = 0;
         }
         if (btnC_state == 1){
             // Cancel Button Touched

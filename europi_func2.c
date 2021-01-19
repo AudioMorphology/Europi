@@ -104,6 +104,17 @@ void seq_gridview(void) {
 }
 
 /*
+ * menu callback for 8x8 Channel view
+ */
+void seq_grid8x8(void) {
+    VerticalScrollPercent = 0;
+	ClearScreenOverlays();
+	DisplayPage = Grid8x8;
+    encoder_focus = none;
+	select_first_track();	
+}
+
+/*
  * menu callback for New Sequence 
  */
 void seq_new(void){
@@ -395,6 +406,83 @@ void set_loop_point(int dir){
         
     }
 }
+/*
+ * Select the next slew type up or down
+ */
+void select_next_slew(int dir){
+
+    int track = 0;
+    while (track < MAX_TRACKS){
+        if(Europi.tracks[track].selected == TRUE){
+            if (dir == 1) {
+                switch(Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type){
+                    case Off:
+                        Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type = Linear;
+                    break;
+                    case Linear:
+                        Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type = Exponential;
+                    break;
+                    case Exponential:
+                        Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type = RevExp;
+                    break;
+                    case RevExp:
+                        Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type = Log;
+                    break;
+                    case Log:
+                        Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type = RevLog;
+                    break;
+                    case RevLog:
+                        Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type = Sine;
+                    break;
+                    case Sine:
+                        Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type = RevSine;
+                    break;
+                    case RevSine:
+                        Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type = Cosine;
+                    break;
+                    case Cosine:
+                        Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type = Off;
+                    break;
+                }
+            }
+            else {
+                switch(Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type){
+                    case Off:
+                        Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type = Cosine;
+                    break;
+                    case Linear:
+                        Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type = Off;
+                    break;
+                    case Exponential:
+                        Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type = Linear;
+                    break;
+                    case RevExp:
+                        Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type = Exponential;
+                    break;
+                    case Log:
+                        Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type = RevExp;
+                    break;
+                    case RevLog:
+                        Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type = Log;
+                    break;
+                    case Sine:
+                        Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type = RevLog;
+                    break;
+                    case RevSine:
+                        Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type = Sine;
+                    break;
+                    case Cosine:
+                        Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type = RevSine;
+                    break;
+                }
+            }
+            break;
+        }
+        track++;
+    }
+
+}
+
 /*
  * Select the next quantisation either up or down
  */

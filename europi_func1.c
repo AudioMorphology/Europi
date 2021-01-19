@@ -101,6 +101,7 @@ extern float scaleXvalue, scaleYvalue;
 extern int rawX, rawY, rawPressure, scaledX, scaledY;
 extern int Xaverage;
 extern int Yaverage;
+extern int VerticalScrollPercent;
 extern int sample;
 extern int touched;
 extern int encoder_level_A;
@@ -141,6 +142,7 @@ extern Texture2D SmallDialogTexture;
 extern Texture2D TextInputTexture;
 extern Texture2D Text2chTexture;
 extern Texture2D Text5chTexture;
+extern Texture2D Text10chTexture;
 extern Texture2D MainScreenTexture;
 extern Texture2D TopBarTexture;
 extern Texture2D ButtonBarTexture; 
@@ -1020,6 +1022,7 @@ int startup(void)
     TextInputTexture = LoadTexture("resources/images/text_input.png");
     Text2chTexture = LoadTexture("resources/images/text_2ch.png");
     Text5chTexture = LoadTexture("resources/images/text_5ch.png");
+	Text10chTexture = LoadTexture("resources/images/text_10ch.png");
     MainScreenTexture = LoadTexture("resources/images/main_screen.png");
     TopBarTexture = LoadTexture("resources/images/top_bar.png");
     ButtonBarTexture = LoadTexture("resources/images/button_bar.png");
@@ -1057,6 +1060,7 @@ int startup(void)
 	if (impersonate_hw) {
 		run_stop = RUN;
 	}
+	select_first_track();	// Default select the first enabled track
 	gpioHardwarePWM(MASTER_CLK,clock_freq,500000);
 	gpioSetAlertFunc(MASTER_CLK, master_clock);
 	prog_running = 1;
@@ -1458,6 +1462,7 @@ void encoder_button(int gpio, int level, uint32_t tick)
             buttonsDefault();
             ClearMenus();
             MenuSelectItem(0,0);
+			VerticalScrollPercent = 0;
             encoder_focus = none;
             }
             break;

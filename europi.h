@@ -279,12 +279,14 @@ void *OvlTimerThread(void *arg);
 /* Function Prototypes in europi_func2 */ 
 void seq_singlechnl(void);
 void seq_gridview(void);
+void seq_grid8x8(void);
 void select_first_track(void);
 void select_track(int track);
 void select_next_track(int dir);
 void select_next_step(int dir);
 void SwitchChannelFunction(int track);
 void set_loop_point(int dir);
+void select_next_slew(int dir);
 void select_next_quantisation(int dir);
 void select_next_direction(int dir);
 void set_step_pitch(int dir,int vel);
@@ -420,7 +422,7 @@ typedef struct MENU{
     enum direction_t direction;     // which direction branches from this leaf open
 	const char *name;				// Menu display text
 	void (*funcPtr)();				// Handler for this leaf node (Optionally NULL)
-	struct MENU *child[9];			// Pointer to child submenu (Optionally NULL)
+	struct MENU *child[10];			// Pointer to child submenu (Optionally NULL)
 }menu;
 
 /* Display Pages - only one sort of 
@@ -431,6 +433,7 @@ typedef struct MENU{
  */
 enum display_page_t {
 	GridView,
+	Grid8x8,
 	SingleChannel,
     SingleStep,
     SingleAD,
