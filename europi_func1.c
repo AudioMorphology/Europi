@@ -249,6 +249,7 @@ void next_step(void)
                             /* IF we've got Europi hardware, trigger the Step 1 pulse as Track 0 passes through Step 0 */
                             if ((is_europi == TRUE) && (track == 0)){
                                 /* Track 0 Channel 1 will have the GPIO Handle for the PCF8574 channel 3 is Step 1 Out*/
+								//log_msg("Step One\n");
                                 struct gate sGate;
                                 sGate.track = track;
                                 sGate.i2c_handle = Europi.tracks[0].channels[GATE_OUT].i2c_handle;
@@ -389,6 +390,7 @@ void next_step(void)
              * processing load from the main program loop
              */
             if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE) {
+				//log_msg("CV Out, Trk: %d Chnl: %d, Val: %d\n",track,CV_OUT,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
                 switch(Europi.tracks[track].channels[CV_OUT].type){
                     default:
                     case CHNL_TYPE_CV:
@@ -398,10 +400,12 @@ void next_step(void)
                             case CV:
                                 if(Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type == Off){
                                     // No Slew - just set the output CV
+									log_msg("SingleChannelWrite, Trk: %d Chnl: %d, Val: %d\n",track,CV_OUT,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
                                     DACSingleChannelWrite(track,Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
                                 }
                                 else {
                                     // Slew
+									log_msg("slew\n");
                                     struct slew sSlew;
                                     sSlew.track = track;
                                     sSlew.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
@@ -751,6 +755,7 @@ void *GateThread(void *arg)
         free(pGate);
         return(0);
     }
+	//log_msg("Gate H: %d, Ch: %d, Dev: %d\n",pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device);
     if (pGate->ratchets <= 1){
         //Normal Gate
         switch(pGate->gate_type){
@@ -796,6 +801,7 @@ void *GateThread(void *arg)
          * off 10k for the function calling overhead feels about right
          */
         int sleep_time = ((step_ticks - 10000) / pGate->ratchets)/2;
+
         int i;
         for (i = 0; i < pGate->ratchets; i++){
             // Ratchet is ON
@@ -875,6 +881,7 @@ void *OvlTimerThread(void *arg){
 	struct ovl_timer *pOvlTimer = (struct ovl_timer *)arg;
 	usleep(pOvlTimer->sleeptime);
 	ActiveOverlays &= pOvlTimer->overlays;
+	return NULL;
 }
 /*
  * STARTUP
@@ -1013,7 +1020,7 @@ int startup(void)
 	InitWindow(X_MAX, Y_MAX, "Europi by Audio Morpholgy");
 	ToggleFullscreen();
 	if (!impersonate_hw) {
-		DisableCursor();	// Cursor enabled when Hardware impersonation is ON
+		//DisableCursor();	// Cursor enabled when Hardware impersonation is ON
 	}
 	//font1 = LoadSpriteFont("resources/fonts/mecha.rbmf");
     KeyboardTexture = LoadTexture("resources/images/keyboard.png");
@@ -1029,10 +1036,10 @@ int startup(void)
     VerticalScrollBarTexture = LoadTexture("resources/images/vertical_scroll_bar.png");
     VerticalScrollBarShortTexture = LoadTexture("resources/images/vertical_scroll_bar_short.png");
     ScrollHandleTexture = LoadTexture("resources/images/scroll_handle.png");
+	Splash = LoadTexture("resources/images/splash_screen.png");
 	
 
 	//Splash screen
-	Splash = LoadTexture("resources/images/splash_screen.png");
 	BeginDrawing();
 		ClearBackground(RAYWHITE);
 		DrawTexture(Splash,0,0,WHITE);
@@ -1052,14 +1059,11 @@ int startup(void)
 
 	//initialise the sequence for testing purposes
 	//init_sequence();
-	load_sequence("resources/sequences/16dec");
+	load_sequence("resources/sequences/123test");
 	//reapply the current hardware config to loaded sequence
-	reapply_config();
+	//reapply_config();
 	/* Start the internal sequencer clock */
 	run_stop = STOP;		/* master clock is running, but step generator is halted */
-	if (impersonate_hw) {
-		run_stop = RUN;
-	}
 	select_first_track();	// Default select the first enabled track
 	gpioHardwarePWM(MASTER_CLK,clock_freq,500000);
 	gpioSetAlertFunc(MASTER_CLK, master_clock);
@@ -1119,18 +1123,21 @@ int shutdown(void)
         fclose(file);
     }
 	/* Raylib de-initialisation */
-    UnloadTexture(VerticalScrollBarTexture);
-    UnloadTexture(ScrollHandleTexture);
-    UnloadTexture(KeyboardTexture);
-    UnloadTexture(DialogTexture);
-    UnloadTexture(TextInputTexture);
-    UnloadTexture(Text2chTexture);
-    UnloadTexture(Text5chTexture);
-    UnloadTexture(MainScreenTexture);
-    UnloadTexture(TopBarTexture);
-    UnloadTexture(ButtonBarTexture);
-	//UnloadSpriteFont(font1);
 	UnloadTexture(Splash);
+    UnloadTexture(ScrollHandleTexture);
+	UnloadTexture(VerticalScrollBarShortTexture);
+    UnloadTexture(VerticalScrollBarTexture);
+    UnloadTexture(ButtonBarTexture);
+    UnloadTexture(TopBarTexture);
+    UnloadTexture(MainScreenTexture);
+    UnloadTexture(Text10chTexture);
+    UnloadTexture(Text5chTexture);
+    UnloadTexture(Text2chTexture);
+    UnloadTexture(TextInputTexture);
+	UnloadTexture(SmallDialogTexture);
+    UnloadTexture(DialogTexture);
+    UnloadTexture(KeyboardTexture);
+	//UnloadSpriteFont(font1);
 	CloseWindow();        			// Close window and OpenGL context
 	// Set screen resolution back to Original values
 	if (ioctl(fbfd, FBIOPUT_VSCREENINFO, &orig_vinfo)) {
@@ -1159,7 +1166,7 @@ int shutdown(void)
  */
 void log_msg(const char* format, ...)
 {
-   char buf[128];
+   char buf[50];
 	if (print_messages == TRUE){
 	va_list args;
 	va_start(args, format);
@@ -1472,7 +1479,8 @@ void encoder_button(int gpio, int level, uint32_t tick)
                     row = kbd_char_selected / KBD_COLS;
                     col = kbd_char_selected % KBD_COLS;
                     //Add this to the input_txt buffer
-                    sprintf(input_txt,"%s%s", input_txt,kbd_chars[row][col]);
+                    //sprintf(input_txt,"%s%s", input_txt,kbd_chars[row][col]);
+					strcat(input_txt,kbd_chars[row][col]);
             }
             break;
 		case step_select:

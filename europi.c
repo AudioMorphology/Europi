@@ -13,7 +13,7 @@
 // all copies or substantial portions of the Software.
 // 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MEfRCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
@@ -46,8 +46,8 @@ int fbfd = 0;
 int kbfd = 0;
 int is_europi = FALSE;	/* whether we are running on Europi hardware - set to True in hardware_init() */
 int print_messages = TRUE; /* controls whether log_msg outputs to std_err or not */
-int debug = FALSE;		/* controls whether debug messages are printed to the main screen */
-int impersonate_hw = TRUE;	/* Forces the software to bypass hardware checks (useful when testing sw without full hw ) */ 
+int debug = TRUE;		/* controls whether debug messages are printed to the main screen */
+int impersonate_hw = FALSE; /*TRUE;	 Forces the software to bypass hardware checks (useful when testing sw without full hw ) */ 
 char input_txt[100];    /* buffer for capturing user input */
 char current_filename[100]; /* The File we have Open, which is used in File-Save */
 char modal_dialog_txt1[50]; /* 1st Line of text for display in Modal Dialog box */
@@ -210,9 +210,12 @@ int main(int argc, char* argv[])
 	log_msg("Run/stop: %d, Int/ext: %d\n",gpioRead(RUNSTOP_IN),gpioRead(INTEXT_IN));
 	run_stop = gpioRead(RUNSTOP_IN);
 	clock_source = gpioRead(INTEXT_IN);
-	//Temp for testing
-	run_stop = RUN; //STOP; 
-	clock_source = INT_CLK;
+	// If we're impersonating HW then may
+	// as well set it to run with an Internal Clock
+	if(impersonate_hw == TRUE){
+		run_stop = RUN; //STOP; 
+		clock_source = INT_CLK;
+	}
     //debug = TRUE;
     currentGesture = GESTURE_NONE;
     lastGesture = GESTURE_NONE;

@@ -38,7 +38,8 @@ endif
 
 ifeq ($(PLATFORM),PLATFORM_DESKTOP)
     GRAPHICS ?= GRAPHICS_API_OPENGL_21
-	CFLAGS = -O1 -s -Wall -std=c99 -Wno-unused-variable
+	#CFLAGS = -O1 -s -Wall -std=c99 -Wno-unused-variable
+	CFLAGS = -O1 -s -Wall -std=gnu99 -Wno-unused-variable
 	INCLUDES = -I/usr/local/include -I. -I../raylib/src -I../raylib/src/external
 	LFLAGS = -L. -L/usr/local/lib -L../raylib/src -L../raylib
  	LIBS = -lpigpio -lraylib -lGL -lm -lpthread -ldl -lrt -lX11
