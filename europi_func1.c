@@ -165,27 +165,32 @@ extern int first_file;
  * 
  * The Master Clock runs at 96 * The BPM step
  * frequency
+ *
+ * This drives PIN 10 (GPIO 15), which loops back 
+ * via the Clock In jack 
  */
 void master_clock(int gpio, int level, uint32_t tick)
 {
-	if ((run_stop == RUN) && (clock_source == INT_CLK)) {
+	if (run_stop == RUN){
 		if (clock_counter++ > 95) {
 			clock_counter = 0;
-			GATESingleOutput(Europi.tracks[0].channels[GATE_OUT].i2c_handle,CLOCK_OUT,DEV_PCF8574,HIGH);
-			next_step();
+			gpioWrite(INT_CLK_OUT, 1);
 		}
-		if (clock_counter == 48) GATESingleOutput(Europi.tracks[0].channels[GATE_OUT].i2c_handle,CLOCK_OUT,DEV_PCF8574,LOW);
+		if (clock_counter == 48) gpioWrite(INT_CLK_OUT,0);
 	}
 }
 
-/* External clock - triggered by rising edge of External Clock input
- * If we are clocking from external clock, then it is this function
- * that advances the sequence to the next step
+/* Main Clock - this is the function that advances the 
+* sequnce on to the next step. The master clock is normalled
+* back into this input via the external clock jack, thus
+* inserting a jack into the Clock In input cuts out the
+* internal clock and replaces it with the external clock
+* signal
  */
-void external_clock(int gpio, int level, uint32_t tick)
+void main_clock(int gpio, int level, uint32_t tick)
 {
-	if ((run_stop == RUN) && (clock_source == EXT_CLK)) {
-		// Copy the external clock to the Clock Out port
+	if (run_stop == RUN){
+		// Copy the clock signal to the Clock Out port
 		GATESingleOutput(Europi.tracks[0].channels[GATE_OUT].i2c_handle,CLOCK_OUT,DEV_PCF8574,level);
 		if (level == 1) next_step();
 	}
@@ -196,14 +201,7 @@ void external_clock(int gpio, int level, uint32_t tick)
  */
 void runstop_input(int gpio, int level, uint32_t tick)
 {
-	run_stop = level;
-}
-/* int/ext clock source switch input
- * called whenever the switch changes state
- */
-void clocksource_input(int gpio, int level, uint32_t tick)
-{
-	clock_source = level;
+	run_stop = !level;
 }
 /* Reset input
  * Rising edge causes next step to be Step 1
@@ -249,7 +247,7 @@ void next_step(void)
                             /* IF we've got Europi hardware, trigger the Step 1 pulse as Track 0 passes through Step 0 */
                             if ((is_europi == TRUE) && (track == 0)){
                                 /* Track 0 Channel 1 will have the GPIO Handle for the PCF8574 channel 3 is Step 1 Out*/
-								//log_msg("Step One\n");
+								log_msg("Step One\n");
                                 struct gate sGate;
                                 sGate.track = track;
                                 sGate.i2c_handle = Europi.tracks[0].channels[GATE_OUT].i2c_handle;
@@ -405,7 +403,7 @@ void next_step(void)
                                 }
                                 else {
                                     // Slew
-									log_msg("slew\n");
+									//log_msg("slew\n");
                                     struct slew sSlew;
                                     sSlew.track = track;
                                     sSlew.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
@@ -837,36 +835,6 @@ void *MidiThread(void *arg)
     while (!ThreadEnd){
         if(i2cReadByteData(fd,SC16IS750_RXLVL) > 0) {
             ret_val = i2cReadByteData(fd,SC16IS750_RHR); 
-            /* Only react to MIDI Clock etc if Clock Source is External */
-            if (clock_source == EXT_CLK) {
-                switch(ret_val){
-                    case Clock:
-                        if(run_stop == RUN){
-                            if(midi_clock_counter++ >= (midi_clock_divisor -1)){
-                                midi_clock_counter = 0;
-                                GATESingleOutput(Europi.tracks[0].channels[GATE_OUT].i2c_handle,CLOCK_OUT,DEV_PCF8574,HIGH);
-                                next_step();
-                            }
-                            if(midi_clock_counter == (midi_clock_divisor / 2)){
-                                GATESingleOutput(Europi.tracks[0].channels[GATE_OUT].i2c_handle,CLOCK_OUT,DEV_PCF8574,LOW);
-                            }
-                        }
-                    break;
-                    case Start:
-                        /* MIDI Start re-starts the sequence from Step One */
-                        run_stop = RUN;
-                        step_one = TRUE;
-                        midi_clock_counter = 0;
-                        next_step();
-                    break;
-                    case Continue:
-                        run_stop = RUN;
-                    break;
-                    case Stop:
-                        run_stop = STOP;
-                    break;
-                }
-            }
         }
     }
     return NULL;
@@ -943,14 +911,12 @@ int startup(void)
 
 	//gpioSetMode(TOUCH_INT, PI_INPUT);
 	//gpioSetPullUpDown(TOUCH_INT, PI_PUD_UP);
+	gpioSetMode(INT_CLK_OUT, PI_OUTPUT);
 	gpioSetMode(CLOCK_IN, PI_INPUT);
 	//gpioGlitchFilter(CLOCK_IN,100);				/* EXT_CLK has to be at the new level for 100uS before it is registered */
 	gpioSetMode(RUNSTOP_IN, PI_INPUT);
 	gpioSetPullUpDown(RUNSTOP_IN, PI_PUD_UP);
 	gpioGlitchFilter(RUNSTOP_IN,100);
-	gpioSetMode(INTEXT_IN, PI_INPUT);
-	gpioSetPullUpDown(INTEXT_IN, PI_PUD_UP);
-	gpioGlitchFilter(INTEXT_IN,100);
 	gpioSetMode(RESET_IN, PI_INPUT);
 	gpioGlitchFilter(RESET_IN,100);
 	// Register callback routines
@@ -960,9 +926,8 @@ int startup(void)
 	gpioSetAlertFunc(BUTTON4_IN, button_4);
 	gpioSetAlertFunc(ENCODER_BTN, encoder_button);
 	//gpioSetAlertFunc(TOUCH_INT, touch_interrupt);
-	gpioSetAlertFunc(CLOCK_IN, external_clock);
+	gpioSetAlertFunc(CLOCK_IN, main_clock);
 	gpioSetAlertFunc(RUNSTOP_IN, runstop_input);
-	gpioSetAlertFunc(INTEXT_IN, clocksource_input);
 	gpioSetAlertFunc(RESET_IN, reset_input);
 	/* Establish Rotary Encoder Callbacks */
 	gpioSetMode(ENCODERA_IN, PI_INPUT);

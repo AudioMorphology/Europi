@@ -62,7 +62,6 @@ int midi_clock_counter = 0; /* divides down the MIDI Clock into pulses per step 
 int midi_clock_divisor = 24; /* MIDI Clock pulses per step */
 int clock_counter = 95;	/* Main clock counter, tracks the 96 pulses per step */
 int clock_level = 0;	/* Master clock phase */
-int clock_source = INT_CLK;	/* INT_CLK = Internal, EXT_CLK = External Clock Source */
 int clock_freq=192;		/* speed of the main internal clock in Hz */
 int TuningOn = FALSE;    //FALSE;   /* when True, all CV ports will output the same Raw voltage */
 uint16_t TuningVoltage = 0;   /* raw value that is output when Tuning flag is Set */
@@ -207,14 +206,12 @@ int main(int argc, char* argv[])
 	/* things to do when prog first starts */
 	startup();
 	/* Read and set the states of the run/stop and int/ext switches */
-	log_msg("Run/stop: %d, Int/ext: %d\n",gpioRead(RUNSTOP_IN),gpioRead(INTEXT_IN));
-	run_stop = gpioRead(RUNSTOP_IN);
-	clock_source = gpioRead(INTEXT_IN);
+	log_msg("Run/stop: %d\n",gpioRead(RUNSTOP_IN));
+	run_stop = !gpioRead(RUNSTOP_IN);
 	// If we're impersonating HW then may
 	// as well set it to run with an Internal Clock
 	if(impersonate_hw == TRUE){
 		run_stop = RUN; //STOP; 
-		clock_source = INT_CLK;
 	}
     //debug = TRUE;
     currentGesture = GESTURE_NONE;

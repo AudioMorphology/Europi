@@ -39,11 +39,12 @@
 #define BUTTON2_IN	6	/* PIN 31	*/
 #define BUTTON3_IN	13	/* PIN 33	*/
 #define BUTTON4_IN	19	/* PIN 35	*/
-#define ENCODERB_IN	4	/* PIN 7	*/
-#define ENCODERA_IN	14  /* PIN 8	*/
-#define ENCODER_BTN 15	/* PIN 10 	*/
+#define ENCODERA_IN	27	/* PIN 13	*/
+#define ENCODERB_IN	17  /* PIN 11	*/
+#define ENCODER_BTN 22	/* PIN 15 	*/
 #define CLOCK_IN	12	/* PIN 32	*/
-#define INTEXT_IN	20	/* PIN 38	*/
+#define INT_CLK_OUT	15	/* PIN 10	*/
+//#define INTEXT_IN	20	/* PIN 38	*/
 #define RUNSTOP_IN	26	/* PIN 37	*/
 #define RESET_IN	16	/* PIN 36	*/
 //#define TOUCH_INT	17	/* PIN 11	*/
@@ -74,7 +75,8 @@
 /* Hardware Address Constants */
 #define DAC_BASE_ADDR 	0x4C	/* Base i2c address	of DAC8574 */
 #define MCP_BASE_ADDR	0x20	/* Base i2c address of MCP23008 GPIO Expander */
-#define PCF_BASE_ADDR	0x38	/* Base i2c address of PCF8574 GPIO Expander */
+//#define PCF_BASE_ADDR	0x38	/* Base i2c address of PCF8574 GPIO Expander */
+#define PCF_BASE_ADDR	0x20	/* Base i2c address of PCF8574 GPIO Expander */
 #define MID_BASE_ADDR	0x50	/* Base i2c address of MIDI Minion SC16IS750 UART */
 
 /* Channels */
@@ -89,8 +91,6 @@
 #define STOP		0
 #define HIGH		1
 #define LOW			0
-#define INT_CLK		0
-#define EXT_CLK		1
 #define MIDI_CLK    2
 #define TRUE		1
 #define FALSE		0
