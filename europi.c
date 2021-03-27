@@ -193,7 +193,7 @@ menu Menu[]={
 /* This is the main structure that holds info about the running sequence */
 struct europi Europi; 
 struct europi_hw Europi_hw;
-enum display_page_t DisplayPage = Grid8x8;	//GridView;
+enum display_page_t DisplayPage = GridView;
 uint32_t ActiveOverlays;
 
 #define MAX_GESTURE_STRINGS   20
@@ -247,10 +247,10 @@ while (!WindowShouldClose() && (prog_running ==1)) {
 */
     switch(DisplayPage){
         case GridView:
-			gui_8x8();	//gui_grid();
+			gui_grid();
         break;
 		case Grid8x8:
-			gui_8x8();
+			gui_grid();	//gui_8x8();
 		break;
         case SingleStep:
             gui_singlestep();

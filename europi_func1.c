@@ -192,6 +192,7 @@ void main_clock(int gpio, int level, uint32_t tick)
 	if (run_stop == RUN){
 		// Copy the clock signal to the Clock Out port
 		GATESingleOutput(Europi.tracks[0].channels[GATE_OUT].i2c_handle,CLOCK_OUT,DEV_PCF8574,level);
+		//GATESingleOutput(1,CLOCK_OUT,DEV_PCF8574,level);
 		if (level == 1) next_step();
 	}
 }
@@ -397,7 +398,7 @@ void next_step(void)
                             case CV:
                                 if(Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type == Off){
                                     // No Slew - just set the output CV
-									log_msg("SingleChannelWrite, Trk: %d Chnl: %d, Val: %d\n",track,CV_OUT,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
+									//log_msg("SingleChannelWrite, Trk: %d Chnl: %d, Val: %d\n",track,CV_OUT,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
                                     DACSingleChannelWrite(track,Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
                                 }
                                 else {
@@ -752,7 +753,7 @@ void *GateThread(void *arg)
         free(pGate);
         return(0);
     }
-	//log_msg("Gate H: %d, Ch: %d, Dev: %d\n",pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device);
+	//log_msg("GateThread H: %d, Ch: %d, Dev: %d\n",pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device);
     if (pGate->ratchets <= 1){
         //Normal Gate
         switch(pGate->gate_type){
@@ -1023,8 +1024,8 @@ int startup(void)
 	hardware_init();
 
 	//initialise the sequence for testing purposes
-	//init_sequence();
-	load_sequence("resources/sequences/123test");
+	seq_new();
+	//load_sequence("resources/sequences/123test");
 	//reapply the current hardware config to loaded sequence
 	//reapply_config();
 	/* Start the internal sequencer clock */
@@ -1744,7 +1745,7 @@ void GATEMultiOutput(unsigned handle, uint8_t value)
  */ 
 void GATESingleOutput(unsigned handle, uint8_t channel,int Device,int Value)
 {
-	//log_msg("handle: %d, channel: %d, Device: %d, Value: %d\n",handle,channel,Device,Value);
+	//log_msg("GateSingleOutput H: %d, Chnl: %d, Dev: %d, Val: %d\n",handle,channel,Device,Value);
 	uint8_t curr_val;
 	if(impersonate_hw == TRUE) return;
 	if(Device == DEV_MCP23008){
@@ -1905,7 +1906,7 @@ void hardware_init(void)
 		if(pcf_handle >= 0) {
 			/* Gates off, LEDs off */
 			i2cWriteByte(pcf_handle, (unsigned)(0xF0));
-            log_msg("Europi DAC8574 Addr:%0x, Handle:%0x, PCF8574 Addr:%0x Handle:%0x\n",DAC_BASE_ADDR,handle,PCF_BASE_ADDR,pcf_handle);
+            log_msg("DAC8574 Ad:%0x, Hndl:%0x, PCF8574 Ad:%0x Hndl:%0x\n",DAC_BASE_ADDR,handle,PCF_BASE_ADDR,pcf_handle);
 		}
 		Europi.tracks[track].channels[CV_OUT].enabled = TRUE;
 		Europi.tracks[track].channels[CV_OUT].type = CHNL_TYPE_CV;
@@ -1920,6 +1921,21 @@ void hardware_init(void)
 		Europi.tracks[track].channels[CV_OUT].transpose = 0;			/* fixed (transpose) voltage offset applied to this channel */
 		Europi.tracks[track].channels[CV_OUT].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
 		Europi.tracks[track].channels[CV_OUT].vc_type = VOCT;
+
+		Europi.tracks[track].channels[MOD_OUT].enabled = TRUE;
+		Europi.tracks[track].channels[MOD_OUT].type = CHNL_TYPE_MOD;
+		Europi.tracks[track].channels[MOD_OUT].function = MOD;
+		Europi.tracks[track].channels[MOD_OUT].quantise = 0;		
+		Europi.tracks[track].channels[MOD_OUT].i2c_handle = handle;			
+		Europi.tracks[track].channels[MOD_OUT].i2c_device = DEV_DAC8574;
+		Europi.tracks[track].channels[MOD_OUT].i2c_address = 0x08;
+		Europi.tracks[track].channels[MOD_OUT].i2c_channel = 1;		
+		Europi.tracks[track].channels[MOD_OUT].scale_zero = 280;		/* Value required to generate zero volt output */
+		Europi.tracks[track].channels[MOD_OUT].scale_max = 63000;		/* Value required to generate maximum output voltage */
+		Europi.tracks[track].channels[MOD_OUT].transpose = 0;				/* fixed (transpose) voltage offset applied to this channel */
+		Europi.tracks[track].channels[MOD_OUT].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
+		Europi.tracks[track].channels[MOD_OUT].vc_type = VOCT;
+
         
         /* note the equivalent in the Hardware structure */
         Europi_hw.hw_tracks[track].hw_channels[CV_OUT].enabled = TRUE;
@@ -1955,13 +1971,27 @@ void hardware_init(void)
 		Europi.tracks[track].channels[CV_OUT].i2c_handle = handle;			
 		Europi.tracks[track].channels[CV_OUT].i2c_device = DEV_DAC8574;
 		Europi.tracks[track].channels[CV_OUT].i2c_address = 0x08;
-		Europi.tracks[track].channels[CV_OUT].i2c_channel = 1;		
+		Europi.tracks[track].channels[CV_OUT].i2c_channel = 2;		
 		Europi.tracks[track].channels[CV_OUT].scale_zero = 280;		/* Value required to generate zero volt output */
 		Europi.tracks[track].channels[CV_OUT].scale_max = 63000;		/* Value required to generate maximum output voltage */
 		Europi.tracks[track].channels[CV_OUT].transpose = 0;				/* fixed (transpose) voltage offset applied to this channel */
 		Europi.tracks[track].channels[CV_OUT].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
 		Europi.tracks[track].channels[CV_OUT].vc_type = VOCT;
-        
+
+		Europi.tracks[track].channels[MOD_OUT].enabled = TRUE;
+		Europi.tracks[track].channels[MOD_OUT].type = CHNL_TYPE_MOD;
+		Europi.tracks[track].channels[MOD_OUT].function = MOD;
+		Europi.tracks[track].channels[MOD_OUT].quantise = 0;		
+		Europi.tracks[track].channels[MOD_OUT].i2c_handle = handle;			
+		Europi.tracks[track].channels[MOD_OUT].i2c_device = DEV_DAC8574;
+		Europi.tracks[track].channels[MOD_OUT].i2c_address = 0x08;
+		Europi.tracks[track].channels[MOD_OUT].i2c_channel = 3;		
+		Europi.tracks[track].channels[MOD_OUT].scale_zero = 280;		/* Value required to generate zero volt output */
+		Europi.tracks[track].channels[MOD_OUT].scale_max = 63000;		/* Value required to generate maximum output voltage */
+		Europi.tracks[track].channels[MOD_OUT].transpose = 0;				/* fixed (transpose) voltage offset applied to this channel */
+		Europi.tracks[track].channels[MOD_OUT].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
+		Europi.tracks[track].channels[MOD_OUT].vc_type = VOCT;
+
         /* note the equivalent in the Hardware structure */
         Europi_hw.hw_tracks[track].hw_channels[CV_OUT].enabled = TRUE;
         Europi_hw.hw_tracks[track].hw_channels[CV_OUT].type = CHNL_TYPE_CV;
@@ -2006,7 +2036,7 @@ void hardware_init(void)
 			/* Get a handle to the associated MCP23008 */
 			mcp_addr = MCP_BASE_ADDR | (address & 0x7);	
 			gpio_handle = i2cOpen(1,mcp_addr,0);
-            log_msg("Minion DAC8574 Addr:%0x, Handle:%0x, MCP23008 Addr:%0x Handle:%0x\n",DAC_BASE_ADDR | (address & 0x3),handle,mcp_addr,gpio_handle);
+            log_msg("Minion DAC8574 Addr:%0x, Hndl:%0x, MCP23008 Addr:%0x Hndl:%0x\n",DAC_BASE_ADDR | (address & 0x3),handle,mcp_addr,gpio_handle);
 			if(gpio_handle < 0){log_msg("failed to open MCP23008 associated with DAC8574 on Addr: %0x\n",address);}
 			/* Set MCP23008 IO direction to Output, and turn all Gates OFF */
 			if(gpio_handle >= 0) {

@@ -158,46 +158,56 @@ void gui_8x8(void){
             stepRectangle.y = vOffset + 10 + (track * 25);
             stepRectangle.width = 22;
             stepRectangle.height = 22;
-            // Check gesture collision
-			if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture == GESTURE_DOUBLETAP)){
-				if(OverlayActive(ovl_VerticalScrollBar) == 0){
-                // Only if no Menus or Overlays active
-                    // Open this step in the Single Step editor
-                    edit_track = start_track+track;
-                    edit_step = (offset*8)+column;
-                    select_track(start_track+track);
-                    ClearScreenOverlays();
-                    DisplayPage = SingleStep;
-                    ActiveOverlays |= ovl_SingleStep; 
-                    encoder_focus = step_select;
-                    btnA_func = btnA_none;
-                    btnB_func = btnB_prev;
-                    btnC_func = btnC_next;
-                    btnD_func = btnD_done; 
-                    save_run_stop = run_stop;
+            if(start_track+track < last_track) {
+                // Check gesture collision
+                if (CheckCollisionPointRec(touchPosition, stepRectangle) && (currentGesture == GESTURE_DOUBLETAP)){
+                    if(OverlayActive(ovl_VerticalScrollBar) == 0){
+                    // Only if no Menus or Overlays active
+                        // Open this step in the Single Step editor
+                        edit_track = start_track+track;
+                        edit_step = (offset*8)+column;
+                        select_track(start_track+track);
+                        ClearScreenOverlays();
+                        DisplayPage = SingleStep;
+                        ActiveOverlays |= ovl_SingleStep; 
+                        encoder_focus = step_select;
+                        btnA_func = btnA_none;
+                        btnB_func = btnB_prev;
+                        btnC_func = btnC_next;
+                        btnD_func = btnD_done; 
+                        save_run_stop = run_stop;
+                    }
+                    else {
+                        select_track(start_track+track);
+                        edit_step = (offset*8)+column;
+                        encoder_focus = step_select;
+                    }
                 }
-				else {
-					select_track(start_track+track);
-                    edit_step = (offset*8)+column;
-                    encoder_focus = step_select;
-				}
-            }
-            if((offset*8)+column >= Europi.tracks[start_track+track].last_step){
-                // beyond the last step, just paint black squares
-                DrawRectangleRec(stepRectangle, BLACK); 
-            }
-            else if((offset*8)+column == Europi.tracks[start_track+track].current_step){
-                // Paint current step
-                DrawRectangleRec(stepRectangle, LIME);   
+                if((offset*8)+column >= Europi.tracks[start_track+track].last_step){
+                    // beyond the last step, just paint black squares
+                    DrawRectangleRec(stepRectangle, BLACK); 
+                }
+                else if((offset*8)+column == Europi.tracks[start_track+track].current_step){
+                    // Paint current step
+                    DrawRectangleRec(stepRectangle, LIME);   
+                }
+                else {
+                    // paint blank step
+                    DrawRectangleRec(stepRectangle, MAROON); 
+                }
             }
             else {
-                // paint blank step
-                DrawRectangleRec(stepRectangle, MAROON); 
+                DrawRectangleRec(stepRectangle,LIGHTGRAY);
             }
         }  
         // Print the end-step number at the RHS of each row
         sprintf(txt,":%d",(offset * 8)+8);
-        DrawText(txt,270,12+(vOffset+(track * 25)),20,DARKGRAY);
+        if(start_track+track < last_track) {
+            DrawText(txt,270,12+(vOffset+(track * 25)),20,DARKGRAY);
+        }
+        else {
+            DrawText(txt,270,12+(vOffset+(track * 25)),20,LIGHTGRAY);
+        }
     }
     // Handle any screen overlays - these need to 
     // be added within the Drawing loop

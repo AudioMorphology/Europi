@@ -83,8 +83,8 @@
 #define CV_OUT		0x00		/* Europi and Minion */
 #define MOD_OUT		0x01		/* Europi and Minion */
 #define GATE_OUT	0x02		/* Europi and Minion */
-#define CLOCK_OUT	0x03		/* Europi only */
-#define STEP1_OUT	0x04		/* Europi only */
+#define CLOCK_OUT	0x02		/* Europi only */
+#define STEP1_OUT	0x03		/* Europi only */
 #define MIDI_OUT    0x05        /* MIDI Minion only */
 
 /* Useful Logicals */
@@ -602,8 +602,8 @@ struct step {
 
 /* 
  * CHANNEL is an set of parameters for a single output,
- * which can be a CV channel, Gate output etc. Usually
- * a CV and GATE output would be linked together in a 
+ * which can be a CV channel, MOD Channel, Gate output etc. 
+ * CV, MOD and GATE outputs are be linked together in a 
  * single TRACK
  */
 struct channel {
