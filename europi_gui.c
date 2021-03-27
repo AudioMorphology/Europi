@@ -124,15 +124,21 @@ void gui_8x8(void){
         offset = Europi.tracks[start_track+track].current_step / 8;
         sprintf(txt,"%02d-%d:",start_track+track+1,(offset * 8)+1);
         txt_len = MeasureText(txt,20);
-        DrawText(txt,68-txt_len,12+(vOffset+(track * 25)),20,DARKGRAY);
-        DrawRectangleLines(4,vOffset+8+(track * 25),67,26,DARKGRAY);
+        if(start_track+track < last_track){
+            DrawText(txt,68-txt_len,12+(vOffset+(track * 25)),20,DARKGRAY);
+            DrawRectangleLines(4,vOffset+8+(track * 25),67,26,DARKGRAY);
+        } else {
+            // in-active tracks greyed-out
+            DrawText(txt,68-txt_len,12+(vOffset+(track * 25)),20,LIGHTGRAY);
+            DrawRectangleLines(4,vOffset+8+(track * 25),67,26,LIGHTGRAY);
+        }
         // Check for Track select
         trackRectangle.x = 4;
         trackRectangle.y = vOffset + 8 + (track * 25);
         trackRectangle.width = 67;
         trackRectangle.height = 26;
-		// Only if no menus or overlays active
-		if (CheckCollisionPointRec(touchPosition, trackRectangle) && (currentGesture != GESTURE_NONE)){
+		// Only if no menus or overlays active, and this track isn't beyond the end track
+		if (CheckCollisionPointRec(touchPosition, trackRectangle) && (currentGesture != GESTURE_NONE) && (start_track+track < last_track)){
 			if(OverlayActive( ovl_VerticalScrollBar ) == 0){
                 // Open this track in a Single Channel view
                 edit_track = start_track+track;

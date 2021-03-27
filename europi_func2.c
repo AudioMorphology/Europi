@@ -45,6 +45,7 @@ extern int save_run_stop;
 extern int disp_menu;
 extern int debug;
 extern int TuningOn;
+extern int last_track;
 extern int edit_track;
 extern uint16_t TuningVoltage; 
 extern int SingleChannelOffset;
@@ -122,7 +123,7 @@ void seq_new(void){
 	int step;
     int defaultpitch = (6000*4) + 3000;   //half way up.
 	ClearScreenOverlays();
-	DisplayPage = GridView;
+	DisplayPage = Grid8x8;
     encoder_focus = none;
 	select_first_track();	
 	for(track = 0;track < MAX_TRACKS;track++){
@@ -133,11 +134,20 @@ void seq_new(void){
 		Europi.tracks[track].channels[CV_OUT].quantise = 1;	// default quantization = semitones	
 		Europi.tracks[track].channels[CV_OUT].transpose = 0;	 
 		Europi.tracks[track].channels[CV_OUT].function = CV;
+		Europi.tracks[track].channels[CV_OUT].type = CHNL_TYPE_CV;
+		Europi.tracks[track].channels[MOD_OUT].quantise = 1;	// default quantization = semitones	
+		Europi.tracks[track].channels[MOD_OUT].transpose = 0;	 
+		Europi.tracks[track].channels[MOD_OUT].function = MOD;
+		Europi.tracks[track].channels[MOD_OUT].type = CHNL_TYPE_MOD;
 		for(step = 0;step < MAX_STEPS;step++){
 			Europi.tracks[track].channels[CV_OUT].steps[step].raw_value = defaultpitch;
 			Europi.tracks[track].channels[CV_OUT].steps[step].scaled_value = scale_value(track,defaultpitch);
 			Europi.tracks[track].channels[CV_OUT].steps[step].slew_type = Off;
 			Europi.tracks[track].channels[CV_OUT].steps[step].slew_length = 0;
+			Europi.tracks[track].channels[MOD_OUT].steps[step].raw_value = defaultpitch;
+			Europi.tracks[track].channels[MOD_OUT].steps[step].scaled_value = scale_value(track,defaultpitch);
+			Europi.tracks[track].channels[MOD_OUT].steps[step].slew_type = Off;
+			Europi.tracks[track].channels[MOD_OUT].steps[step].slew_length = 0;
 			Europi.tracks[track].channels[GATE_OUT].steps[step].ratchets = 1;
 			Europi.tracks[track].channels[GATE_OUT].steps[step].repetitions = 1;
 			Europi.tracks[track].channels[GATE_OUT].steps[step].fill = 0;
@@ -244,17 +254,16 @@ void select_next_track(int dir){
         int track = 0;
         int prev_selected = 0;
         int found_new = FALSE;
-        while(track < MAX_TRACKS){
+        while(track < last_track){
             if(Europi.tracks[track].selected == TRUE){
                 // deselect this track
                 prev_selected = track;
                 Europi.tracks[track].selected = FALSE;
                 GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x00);
                 // select the next enabled one
-                if(track < MAX_TRACKS - 1) track++;
-                while(track < MAX_TRACKS){
+                if(track < last_track - 1) track++;
+                while(track < last_track){
                     if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE){
-						log_msg("Found enabled: %d",track);
                         Europi.tracks[track].selected = TRUE;
 						edit_track = track;
                         found_new = TRUE;
@@ -273,8 +282,8 @@ void select_next_track(int dir){
         }
     }
     else {
-        int track = MAX_TRACKS - 1;
-        int prev_selected = MAX_TRACKS - 1;
+        int track = last_track - 1;
+        int prev_selected = last_track - 1;
         int found_new = FALSE;
         while(track >= 0){
             if(Europi.tracks[track].selected == TRUE){

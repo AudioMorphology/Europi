@@ -247,7 +247,6 @@ void next_step(void)
                             /* IF we've got Europi hardware, trigger the Step 1 pulse as Track 0 passes through Step 0 */
                             if ((is_europi == TRUE) && (track == 0)){
                                 /* Track 0 Channel 1 will have the GPIO Handle for the PCF8574 channel 3 is Step 1 Out*/
-								log_msg("Step One\n");
                                 struct gate sGate;
                                 sGate.track = track;
                                 sGate.i2c_handle = Europi.tracks[0].channels[GATE_OUT].i2c_handle;
@@ -911,6 +910,7 @@ int startup(void)
 
 	//gpioSetMode(TOUCH_INT, PI_INPUT);
 	//gpioSetPullUpDown(TOUCH_INT, PI_PUD_UP);
+	gpioSetMode(MASTER_CLK, PI_OUTPUT);
 	gpioSetMode(INT_CLK_OUT, PI_OUTPUT);
 	gpioSetMode(CLOCK_IN, PI_INPUT);
 	//gpioGlitchFilter(CLOCK_IN,100);				/* EXT_CLK has to be at the new level for 100uS before it is registered */
@@ -1030,6 +1030,8 @@ int startup(void)
 	/* Start the internal sequencer clock */
 	run_stop = STOP;		/* master clock is running, but step generator is halted */
 	select_first_track();	// Default select the first enabled track
+	// Start the main internal clock, with 50% duty cycle
+	// and register a callback against its state change
 	gpioHardwarePWM(MASTER_CLK,clock_freq,500000);
 	gpioSetAlertFunc(MASTER_CLK, master_clock);
 	prog_running = 1;
@@ -1790,13 +1792,18 @@ void GATESingleOutput(unsigned handle, uint8_t channel,int Device,int Value)
 			// Set corresponding bit high
 			PCF8574_state |= (0x01 << channel);
 			// the equivalent in the MS Nibble needs to be low to turn the LED on
-			PCF8574_state &= ~(0x01 << (channel+4));
+			// due to a cockup in the V2 Circuit, I wired the LEDs
+			// in the reverse order for some reason, so the bit order 
+			// also needs to be reversed
+			//PCF8574_state &= ~(0x01 << (channel+4));
+			PCF8574_state &= ~(0x80 >> channel);
 		}
 		else {
 			// Set corresponding bit low
 			PCF8574_state &= ~(0x01 << channel);
 			// the equivalent in the MS Nibble needs to be high to turn the LED off
-			PCF8574_state |= (0x01 << (channel+4));
+			//PCF8574_state |= (0x01 << (channel+4));
+			PCF8574_state |= (0x80 >> channel);
 		}
 		i2cWriteByte(handle,PCF8574_state);
 		pthread_mutex_unlock(&pcf8574_lock);
@@ -1821,6 +1828,7 @@ void hardware_init(void)
 		Europi.tracks[track].selected = FALSE;
         Europi.tracks[track].direction = Forwards;
 		Europi.tracks[track].channels[CV_OUT].enabled = FALSE;
+		Europi.tracks[track].channels[MOD_OUT].enabled = FALSE;
 		Europi.tracks[track].channels[GATE_OUT].enabled = FALSE;
         Europi_hw.hw_tracks[track].hw_channels[CV_OUT].enabled = FALSE;
         Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].enabled = FALSE;
@@ -1879,7 +1887,7 @@ void hardware_init(void)
 		 return;
 	 }
 	/* 
-	 * Specifically look for a PCF8574 on address 0x38
+	 * Specifically look for a PCF8574 on address 0x38/0x20
 	 * if one exists, then it's on the Europi, so the first
 	 * two Tracks will be allocated to the Europi
 	 */
@@ -1887,10 +1895,10 @@ void hardware_init(void)
 	address = 0x08;
 	handle = EuropiFinder();
 	if (handle >=0){
-		/* we have a Europi - it supports 2 Tracks each with 2 channels (CV + GATE) */
+		/* we have a Europi - it supports 2 Tracks each with 3 channels (CV + MOD + GATE) */
         log_msg("Europi found on Address 08\n");
 		is_europi = TRUE;
-		/* As this is a Europi, then there should be a PCF8574 GPIO Expander on address 0x38 */
+		/* As this is a Europi, then there should be a PCF8574 GPIO Expander on address 0x20 or 0x38 */
 		pcf_addr = PCF_BASE_ADDR;
 		pcf_handle = i2cOpen(1,pcf_addr,0);
 		if(pcf_handle < 0){log_msg("failed to open PCF8574 associated with DAC8574 on Addr: 0x08");}

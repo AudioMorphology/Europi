@@ -74,23 +74,26 @@
 
 /* Hardware Address Constants */
 #define DAC_BASE_ADDR 	0x4C	/* Base i2c address	of DAC8574 */
-#define MCP_BASE_ADDR	0x20	/* Base i2c address of MCP23008 GPIO Expander */
-//#define PCF_BASE_ADDR	0x38	/* Base i2c address of PCF8574 GPIO Expander */
+#define MCP_BASE_ADDR	0x99 // !!!0x20 Temp cchanged this due to PCF8574 onflict	/* Base i2c address of MCP23008 GPIO Expander */
+//#define PCF_BASE_ADDR	0x38	/* Base i2c address of PCF8574A GPIO Expander */
 #define PCF_BASE_ADDR	0x20	/* Base i2c address of PCF8574 GPIO Expander */
 #define MID_BASE_ADDR	0x50	/* Base i2c address of MIDI Minion SC16IS750 UART */
 
 /* Channels */
 #define CV_OUT		0x00		/* Europi and Minion */
-#define GATE_OUT	0x01		/* Europi and Minion */
-#define CLOCK_OUT	0x02		/* Europi only */
-#define STEP1_OUT	0x03		/* Europi only */
-#define MIDI_OUT    0x04        /* MIDI Minion only */
+#define MOD_OUT		0x01		/* Europi and Minion */
+#define GATE_OUT	0x02		/* Europi and Minion */
+#define CLOCK_OUT	0x03		/* Europi only */
+#define STEP1_OUT	0x04		/* Europi only */
+#define MIDI_OUT    0x05        /* MIDI Minion only */
 
 /* Useful Logicals */
 #define RUN			1
 #define STOP		0
 #define HIGH		1
 #define LOW			0
+#define HOLD_ON		1
+#define HOLD_OFF	0
 #define MIDI_CLK    2
 #define TRUE		1
 #define FALSE		0
@@ -387,15 +390,17 @@ void gui_grid(void);
  */ 
 #define MAX_SEQUENCES 64	/* Song can contain up to 64 sequences */
 #define MAX_TRACKS 2+(4*8)	/* 2 Tracks on Europi, plus 4 per minion, with total of 8 Minions */
-#define MAX_CHANNELS 2		/* 2 channels per track (CV + GATE) */
+#define MAX_CHANNELS 3		/* 3 channels per track (CV + MOD + GATE) */
 #define MAX_STEPS 32		/* Up to 32 steps in an individual sequence */
 /* CHANNEL TYPE */
 #define CHNL_TYPE_CV 0
-#define CHNL_TYPE_GATE 1
-#define CHNL_TYPE_MIDI 2
+#define CHNL_TYPE_MOD 1
+#define CHNL_TYPE_GATE 2
+#define CHNL_TYPE_MIDI 3
 /* Channel Function */
 enum chnl_function_t {
 	CV,
+	MOD,
 	AD,
     ADSR,
     Gate,   // Not really used
@@ -619,7 +624,7 @@ struct channel {
 };
 
 /*
- * a TRACK comprises two physical output channels linked 
+ * a TRACK comprises three physical output channels linked 
  * together - a CV output plus its associated GATE output.
  */
 struct track{
