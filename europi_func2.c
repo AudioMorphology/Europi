@@ -582,7 +582,6 @@ void set_step_pitch(int dir, int vel){
                     while((current == newpitch) && (raw_val <= 60000)){
                         raw_val += 10;
                         newpitch = quantize(raw_val,Europi.tracks[track].channels[CV_OUT].quantise);
-                        log_msg("Raw: %d, Quant: %d\n",raw_val,newpitch);
                     }
                     if(raw_val > 60000) raw_val = 60000;
                     // We've got a new raw value that returns a different quantised value
@@ -597,11 +596,9 @@ void set_step_pitch(int dir, int vel){
                     while((current == newpitch) && (raw_val > 0)){
                         raw_val -= 10;
                         newpitch = quantize(raw_val,Europi.tracks[track].channels[CV_OUT].quantise);
-                        log_msg("Raw: %d, Quant: %d\n",raw_val,newpitch);
                     }
                     if(raw_val < 0) raw_val = 0;
                     // We've got a new raw value that returns a different quantised value
-                    log_msg("newpitch: %d\n",newpitch);
                     Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value = newpitch;
                     Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value = scale_value(track,newpitch);
                 }

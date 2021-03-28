@@ -557,6 +557,15 @@ struct ad_adsr_t {
     enum slew_t slope_type; /* linear, exponential, Reverse Exponential */
 };
 
+/* Attributes passed to a free-running modulation thread */
+struct modChnl{
+	int track;				/* which track spawned the thread */
+	int i2c_handle;			/* Handle to the i2c device that outputs this track */
+	int i2c_address;		/* Address of this device on the i2c Bus - address need to match the physical A3-A0 pins */
+	int i2c_channel;		/* Individual channel (on multi-channel i2c devices) */
+	int SleepSecs;
+};
+
 struct midiChnl {
     int i2c_handle;
 };

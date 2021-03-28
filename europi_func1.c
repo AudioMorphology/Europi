@@ -129,6 +129,8 @@ extern struct MENU Menu[];
 extern pthread_attr_t detached_attr;		
 extern pthread_mutex_t mcp23008_lock;
 extern pthread_mutex_t pcf8574_lock;
+extern pthread_t modThreadId[];
+extern int modThreadRunning[];
 extern pthread_t midiThreadId[]; 
 extern int midiThreadLaunched[];
 extern uint8_t mcp23008_state[16];
@@ -822,6 +824,30 @@ void *GateThread(void *arg)
     free(pGate);
 	return(0);
 }
+
+/* Modulation Thread
+ * Joinable thread launched for each Track - ie
+ * there could be up to MAX_TRACKS of these running
+ */
+void *ModThread(void *arg)
+{
+	struct modChnl *pModChnl = (struct modChnl *)arg;
+	int track = pModChnl->track;
+	int i2c_handle = pModChnl->i2c_handle;
+	int i2c_channel = pModChnl->i2c_channel;
+	int i2c_address = pModChnl->i2c_address;
+	int SleepSecs = pModChnl->SleepSecs;
+	while (!ThreadEnd){
+        DACSingleChannelWrite(track,i2c_handle,i2c_address,i2c_channel, 24000);
+		log_msg("ModThread Tr: %d, Chnl: %d, Val: 24000\n",track,i2c_channel);
+		sleep(SleepSecs);
+        DACSingleChannelWrite(track,i2c_handle,i2c_address,i2c_channel, 0);
+		log_msg("ModThread Tr: %d, Chnl: %d, Val: 00\n",track,i2c_channel);
+		sleep(SleepSecs);
+	}
+	return NULL;
+}
+
 /*
  * MIDI Thread - Joinable thread launched
  * for each MIDI Minion (ie up to 4 of these
@@ -864,13 +890,20 @@ int startup(void)
 	 // Initialise the Deatched pThread attribute
 	pthread_attr_init(&detached_attr);
 	pthread_attr_setdetachstate(&detached_attr, PTHREAD_CREATE_DETACHED);
+	// Empty ThreadIds for MOD Channels
+    int i;
+	for(i=0;i<MAX_TRACKS;i++){
+		modThreadId[i] = (pthread_t)NULL;
+		modThreadRunning[i] = FALSE;
+	}
+
     // Make sure MIDI Listener threads aren't initialised
     // they will be initialised when MIDI Minion(s) are detected
-    int i;
     for(i=0;i<4;i++) {
             midiThreadId[i] = (pthread_t)NULL;
             midiThreadLaunched[i] = FALSE;
     }
+
     
 	// establish a Mutex lock to protect the MCP23008
 	if (pthread_mutex_init(&mcp23008_lock, NULL) != 0){
@@ -1824,6 +1857,10 @@ void hardware_init(void)
 	int handle;
 	int gpio_handle;
 	int pcf_handle;
+	int error;
+	struct modChnl sModChnl; 
+	struct modChnl *pModChnl = malloc(sizeof(struct modChnl));
+
 	/* Before we start, make sure all Tracks / Channels are disabled */
 	for (track = 0; track < MAX_TRACKS;track++){
 		Europi.tracks[track].selected = FALSE;
@@ -1961,6 +1998,26 @@ void hardware_init(void)
         Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_device = DEV_PCF8574;
         Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_channel = 0;
 
+		/* Launch thread for Modulation channel */
+		sModChnl.track = track;
+		sModChnl.i2c_handle = Europi.tracks[track].channels[MOD_OUT].i2c_handle;
+		sModChnl.i2c_address = Europi.tracks[track].channels[MOD_OUT].i2c_address;
+		sModChnl.i2c_channel = Europi.tracks[track].channels[MOD_OUT].i2c_channel;
+		sModChnl.SleepSecs = 1;
+		memcpy(pModChnl, &sModChnl, sizeof(struct modChnl));
+/*		if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
+            log_msg("Gate thread creation error\n");
+        }
+*/
+		error = pthread_create(&modThreadId[track], NULL, &ModThread, pModChnl);
+		//error = pthread_create(&ThreadId, &detached_attr, &ModThread, pModChnl);
+		if (error != 0) log_msg("Error creating Freerunning Modulation thread\n");
+		else {
+				log_msg("Modulation thread created for Track %d, ID: %d\n",track,modThreadId[track]); 
+				//modThreadRunning[track] = TRUE;
+		}
+
+
 		/* Track 1 channel 0 = CV */
 		track++;
 		Europi.tracks[track].channels[CV_OUT].enabled = TRUE;
@@ -2012,7 +2069,23 @@ void hardware_init(void)
         Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_handle = pcf_handle;			
         Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_device = DEV_PCF8574;
         Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_channel = 1;
-
+		sleep(2);
+		/* Launch thread for Modulation channel */
+		
+		sModChnl.track = track;
+		sModChnl.i2c_handle = Europi.tracks[track].channels[MOD_OUT].i2c_handle;
+		sModChnl.i2c_address = Europi.tracks[track].channels[MOD_OUT].i2c_address;
+		sModChnl.i2c_channel = Europi.tracks[track].channels[MOD_OUT].i2c_channel;
+		sModChnl.SleepSecs = 2;
+		memcpy(pModChnl, &sModChnl, sizeof(struct modChnl));
+		error = pthread_create(&modThreadId[track], NULL, &ModThread, pModChnl);
+		//error = pthread_create(&ThreadId, &detached_attr, &ModThread, pModChnl);
+		if (error != 0) log_msg("Error creating Freerunning Modulation thread\n");
+		else {
+				log_msg("Modulation thread created for Track %d, ID: %d\n",track,modThreadId[track]); 
+				//modThreadRunning[track] = TRUE;
+		}
+		
 		/* Channels 3 & 4 of the PCF8574 are the Clock and Step 1 out 
 		 * no need to set them to anything specific, and we don't really
 		 * want them appearing as additional tracks*/

@@ -102,6 +102,8 @@ int disp_menu = 0;
 int touchStream = -1;                   // Touch device file descriptor
 int touchReady = FALSE;                 // Flag to know if touchscreen is present
 pthread_t touchThreadId;  
+pthread_t modThreadId[MAX_TRACKS];		// Thread plaeholders for Modulation Tracks
+int modThreadRunning[MAX_TRACKS];		// Tracks which Modulation threads have been launched
 pthread_t midiThreadId[4];              // 4 x Threads for potential MIDI Listeners 
 int midiThreadLaunched[4];             // flags to show whether the listener has launched or not              
 
@@ -250,7 +252,7 @@ while (!WindowShouldClose() && (prog_running ==1)) {
 			gui_grid();
         break;
 		case Grid8x8:
-			gui_grid();	//gui_8x8();
+			gui_8x8();
 		break;
         case SingleStep:
             gui_singlestep();
@@ -272,10 +274,14 @@ while (!WindowShouldClose() && (prog_running ==1)) {
     // Wait for various joinable threads to end
 	pthread_join(touchThreadId, NULL);
     int i;
+    for(i=0;i<MAX_TRACKS;i++) {
+        if(modThreadRunning[i] == TRUE) pthread_join(modThreadId[i], NULL);
+    }
     for(i=0;i<4;i++) {
         if(midiThreadLaunched[i] == TRUE) pthread_join(midiThreadId[i], NULL);
     }
 	shutdown();
+	sleep(2);
 	return 0;
   
 }
