@@ -398,7 +398,7 @@ void next_step(void)
                             case CV:
                                 if(Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type == Off){
                                     // No Slew - just set the output CV
-									//log_msg("SingleChannelWrite, Trk: %d Chnl: %d, Val: %d\n",track,CV_OUT,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
+									//log_msg("SnglChnlWr, Trk: %d Chnl: %d, i2c: %d Val: %d\n",track,CV_OUT,Europi.tracks[track].channels[CV_OUT].i2c_channel,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
                                     DACSingleChannelWrite(track,Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
                                 }
                                 else {
@@ -1922,6 +1922,7 @@ void hardware_init(void)
 		Europi.tracks[track].channels[CV_OUT].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
 		Europi.tracks[track].channels[CV_OUT].vc_type = VOCT;
 
+		/* Track 0 Channel 1 = Mod Output */
 		Europi.tracks[track].channels[MOD_OUT].enabled = TRUE;
 		Europi.tracks[track].channels[MOD_OUT].type = CHNL_TYPE_MOD;
 		Europi.tracks[track].channels[MOD_OUT].function = MOD;
@@ -1936,6 +1937,14 @@ void hardware_init(void)
 		Europi.tracks[track].channels[MOD_OUT].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
 		Europi.tracks[track].channels[MOD_OUT].vc_type = VOCT;
 
+		/* Track 0 channel 2 = Gate Output */
+		Europi.tracks[track].channels[GATE_OUT].enabled = TRUE;
+		Europi.tracks[track].channels[GATE_OUT].type = CHNL_TYPE_GATE;
+		Europi.tracks[track].channels[GATE_OUT].function = Gate;
+		Europi.tracks[track].channels[GATE_OUT].i2c_handle = pcf_handle;			
+		Europi.tracks[track].channels[GATE_OUT].i2c_device = DEV_PCF8574;
+		Europi.tracks[track].channels[GATE_OUT].i2c_channel = 0;
+
         
         /* note the equivalent in the Hardware structure */
         Europi_hw.hw_tracks[track].hw_channels[CV_OUT].enabled = TRUE;
@@ -1946,16 +1955,6 @@ void hardware_init(void)
         Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_channel = 0;		
         Europi_hw.hw_tracks[track].hw_channels[CV_OUT].scale_zero = 280;		
         Europi_hw.hw_tracks[track].hw_channels[CV_OUT].scale_max = 63000;		
-        
-		/* Track 0 channel 1 = Gate Output */
-		Europi.tracks[track].channels[GATE_OUT].enabled = TRUE;
-		Europi.tracks[track].channels[GATE_OUT].type = CHNL_TYPE_GATE;
-		Europi.tracks[track].channels[GATE_OUT].function = Gate;
-		Europi.tracks[track].channels[GATE_OUT].i2c_handle = pcf_handle;			
-		Europi.tracks[track].channels[GATE_OUT].i2c_device = DEV_PCF8574;
-		Europi.tracks[track].channels[GATE_OUT].i2c_channel = 0;
-
-        /* note the equivalent in the Hardware structure */
         Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].enabled = TRUE;
         Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].type = CHNL_TYPE_GATE;
         Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_handle = pcf_handle;			
@@ -1977,7 +1976,7 @@ void hardware_init(void)
 		Europi.tracks[track].channels[CV_OUT].transpose = 0;				/* fixed (transpose) voltage offset applied to this channel */
 		Europi.tracks[track].channels[CV_OUT].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
 		Europi.tracks[track].channels[CV_OUT].vc_type = VOCT;
-
+		/* Track 1 cchannel 1 = Mod Output */
 		Europi.tracks[track].channels[MOD_OUT].enabled = TRUE;
 		Europi.tracks[track].channels[MOD_OUT].type = CHNL_TYPE_MOD;
 		Europi.tracks[track].channels[MOD_OUT].function = MOD;
@@ -1991,6 +1990,13 @@ void hardware_init(void)
 		Europi.tracks[track].channels[MOD_OUT].transpose = 0;				/* fixed (transpose) voltage offset applied to this channel */
 		Europi.tracks[track].channels[MOD_OUT].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
 		Europi.tracks[track].channels[MOD_OUT].vc_type = VOCT;
+		/* Track 1 channel 2 = Gate*/
+		Europi.tracks[track].channels[GATE_OUT].enabled = TRUE;
+		Europi.tracks[track].channels[GATE_OUT].type = CHNL_TYPE_GATE;
+		Europi.tracks[track].channels[GATE_OUT].function = Gate;
+		Europi.tracks[track].channels[GATE_OUT].i2c_handle = pcf_handle;			
+		Europi.tracks[track].channels[GATE_OUT].i2c_device = DEV_PCF8574;
+		Europi.tracks[track].channels[GATE_OUT].i2c_channel = 1;		
 
         /* note the equivalent in the Hardware structure */
         Europi_hw.hw_tracks[track].hw_channels[CV_OUT].enabled = TRUE;
@@ -2001,16 +2007,6 @@ void hardware_init(void)
         Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_channel = 1;		
         Europi_hw.hw_tracks[track].hw_channels[CV_OUT].scale_zero = 280;		
         Europi_hw.hw_tracks[track].hw_channels[CV_OUT].scale_max = 63000;		
-        
-		/* Track 1 channel 1 = Gate*/
-		Europi.tracks[track].channels[GATE_OUT].enabled = TRUE;
-		Europi.tracks[track].channels[GATE_OUT].type = CHNL_TYPE_GATE;
-		Europi.tracks[track].channels[GATE_OUT].function = Gate;
-		Europi.tracks[track].channels[GATE_OUT].i2c_handle = pcf_handle;			
-		Europi.tracks[track].channels[GATE_OUT].i2c_device = DEV_PCF8574;
-		Europi.tracks[track].channels[GATE_OUT].i2c_channel = 1;		
-
-        /* note the equivalent in the Hardware structure */
         Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].enabled = TRUE;
         Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].type = CHNL_TYPE_GATE;
         Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_handle = pcf_handle;			
@@ -2206,7 +2202,6 @@ void hardware_init(void)
 			}
 		}
 	}
-    
     /* Scan for Hardware Changes */
     hardware_config();
 }

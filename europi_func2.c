@@ -126,7 +126,7 @@ void seq_new(void){
 	DisplayPage = Grid8x8;
     encoder_focus = none;
 	select_first_track();	
-	for(track = 0;track < MAX_TRACKS;track++){
+	for(track = 0;track < last_track;track++){
 		Europi.tracks[track].selected = FALSE;
 		Europi.tracks[track].track_busy = FALSE;
 		Europi.tracks[track].last_step = 8;
@@ -1245,6 +1245,7 @@ uint16_t scale_value(int track,uint16_t raw_value)
     // If the global Tuning Flag is set, then don't quantise the value, just scale it
     if(TuningOn == TRUE) quantised_value = raw_value;
     output_scaling = ((float)Europi.tracks[track].channels[CV_OUT].scale_max - (float)Europi.tracks[track].channels[CV_OUT].scale_zero) / (float)60000;
+    //log_msg("Tr: %d Min: %d, Max: %d\n",track,Europi.tracks[track].channels[CV_OUT].scale_zero,Europi.tracks[track].channels[CV_OUT].scale_max);
 	return (uint16_t)(output_scaling * quantised_value) + Europi.tracks[track].channels[CV_OUT].scale_zero;
 } 
 
@@ -1353,8 +1354,8 @@ void hardware_config(void){
         if(Diff == FALSE){
             //Current config same as Saved config, so update scale_zero and scale_max from saved config
             for(track=0;track<MAX_TRACKS;track++){
-                Europi.tracks[track].channels[CV_OUT].scale_zero = SavedConfig.hw_tracks[track].hw_channels[CV_OUT].scale_zero;
-                Europi.tracks[track].channels[CV_OUT].scale_max = SavedConfig.hw_tracks[track].hw_channels[CV_OUT].scale_max;
+                //Europi.tracks[track].channels[CV_OUT].scale_zero = SavedConfig.hw_tracks[track].hw_channels[CV_OUT].scale_zero;
+                //Europi.tracks[track].channels[CV_OUT].scale_max = SavedConfig.hw_tracks[track].hw_channels[CV_OUT].scale_max;
             }
         }
         else{
