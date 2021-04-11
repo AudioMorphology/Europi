@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Europi is a 16hp Eurorack format sequencer powered by the Raspberry Pi single board computer. It is a digital sequencer that outputs Control Voltages (CV) and Gate signals, and can be controlled by a variety of signal sources including its own internal clock, external clocks, rotary encoders, MIDI sources and the like.
+The Europi is a 16hp Eurorack format sequencer powered by the Raspberry Pi single board computer. It is a digital sequencer that outputs Control Voltages (CV), Modulation and Gate signals, and can be controlled by a variety of signal sources including its own internal clock, external clocks, rotary encoders, MIDI sources and the like.
 
 Europi has been designed to be modular and expandable. The main Europi module, which interfaces directly with the Raspberry Pi has the following features:
 
@@ -10,11 +10,13 @@ Europi has been designed to be modular and expandable. The main Europi module, w
 Continuous rotary push-button encoder
 4 x tactile 'soft' buttons
 2 x 1 v/Oct CV output (16-Bit resolution over a 10 volt range)
+2 x Modulation outputs (16-Bit resolution over a 10 volt range)
 2 x Gate ouputs (+5 volt leading-edge triggered)
 Clock Out
 Clock In
 Step 1 Out
 Reset In
+Hold In
 
 The primary Europi module interfaces with a number of secondary modules.
 
@@ -30,7 +32,7 @@ Europi Hardware is certified under the Open Source Hardware Certification Progra
 
 ## Interfaces
 
-The Europi is not an analogue sequencer, it is a digital sequencer that outputs analogue CV and Gate signals. Due to its digital nature the CV outputs are not infinitely variable, but are converted from digital to analogue using 16-Bit Digital to Analogue Converters  (DACs). This gives a resolution of around 6,000 discrete steps per octave over a 10 volt range, ie 500 per semitone. So, whilst the CV outputs are not continuously variable as in a true Analogue sequencer, the resolution is sufficiently high such that the difference isn't discernable in the vast majority of applications.
+The Europi is not an analogue sequencer, it is a digital sequencer that outputs analogue CV, Mod and Gate signals. Due to its digital nature the CV outputs are not infinitely variable, but are converted from digital to analogue using 16-Bit Digital to Analogue Converters  (DACs). This gives a resolution of around 6,000 discrete steps per octave over a 10 volt range, ie 500 per semitone. So, whilst the CV outputs are not continuously variable as in a true Analogue sequencer, the resolution is sufficiently high such that the difference isn't discernable in the vast majority of applications.
 
 The output of the DACs have a full-scale output range of 0 to approx 5 volts. In reality, due to manufacturing tolerances, these outputs rarely reach a true zero and often have a minimum achievable output of around 20mv, so the DAC outputs are buffered via Op Amps that are biased with a slight negative voltage, and have an amplification factor of around 2.5 thus a true zero and full-scale 10v output can be set in software, which removes the need for complex and fiddly trimmer potentiometers.
 
@@ -79,9 +81,9 @@ As always with Eurorack modules, care must be taken when attaching the module to
 
 Up to 8 Minions can be daisy-chained to a single Europi. There are two 6-way Minion connection headers on the main Europi board, one each side to make it easier to place the Minions to the left or right (or both) of the main Europi module. Minions can be daisy-chained in any order, the only stipulation being that each must be given a unique address on the I2C bus. Failure to do so will lead to unpredictable results.
 
-The minion header mirrors the first 6 pins of the Raspberry Pi, so Minions can be connected using straight-through 6-way ribbon cables. Care must be taken to make sure Pin 1 is connected to Pin 1 etc.
+The minion header mirrors the first 8 pins of the Raspberry Pi, so Minions can be connected using straight-through 8-way ribbon cables. Care must be taken to make sure Pin 1 is connected to Pin 1 etc.
 
-As the Minion header mirrors the first 6 pins of the Raspberry Pi header, Minions can be connected directly to a Raspberry Pi without the need to include a Europi module, though obviously all of the functionality of the Europi would be missing from such a configuration (touchscreen LCD, rotary encoder etc) though it does represent a cheaper and simpler entry route into the realm of the Europi.
+As the Minion header mirrors the first 8 pins of the Raspberry Pi header, Minions can be connected directly to a Raspberry Pi without the need to include a Europi module, though obviously all of the functionality of the Europi would be missing from such a configuration (touchscreen LCD, rotary encoder etc) though it does represent a cheaper and simpler entry route into the realm of the Europi.
 
 The Minion address is set using a 3-way DIP switch, using standard binary addressing: 000, 001, 010 .... 111 The address is read by the Minion when power is applied, so a Minion's address should never be changed whilst power is connected.
 
