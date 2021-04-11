@@ -148,14 +148,14 @@ void seq_new(void){
 			Europi.tracks[track].channels[MOD_OUT].steps[step].scaled_value = scale_value(track,defaultpitch);
 			Europi.tracks[track].channels[MOD_OUT].steps[step].slew_type = Off;
 			Europi.tracks[track].channels[MOD_OUT].steps[step].slew_length = 0;
-			Europi.tracks[track].channels[MOD_OUT].steps[step].mod_shape = Mod_Square;
+			Europi.tracks[track].channels[MOD_OUT].steps[step].mod_shape = Mod_Triangle;
 			Europi.tracks[track].channels[MOD_OUT].steps[step].min = 300;
 			Europi.tracks[track].channels[MOD_OUT].steps[step].max = 50000;
-			Europi.tracks[track].channels[MOD_OUT].steps[step].duty_cycle = 25;
+			Europi.tracks[track].channels[MOD_OUT].steps[step].duty_cycle = 0;
 			Europi.tracks[track].channels[GATE_OUT].steps[step].ratchets = 1;
 			Europi.tracks[track].channels[GATE_OUT].steps[step].repetitions = 1;
 			Europi.tracks[track].channels[GATE_OUT].steps[step].fill = 0;
-			Europi.tracks[track].channels[GATE_OUT].steps[step].gate_type = Gate_On;
+			Europi.tracks[track].channels[GATE_OUT].steps[step].gate_type = Gate_95;
 		}
 	}
 }

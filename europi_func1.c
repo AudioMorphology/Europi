@@ -725,7 +725,12 @@ void *SlewThread(void *arg)
 void *ModThread(void *arg)
 {
 	struct modstep *pMod = (struct modstep *)arg;
-	uint32_t start_tick = gpioTick();
+	uint16_t this_value;
+	int step_size;
+	int num_steps;
+	int a_length;
+	int d_length;
+	int i;
 	switch (pMod->mod_shape) {
 		default:
 		case Mod_Off:
@@ -739,6 +744,48 @@ void *ModThread(void *arg)
 			usleep((step_ticks * pMod->duty_cycle)/100);
 			DACSingleChannelWrite(pMod->track,pMod->i2c_handle, pMod->i2c_address, pMod->i2c_channel, pMod->min);
 			//log_msg("Tr %d, Hn %d, Ad %d, Ch %d, Val %d\n",pMod->track,pMod->i2c_handle,pMod->i2c_address,pMod->i2c_channel,pMod->min);
+		break;
+		case Mod_Triangle:
+			// Attack & Decay ramp lengths depend on Duty cycle
+			a_length = (step_ticks * pMod->duty_cycle)/100; 
+			d_length = step_ticks - a_length;
+			// A-ramp
+			this_value = pMod->min;
+			DACSingleChannelWrite(pMod->track,pMod->i2c_handle, pMod->i2c_address, pMod->i2c_channel, this_value);
+			if(a_length >= slew_interval){
+				step_size = (pMod->max - pMod->min) / (a_length / slew_interval);
+				num_steps = (pMod->max - pMod->min) / step_size;
+				if (step_size == 0) {step_size = 1; num_steps = (pMod->max - pMod->min);}
+				for(i = 0;i < num_steps; i++){
+					usleep(slew_interval / 2);
+					// Rail clamp
+					if((this_value += step_size) <= pMod->max){
+						DACSingleChannelWrite(pMod->track,pMod->i2c_handle, pMod->i2c_address, pMod->i2c_channel, this_value);
+					}
+					else {
+						DACSingleChannelWrite(pMod->track,pMod->i2c_handle, pMod->i2c_address, pMod->i2c_channel, pMod->max);
+					}
+				}
+			}
+			// D-ramp
+			this_value = pMod->max;
+			DACSingleChannelWrite(pMod->track,pMod->i2c_handle, pMod->i2c_address, pMod->i2c_channel, this_value);
+			if(d_length >= slew_interval){
+				step_size = (pMod->max - pMod->min) / (d_length / slew_interval);
+				num_steps = (pMod->max - pMod->min) / step_size;
+				if (step_size == 0) {step_size = 1; num_steps = (pMod->max - pMod->min);}
+				for(i = 0;i < num_steps; i++){
+					usleep(slew_interval / 2);
+					// Rail clamp
+					if((this_value -= step_size) >= pMod->min){
+						DACSingleChannelWrite(pMod->track,pMod->i2c_handle, pMod->i2c_address, pMod->i2c_channel, this_value);
+					}
+					else {
+						DACSingleChannelWrite(pMod->track,pMod->i2c_handle, pMod->i2c_address, pMod->i2c_channel, pMod->min);
+					}
+				}
+			}
+			DACSingleChannelWrite(pMod->track,pMod->i2c_handle, pMod->i2c_address, pMod->i2c_channel, pMod->min);
 		break;
 	}
 	free(pMod);
