@@ -44,9 +44,9 @@
 #define ENCODER_BTN 22	/* PIN 15 	*/
 #define CLOCK_IN	12	/* PIN 32	*/
 #define INT_CLK_OUT	15	/* PIN 10	*/
-//#define INTEXT_IN	20	/* PIN 38	*/
 #define RUNSTOP_IN	26	/* PIN 37	*/
 #define RESET_IN	16	/* PIN 36	*/
+#define HOLD_IN		20	/* PIN 38	*/
 //#define TOUCH_INT	17	/* PIN 11	*/
 
 /* SC16IS750 UART register definitions */
@@ -208,6 +208,13 @@ enum slew_shape_t {
 	Falling
 };
 
+enum mod_shape_t {
+	Mod_Off,
+	Mod_Sine,
+	Mod_Square,
+	Mod_Triangle
+};
+
 enum gate_type_t {
 	Gate_Off,    // no gate On
     Gate_On,     // no gate Off
@@ -273,6 +280,7 @@ void reapply_config(void) ;
 int quantize(int raw, int scale);
 int pitch2midi(uint16_t voltage);
 void *SlewThread(void *arg); 
+void *ModThread(void *arg);
 void *GateThread(void *arg);
 void *AdThread(void *arg); 
 void *AdsrThread(void *arg); 
@@ -397,15 +405,6 @@ void gui_grid(void);
 #define CHNL_TYPE_MOD 1
 #define CHNL_TYPE_GATE 2
 #define CHNL_TYPE_MIDI 3
-/* Channel Function */
-enum chnl_function_t {
-	CV,
-	MOD,
-	AD,
-    ADSR,
-    Gate,   // Not really used
-    MIDI    // Not really used
-};
 /* Voltage control type */
 #define VOCT 0				/* Volts per Octave */
 #define VHZ 1				/* Hertz per Volt */
@@ -494,6 +493,18 @@ enum display_page_t {
 	uint32_t slew_length;	/* How long we've got to get there (in microseconds) */
 	enum slew_t slew_type;	/* Off, Linear, Logarithmic, Exponential */	
 	enum slew_shape_t slew_shape; /* Both, Rising, Falling */
+};
+
+struct modstep {
+	int track;				/* which track spawned the thread */
+	int i2c_handle;			/* Handle to the i2c device that outputs this track */
+	int i2c_address;		/* Address of this device on the i2c Bus - address need to match the physical A3-A0 pins */
+	int i2c_channel;		/* Individual channel (on multi-channel i2c devices) */
+	int i2c_device;			/* Type of device (needed for Gate / Trigger outputs */
+	enum mod_shape_t mod_shape;	/* Off, Sine, Square, Triangle */
+	int min;				/* Minimum value of Modulation shape */
+	int max;				/* Maximum value of modulation shape */
+	int duty_cycle;			/* Ratio of time spent going up, ccompared to time going down */ 
 };
 
 struct gate {
@@ -596,17 +607,22 @@ struct device {
  */
 struct step {
     // Applicable to steps within a CV Channel
-	int raw_value;			/* Non-scaled value to output on a 6000 step/Octave scale*/
-	uint16_t scaled_value; 	/* Scaled / Quantised value to output */
-	enum slew_t slew_type;	/* Off, Linear, Logarithmic, Exponential, AD, ADSR */
+	int raw_value;					/* Non-scaled value to output on a 6000 step/Octave scale*/
+	uint16_t scaled_value; 			/* Scaled / Quantised value to output */
+	enum slew_t slew_type;			/* Off, Linear, Logarithmic, Exponential, AD, ADSR */
 	enum slew_shape_t slew_shape;	/* Both, Rising, Falling*/
-	uint32_t slew_length; 	/* Slew length (in microseconds) */
+	uint32_t slew_length; 			/* Slew length (in microseconds) */
+	// Applicable to steps within a Modulation Channel
+	enum mod_shape_t mod_shape;		/* Off, Sine, Square, Triangle */
+	int min;						/* Minimum value of Mod shape */
+	int max;						/* Max value of Mod shape */
+	int duty_cycle;					/* Ratio of first part to 2nd part Eg 50% = Square Wave */
 	// Applicable to steps within a GATE Channel
     enum gate_type_t gate_type;
-	int ratchets;		    /* Number or ratchets to fit into this Step */
-    int fill;              /* Number of beats to fit within the number of Ratchets (Euclidian polyrhythm generator) */
-    int repetitions;        /* Number of times to repeat this step */
-    int repeat_counter;     /* Counter within the step itself to track step repeats */
+	int ratchets;		    		/* Number or ratchets to fit into this Step */
+    int fill;              			/* Number of beats to fit within the number of Ratchets (Euclidian polyrhythm generator) */
+    int repetitions;        		/* Number of times to repeat this step */
+    int repeat_counter;     		/* Counter within the step itself to track step repeats */
 };
 
 /* 
@@ -624,8 +640,7 @@ struct channel {
 	uint16_t scale_zero;			/* Value required to generate zero volt output */
 	uint16_t scale_max;				/* Value required to generate 10v output voltage */
 	int enabled;			/* Whether this channel is in use or not */
-	int type;				/* Types include CV, GATE, MIDI */
-    enum chnl_function_t function;     /* CV Channel function: CV, AD, ADSR */
+	int type;				/* Types include CV, MOD, GATE, MIDI */
 	int quantise;			/* whether this channel is quantised to a particular scale 0=OFF*/
 	long transpose;			/* fixed (transpose) voltage offset applied to this channel */
 	int	octaves;			/* How many octaves are covered from scale_zero to scale_max */
@@ -643,7 +658,7 @@ struct track{
 	int current_step;		    /* Tracks where this track is going next */
 	int last_step;			    /* sets the end step for a particular track */
     enum track_dir_t direction; /* Forwards, Backwards, Pendulum, Random */
-    struct ad_adsr_t ad_adsr;   /* Holds per-track AD or ADSR shapes */
+    //struct ad_adsr_t ad_adsr;   /* Holds per-track AD or ADSR shapes */
 };
 /*
  * Europi is the main Container structure for the Hardware

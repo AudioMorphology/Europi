@@ -129,8 +129,6 @@ extern struct MENU Menu[];
 extern pthread_attr_t detached_attr;		
 extern pthread_mutex_t mcp23008_lock;
 extern pthread_mutex_t pcf8574_lock;
-extern pthread_t modThreadId[];
-extern int modThreadRunning[];
 extern pthread_t midiThreadId[]; 
 extern int midiThreadLaunched[];
 extern uint8_t mcp23008_state[16];
@@ -212,6 +210,15 @@ void runstop_input(int gpio, int level, uint32_t tick)
 void reset_input(int gpio, int level, uint32_t tick)
 {
 	if (level == 1)	step_one = TRUE;
+}
+/* Hold input
+ * nOT QUITE SURE WHAT TO DO WITHH THIS YET!!
+ */
+void hold_input(int gpio, int level, uint32_t tick)
+{
+	if(level == 1){
+	}
+
 }
 /*
 * Manually force Step One to tbe the next step 
@@ -394,82 +401,31 @@ void next_step(void)
                 switch(Europi.tracks[track].channels[CV_OUT].type){
                     default:
                     case CHNL_TYPE_CV:
-                        // CV Channels can have a function of CV, AD or ADSR
-                        switch(Europi.tracks[track].channels[CV_OUT].function){
-                            default:
-                            case CV:
-                                if(Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type == Off){
-                                    // No Slew - just set the output CV
-									//log_msg("SnglChnlWr, Trk: %d Chnl: %d, i2c: %d Val: %d\n",track,CV_OUT,Europi.tracks[track].channels[CV_OUT].i2c_channel,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
-                                    DACSingleChannelWrite(track,Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
-                                }
-                                else {
-                                    // Slew
-									//log_msg("slew\n");
-                                    struct slew sSlew;
-                                    sSlew.track = track;
-                                    sSlew.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
-                                    sSlew.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;
-                                    sSlew.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
-                                    sSlew.start_value = Europi.tracks[track].channels[CV_OUT].steps[previous_step].scaled_value;
-                                    sSlew.end_value = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value;
-                                    sSlew.slew_length = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_length;
-                                    sSlew.slew_type = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type;
-                                    sSlew.slew_shape = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_shape;
-                                    struct slew *pSlew = malloc(sizeof(struct slew));
-                                    memcpy(pSlew, &sSlew, sizeof(struct slew));
-                                    if(pthread_create(&ThreadId, &detached_attr, &SlewThread, pSlew)){
-                                        log_msg("Slew thread creation error\n");
-                                    }
-                                }
-                            
-                            break;
-                            case AD:
-                                {
-                                    // Always starts and end on Zero
-                                    struct ad sAD;
-                                    sAD.track = track;
-                                    sAD.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
-                                    sAD.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;
-                                    sAD.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
-                                    sAD.a_start_value = Europi.tracks[track].channels[CV_OUT].scale_zero;	
-                                    sAD.a_end_value = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value;	
-                                    sAD.a_length = Europi.tracks[track].ad_adsr.a_length;		
-                                    sAD.a_start_value = Europi.tracks[track].channels[CV_OUT].scale_zero;	
-                                    sAD.d_length = Europi.tracks[track].ad_adsr.d_length;
-                                    sAD.shot_type = Repeat;
-                                    struct ad *pAD = malloc(sizeof(struct ad));
-                                    memcpy(pAD, &sAD, sizeof(struct ad));
-                                    if(pthread_create(&ThreadId, &detached_attr, &AdThread, pAD)){
-                                    log_msg("Attack-Decay thread creation error\n");
-                                    }
-                                }
-                            
-                            break;
-                            case ADSR:
-                                {
-                                    // Starts and ends on Zero. sustain level is a % of the max level
-                                    struct adsr sADSR;
-                                    sADSR.track = track;
-                                    sADSR.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
-                                    sADSR.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;
-                                    sADSR.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
-                                    sADSR.a_start_value = Europi.tracks[track].channels[CV_OUT].scale_zero;	
-                                    sADSR.a_end_value = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value;
-                                    sADSR.a_length = Europi.tracks[track].ad_adsr.a_length;	
-                                    sADSR.d_length = Europi.tracks[track].ad_adsr.d_length;
-                                    sADSR.s_level = Europi.tracks[track].ad_adsr.s_level;  
-                                    sADSR.s_length = Europi.tracks[track].ad_adsr.s_length;
-                                    sADSR.r_end_value = Europi.tracks[track].channels[CV_OUT].scale_zero;	
-                                    sADSR.r_length = Europi.tracks[track].ad_adsr.r_length;
-                                    struct adsr *pADSR = malloc(sizeof(struct adsr));
-                                    memcpy(pADSR, &sADSR, sizeof(struct adsr));
-                                    if(pthread_create(&ThreadId, &detached_attr, &AdsrThread, pADSR)){
-                                    log_msg("ADSR thread creation error\n");
-                                    }
-                                }
-                            break;
-                        }
+                        // CV Channels implement static CV & Slew
+						if(Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type == Off){
+							// No Slew - just set the output CV
+							//log_msg("SnglChnlWr, Trk: %d Chnl: %d, i2c: %d Val: %d\n",track,CV_OUT,Europi.tracks[track].channels[CV_OUT].i2c_channel,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
+							DACSingleChannelWrite(track,Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
+						}
+						else {
+							// Slew
+							//log_msg("slew\n");
+							struct slew sSlew;
+							sSlew.track = track;
+							sSlew.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
+							sSlew.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;
+							sSlew.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
+							sSlew.start_value = Europi.tracks[track].channels[CV_OUT].steps[previous_step].scaled_value;
+							sSlew.end_value = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value;
+							sSlew.slew_length = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_length;
+							sSlew.slew_type = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type;
+							sSlew.slew_shape = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_shape;
+							struct slew *pSlew = malloc(sizeof(struct slew));
+							memcpy(pSlew, &sSlew, sizeof(struct slew));
+							if(pthread_create(&ThreadId, &detached_attr, &SlewThread, pSlew)){
+								log_msg("Slew thread creation error\n");
+							}
+						}
                     break;
                     case CHNL_TYPE_MIDI:
                         MIDISingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_channel, 0x40, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);   
@@ -477,7 +433,37 @@ void next_step(void)
                 }
                                
             }
-            
+			// MOD Channel
+            if(Europi.tracks[track].channels[MOD_OUT].enabled == TRUE) {
+                switch(Europi.tracks[track].channels[MOD_OUT].type){
+                    default:
+                    case CHNL_TYPE_MOD:
+						if(Europi.tracks[track].channels[MOD_OUT].steps[Europi.tracks[track].current_step].mod_shape == Mod_Off){
+							// Just Output Zero - no need for the thread launch overhead
+							DACSingleChannelWrite(track,Europi.tracks[track].channels[MOD_OUT].i2c_handle, Europi.tracks[track].channels[MOD_OUT].i2c_address, Europi.tracks[track].channels[MOD_OUT].i2c_channel, 0);
+						}
+						else{
+							// Launch a modulation thread for this step
+							struct modstep sMod;
+							sMod.track = track;
+							sMod.i2c_handle = Europi.tracks[track].channels[MOD_OUT].i2c_handle;
+							sMod.i2c_address = Europi.tracks[track].channels[MOD_OUT].i2c_address;
+							sMod.i2c_channel =  Europi.tracks[track].channels[MOD_OUT].i2c_channel;
+							sMod.i2c_device = Europi.tracks[track].channels[MOD_OUT].i2c_device;
+							sMod.mod_shape = Europi.tracks[track].channels[MOD_OUT].steps[Europi.tracks[track].current_step].mod_shape;
+							sMod.min = Europi.tracks[track].channels[MOD_OUT].steps[Europi.tracks[track].current_step].min;
+							sMod.max = Europi.tracks[track].channels[MOD_OUT].steps[Europi.tracks[track].current_step].max;
+							sMod.duty_cycle = Europi.tracks[track].channels[MOD_OUT].steps[Europi.tracks[track].current_step].duty_cycle;
+							struct modstep *pModstep = malloc(sizeof(struct modstep));
+							memcpy(pModstep, &sMod, sizeof(struct modstep));
+							if(pthread_create(&ThreadId, &detached_attr, &ModThread, pModstep)){
+							}
+						}
+                    break;
+                }
+                               
+            }
+			// Gate Channel
 			/* launch a thread to handle the gate function for each channel / step */
 			if (Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ){
                 struct gate sGate;
@@ -582,7 +568,6 @@ void *AdsrThread(void *arg)
 	free(pADSR);
 	return(0);
 }
-
 
 /*
  * Attack-Decay thread.
@@ -733,6 +718,34 @@ void *SlewThread(void *arg)
 }
 
 /*
+ * Modulation thread
+ * Is passed a structure containing everything it
+ * needs to know
+ */
+void *ModThread(void *arg)
+{
+	struct modstep *pMod = (struct modstep *)arg;
+	uint32_t start_tick = gpioTick();
+	switch (pMod->mod_shape) {
+		default:
+		case Mod_Off:
+			// should never get here, but just in case, output the min value
+			DACSingleChannelWrite(pMod->track,pMod->i2c_handle, pMod->i2c_address, pMod->i2c_channel, pMod->min);
+		break;
+		case Mod_Square:
+			// Output the Max value, sleep according to Duty Cyle, outpu minimum
+			DACSingleChannelWrite(pMod->track,pMod->i2c_handle, pMod->i2c_address, pMod->i2c_channel, pMod->max);
+			//log_msg("Tr %d, Hn %d, Ad %d, Ch %d, Val %d\n",pMod->track,pMod->i2c_handle,pMod->i2c_address,pMod->i2c_channel,pMod->max);
+			usleep((step_ticks * pMod->duty_cycle)/100);
+			DACSingleChannelWrite(pMod->track,pMod->i2c_handle, pMod->i2c_address, pMod->i2c_channel, pMod->min);
+			//log_msg("Tr %d, Hn %d, Ad %d, Ch %d, Val %d\n",pMod->track,pMod->i2c_handle,pMod->i2c_address,pMod->i2c_channel,pMod->min);
+		break;
+	}
+	free(pMod);
+	return(0);
+}
+
+/*
  * Gate Thread - launched for each Track / Step that
  * has a Gate/Trigger. For normal Gsates, it uses gate_type 
  * to determine the length of the pulse. 
@@ -825,29 +838,6 @@ void *GateThread(void *arg)
 	return(0);
 }
 
-/* Modulation Thread
- * Joinable thread launched for each Track - ie
- * there could be up to MAX_TRACKS of these running
- */
-void *ModThread(void *arg)
-{
-	struct modChnl *pModChnl = (struct modChnl *)arg;
-	int track = pModChnl->track;
-	int i2c_handle = pModChnl->i2c_handle;
-	int i2c_channel = pModChnl->i2c_channel;
-	int i2c_address = pModChnl->i2c_address;
-	int SleepSecs = pModChnl->SleepSecs;
-	while (!ThreadEnd){
-        DACSingleChannelWrite(track,i2c_handle,i2c_address,i2c_channel, 24000);
-		log_msg("ModThread Tr: %d, Chnl: %d, Val: 24000\n",track,i2c_channel);
-		sleep(SleepSecs);
-        DACSingleChannelWrite(track,i2c_handle,i2c_address,i2c_channel, 0);
-		log_msg("ModThread Tr: %d, Chnl: %d, Val: 00\n",track,i2c_channel);
-		sleep(SleepSecs);
-	}
-	return NULL;
-}
-
 /*
  * MIDI Thread - Joinable thread launched
  * for each MIDI Minion (ie up to 4 of these
@@ -890,13 +880,7 @@ int startup(void)
 	 // Initialise the Deatched pThread attribute
 	pthread_attr_init(&detached_attr);
 	pthread_attr_setdetachstate(&detached_attr, PTHREAD_CREATE_DETACHED);
-	// Empty ThreadIds for MOD Channels
-    int i;
-	for(i=0;i<MAX_TRACKS;i++){
-		modThreadId[i] = (pthread_t)NULL;
-		modThreadRunning[i] = FALSE;
-	}
-
+	int i;
     // Make sure MIDI Listener threads aren't initialised
     // they will be initialised when MIDI Minion(s) are detected
     for(i=0;i<4;i++) {
@@ -953,6 +937,8 @@ int startup(void)
 	gpioGlitchFilter(RUNSTOP_IN,100);
 	gpioSetMode(RESET_IN, PI_INPUT);
 	gpioGlitchFilter(RESET_IN,100);
+	gpioSetMode(HOLD_IN, PI_INPUT);
+	gpioSetPullUpDown(HOLD_IN, PI_PUD_UP);
 	// Register callback routines
 	gpioSetAlertFunc(BUTTON1_IN, button_1);
 	gpioSetAlertFunc(BUTTON2_IN, button_2);
@@ -963,6 +949,8 @@ int startup(void)
 	gpioSetAlertFunc(CLOCK_IN, main_clock);
 	gpioSetAlertFunc(RUNSTOP_IN, runstop_input);
 	gpioSetAlertFunc(RESET_IN, reset_input);
+	gpioSetAlertFunc(HOLD_IN, hold_input);
+
 	/* Establish Rotary Encoder Callbacks */
 	gpioSetMode(ENCODERA_IN, PI_INPUT);
 	gpioSetMode(ENCODERB_IN, PI_INPUT);
@@ -1730,6 +1718,7 @@ void MIDISingleChannelWrite(unsigned handle, uint8_t channel, uint8_t velocity, 
 void DACSingleChannelWrite(int track, unsigned handle, uint8_t address, uint8_t channel, uint16_t voltage){
 	uint16_t v_out;
 	uint8_t ctrl_reg;
+	int retval;
 	if(impersonate_hw == TRUE) return;
     if(TuningOn == TRUE) {
         //Output the Global tuning voltage scaled by this Channel's scale factor
@@ -1887,7 +1876,6 @@ void hardware_init(void)
 			 */
 			Europi.tracks[track].channels[CV_OUT].enabled = TRUE;
 			Europi.tracks[track].channels[CV_OUT].type = CHNL_TYPE_CV;
-			Europi.tracks[track].channels[CV_OUT].function = CV;
 			Europi.tracks[track].channels[CV_OUT].quantise = 0;			/* Quantization off by default */
 			Europi.tracks[track].channels[CV_OUT].i2c_handle = track;			
 			Europi.tracks[track].channels[CV_OUT].i2c_device = DEV_DAC8574;
@@ -1898,6 +1886,18 @@ void hardware_init(void)
 			Europi.tracks[track].channels[CV_OUT].transpose = 0;			/* fixed (transpose) voltage offset applied to this channel */
 			Europi.tracks[track].channels[CV_OUT].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
 			Europi.tracks[track].channels[CV_OUT].vc_type = VOCT;
+			Europi.tracks[track].channels[MOD_OUT].enabled = TRUE;
+			Europi.tracks[track].channels[MOD_OUT].type = CHNL_TYPE_CV;
+			Europi.tracks[track].channels[MOD_OUT].quantise = 0;			/* Quantization off by default */
+			Europi.tracks[track].channels[MOD_OUT].i2c_handle = track;			
+			Europi.tracks[track].channels[MOD_OUT].i2c_device = DEV_DAC8574;
+			Europi.tracks[track].channels[MOD_OUT].i2c_address = 0x0;
+			Europi.tracks[track].channels[MOD_OUT].i2c_channel = 0;		
+			Europi.tracks[track].channels[MOD_OUT].scale_zero = 280;		/* Value required to generate zero volt output */
+			Europi.tracks[track].channels[MOD_OUT].scale_max = 63000;		/* Value required to generate maximum output voltage */
+			Europi.tracks[track].channels[MOD_OUT].transpose = 0;			/* fixed (transpose) voltage offset applied to this channel */
+			Europi.tracks[track].channels[MOD_OUT].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
+			Europi.tracks[track].channels[MOD_OUT].vc_type = VOCT;
             Europi.tracks[track].channels[GATE_OUT].enabled = TRUE;
 			Europi.tracks[track].channels[GATE_OUT].type = CHNL_TYPE_GATE;
 			Europi.tracks[track].channels[GATE_OUT].i2c_handle = track;			
@@ -1913,6 +1913,14 @@ void hardware_init(void)
 			Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_channel = 0;		
 			Europi_hw.hw_tracks[track].hw_channels[CV_OUT].scale_zero = 280;		
             Europi_hw.hw_tracks[track].hw_channels[CV_OUT].scale_max = 63000;		
+			Europi_hw.hw_tracks[track].hw_channels[MOD_OUT].enabled = TRUE;
+			Europi_hw.hw_tracks[track].hw_channels[MOD_OUT].type = CHNL_TYPE_MOD;
+			Europi_hw.hw_tracks[track].hw_channels[MOD_OUT].i2c_handle = track;			
+			Europi_hw.hw_tracks[track].hw_channels[MOD_OUT].i2c_device = DEV_DAC8574;
+			Europi_hw.hw_tracks[track].hw_channels[MOD_OUT].i2c_address = 0x0;
+			Europi_hw.hw_tracks[track].hw_channels[MOD_OUT].i2c_channel = 1;		
+			Europi_hw.hw_tracks[track].hw_channels[MOD_OUT].scale_zero = 280;		
+            Europi_hw.hw_tracks[track].hw_channels[MOD_OUT].scale_max = 63000;		
             Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].enabled = TRUE;
 			Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].type = CHNL_TYPE_GATE;
 			Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_handle = track;			
@@ -1947,7 +1955,6 @@ void hardware_init(void)
 		}
 		Europi.tracks[track].channels[CV_OUT].enabled = TRUE;
 		Europi.tracks[track].channels[CV_OUT].type = CHNL_TYPE_CV;
-		Europi.tracks[track].channels[CV_OUT].function = CV;
 		Europi.tracks[track].channels[CV_OUT].quantise = 0;			/* Quantization off by default */
 		Europi.tracks[track].channels[CV_OUT].i2c_handle = handle;			
 		Europi.tracks[track].channels[CV_OUT].i2c_device = DEV_DAC8574;
@@ -1962,7 +1969,6 @@ void hardware_init(void)
 		/* Track 0 Channel 1 = Mod Output */
 		Europi.tracks[track].channels[MOD_OUT].enabled = TRUE;
 		Europi.tracks[track].channels[MOD_OUT].type = CHNL_TYPE_MOD;
-		Europi.tracks[track].channels[MOD_OUT].function = MOD;
 		Europi.tracks[track].channels[MOD_OUT].quantise = 0;		
 		Europi.tracks[track].channels[MOD_OUT].i2c_handle = handle;			
 		Europi.tracks[track].channels[MOD_OUT].i2c_device = DEV_DAC8574;
@@ -1970,14 +1976,13 @@ void hardware_init(void)
 		Europi.tracks[track].channels[MOD_OUT].i2c_channel = 1;		
 		Europi.tracks[track].channels[MOD_OUT].scale_zero = 280;		/* Value required to generate zero volt output */
 		Europi.tracks[track].channels[MOD_OUT].scale_max = 63000;		/* Value required to generate maximum output voltage */
-		Europi.tracks[track].channels[MOD_OUT].transpose = 0;				/* fixed (transpose) voltage offset applied to this channel */
+		Europi.tracks[track].channels[MOD_OUT].transpose = 0;			/* fixed (transpose) voltage offset applied to this channel */
 		Europi.tracks[track].channels[MOD_OUT].octaves = 10;			/* How many octaves are covered from scale_zero to scale_max */
 		Europi.tracks[track].channels[MOD_OUT].vc_type = VOCT;
 
 		/* Track 0 channel 2 = Gate Output */
 		Europi.tracks[track].channels[GATE_OUT].enabled = TRUE;
 		Europi.tracks[track].channels[GATE_OUT].type = CHNL_TYPE_GATE;
-		Europi.tracks[track].channels[GATE_OUT].function = Gate;
 		Europi.tracks[track].channels[GATE_OUT].i2c_handle = pcf_handle;			
 		Europi.tracks[track].channels[GATE_OUT].i2c_device = DEV_PCF8574;
 		Europi.tracks[track].channels[GATE_OUT].i2c_channel = 0;
@@ -1992,37 +1997,24 @@ void hardware_init(void)
         Europi_hw.hw_tracks[track].hw_channels[CV_OUT].i2c_channel = 0;		
         Europi_hw.hw_tracks[track].hw_channels[CV_OUT].scale_zero = 280;		
         Europi_hw.hw_tracks[track].hw_channels[CV_OUT].scale_max = 63000;		
+		Europi_hw.hw_tracks[track].hw_channels[MOD_OUT].enabled = TRUE;
+        Europi_hw.hw_tracks[track].hw_channels[MOD_OUT].type = CHNL_TYPE_CV;
+        Europi_hw.hw_tracks[track].hw_channels[MOD_OUT].i2c_handle = handle;			
+        Europi_hw.hw_tracks[track].hw_channels[MOD_OUT].i2c_device = DEV_DAC8574;
+        Europi_hw.hw_tracks[track].hw_channels[MOD_OUT].i2c_address = 0x08;
+        Europi_hw.hw_tracks[track].hw_channels[MOD_OUT].i2c_channel = 0;		
+        Europi_hw.hw_tracks[track].hw_channels[MOD_OUT].scale_zero = 280;		
+        Europi_hw.hw_tracks[track].hw_channels[MOD_OUT].scale_max = 63000;	
         Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].enabled = TRUE;
         Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].type = CHNL_TYPE_GATE;
         Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_handle = pcf_handle;			
         Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_device = DEV_PCF8574;
         Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_channel = 0;
 
-		/* Launch thread for Modulation channel */
-		sModChnl.track = track;
-		sModChnl.i2c_handle = Europi.tracks[track].channels[MOD_OUT].i2c_handle;
-		sModChnl.i2c_address = Europi.tracks[track].channels[MOD_OUT].i2c_address;
-		sModChnl.i2c_channel = Europi.tracks[track].channels[MOD_OUT].i2c_channel;
-		sModChnl.SleepSecs = 1;
-		memcpy(pModChnl, &sModChnl, sizeof(struct modChnl));
-/*		if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
-            log_msg("Gate thread creation error\n");
-        }
-*/
-		error = pthread_create(&modThreadId[track], NULL, &ModThread, pModChnl);
-		//error = pthread_create(&ThreadId, &detached_attr, &ModThread, pModChnl);
-		if (error != 0) log_msg("Error creating Freerunning Modulation thread\n");
-		else {
-				log_msg("Modulation thread created for Track %d, ID: %d\n",track,modThreadId[track]); 
-				//modThreadRunning[track] = TRUE;
-		}
-
-
 		/* Track 1 channel 0 = CV */
 		track++;
 		Europi.tracks[track].channels[CV_OUT].enabled = TRUE;
 		Europi.tracks[track].channels[CV_OUT].type = CHNL_TYPE_CV;
-		Europi.tracks[track].channels[CV_OUT].function = CV;
 		Europi.tracks[track].channels[CV_OUT].quantise = 0;		
 		Europi.tracks[track].channels[CV_OUT].i2c_handle = handle;			
 		Europi.tracks[track].channels[CV_OUT].i2c_device = DEV_DAC8574;
@@ -2036,7 +2028,6 @@ void hardware_init(void)
 		/* Track 1 cchannel 1 = Mod Output */
 		Europi.tracks[track].channels[MOD_OUT].enabled = TRUE;
 		Europi.tracks[track].channels[MOD_OUT].type = CHNL_TYPE_MOD;
-		Europi.tracks[track].channels[MOD_OUT].function = MOD;
 		Europi.tracks[track].channels[MOD_OUT].quantise = 0;		
 		Europi.tracks[track].channels[MOD_OUT].i2c_handle = handle;			
 		Europi.tracks[track].channels[MOD_OUT].i2c_device = DEV_DAC8574;
@@ -2050,7 +2041,6 @@ void hardware_init(void)
 		/* Track 1 channel 2 = Gate*/
 		Europi.tracks[track].channels[GATE_OUT].enabled = TRUE;
 		Europi.tracks[track].channels[GATE_OUT].type = CHNL_TYPE_GATE;
-		Europi.tracks[track].channels[GATE_OUT].function = Gate;
 		Europi.tracks[track].channels[GATE_OUT].i2c_handle = pcf_handle;			
 		Europi.tracks[track].channels[GATE_OUT].i2c_device = DEV_PCF8574;
 		Europi.tracks[track].channels[GATE_OUT].i2c_channel = 1;		
@@ -2069,22 +2059,6 @@ void hardware_init(void)
         Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_handle = pcf_handle;			
         Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_device = DEV_PCF8574;
         Europi_hw.hw_tracks[track].hw_channels[GATE_OUT].i2c_channel = 1;
-		sleep(2);
-		/* Launch thread for Modulation channel */
-		
-		sModChnl.track = track;
-		sModChnl.i2c_handle = Europi.tracks[track].channels[MOD_OUT].i2c_handle;
-		sModChnl.i2c_address = Europi.tracks[track].channels[MOD_OUT].i2c_address;
-		sModChnl.i2c_channel = Europi.tracks[track].channels[MOD_OUT].i2c_channel;
-		sModChnl.SleepSecs = 2;
-		memcpy(pModChnl, &sModChnl, sizeof(struct modChnl));
-		error = pthread_create(&modThreadId[track], NULL, &ModThread, pModChnl);
-		//error = pthread_create(&ThreadId, &detached_attr, &ModThread, pModChnl);
-		if (error != 0) log_msg("Error creating Freerunning Modulation thread\n");
-		else {
-				log_msg("Modulation thread created for Track %d, ID: %d\n",track,modThreadId[track]); 
-				//modThreadRunning[track] = TRUE;
-		}
 		
 		/* Channels 3 & 4 of the PCF8574 are the Clock and Step 1 out 
 		 * no need to set them to anything specific, and we don't really
@@ -2118,7 +2092,6 @@ void hardware_init(void)
 				/* Channel 0 = CV Output */
 				Europi.tracks[track].channels[CV_OUT].enabled = TRUE;
 				Europi.tracks[track].channels[CV_OUT].type = CHNL_TYPE_CV;
-				Europi.tracks[track].channels[CV_OUT].function = CV;
 				Europi.tracks[track].channels[CV_OUT].quantise = 0;			/* Quantization Off by default */
 				Europi.tracks[track].channels[CV_OUT].i2c_handle = handle;			
 				Europi.tracks[track].channels[CV_OUT].i2c_device = DEV_DAC8574;
@@ -2144,7 +2117,6 @@ void hardware_init(void)
 				if (gpio_handle >= 0) {
 					Europi.tracks[track].channels[GATE_OUT].enabled = TRUE;
 					Europi.tracks[track].channels[GATE_OUT].type = CHNL_TYPE_GATE;
-					Europi.tracks[track].channels[GATE_OUT].function = Gate;
 					Europi.tracks[track].channels[GATE_OUT].i2c_handle = gpio_handle;			
 					Europi.tracks[track].channels[GATE_OUT].i2c_device = DEV_MCP23008;
 					Europi.tracks[track].channels[GATE_OUT].i2c_channel = i; 		
@@ -2205,7 +2177,6 @@ void hardware_init(void)
             // finally, set up the Track object for this MIDI channel
             Europi.tracks[track].channels[CV_OUT].enabled = TRUE;
             Europi.tracks[track].channels[CV_OUT].type = CHNL_TYPE_MIDI;
-            Europi.tracks[track].channels[CV_OUT].function = MIDI;
             Europi.tracks[track].channels[CV_OUT].quantise = 0;			/* Quantization off by default */
             Europi.tracks[track].channels[CV_OUT].i2c_handle = handle;			
             Europi.tracks[track].channels[CV_OUT].i2c_device = DEV_SC16IS750;

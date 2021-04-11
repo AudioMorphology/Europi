@@ -126,19 +126,19 @@ void seq_new(void){
 	DisplayPage = Grid8x8;
     encoder_focus = none;
 	select_first_track();	
+    //log_msg("Seq New\n");
 	for(track = 0;track < last_track;track++){
 		Europi.tracks[track].selected = FALSE;
 		Europi.tracks[track].track_busy = FALSE;
-		Europi.tracks[track].last_step = 8;
+		Europi.tracks[track].last_step = 16;
 		Europi.tracks[track].current_step = 0;
 		Europi.tracks[track].channels[CV_OUT].quantise = 1;	// default quantization = semitones	
 		Europi.tracks[track].channels[CV_OUT].transpose = 0;	 
-		Europi.tracks[track].channels[CV_OUT].function = CV;
 		Europi.tracks[track].channels[CV_OUT].type = CHNL_TYPE_CV;
 		Europi.tracks[track].channels[MOD_OUT].quantise = 1;	// default quantization = semitones	
 		Europi.tracks[track].channels[MOD_OUT].transpose = 0;	 
-		Europi.tracks[track].channels[MOD_OUT].function = MOD;
 		Europi.tracks[track].channels[MOD_OUT].type = CHNL_TYPE_MOD;
+		Europi.tracks[track].channels[MOD_OUT].enabled = TRUE;
 		for(step = 0;step < MAX_STEPS;step++){
 			Europi.tracks[track].channels[CV_OUT].steps[step].raw_value = defaultpitch;
 			Europi.tracks[track].channels[CV_OUT].steps[step].scaled_value = scale_value(track,defaultpitch);
@@ -148,10 +148,14 @@ void seq_new(void){
 			Europi.tracks[track].channels[MOD_OUT].steps[step].scaled_value = scale_value(track,defaultpitch);
 			Europi.tracks[track].channels[MOD_OUT].steps[step].slew_type = Off;
 			Europi.tracks[track].channels[MOD_OUT].steps[step].slew_length = 0;
+			Europi.tracks[track].channels[MOD_OUT].steps[step].mod_shape = Mod_Square;
+			Europi.tracks[track].channels[MOD_OUT].steps[step].min = 300;
+			Europi.tracks[track].channels[MOD_OUT].steps[step].max = 50000;
+			Europi.tracks[track].channels[MOD_OUT].steps[step].duty_cycle = 25;
 			Europi.tracks[track].channels[GATE_OUT].steps[step].ratchets = 1;
 			Europi.tracks[track].channels[GATE_OUT].steps[step].repetitions = 1;
 			Europi.tracks[track].channels[GATE_OUT].steps[step].fill = 0;
-			Europi.tracks[track].channels[GATE_OUT].steps[step].gate_type = Gate_Off;
+			Europi.tracks[track].channels[GATE_OUT].steps[step].gate_type = Gate_On;
 		}
 	}
 }
@@ -337,51 +341,23 @@ void select_next_step(int dir){
     GATESingleOutput(Europi.tracks[track].channels[GATE_OUT].i2c_handle, Europi.tracks[track].channels[GATE_OUT].i2c_channel,Europi.tracks[track].channels[GATE_OUT].i2c_device,0x01);
 }
 /* SwitchChannelFunction sets the appropriate Display Page
- * and screen Overlays depending on whether this is a normal
- * CV Channel, Ad or ADSR.It felt convenient to do this at 
+ * and screen Overlays depending on whether this is a CV, Mod
+ * Gate or MIDI cchannel.It felt convenient to do this at 
  * a single point, as this context switch will need to happen 
  * in several different places as you scroll up and down tracks
  */
 void SwitchChannelFunction(int track){
     // Need to check which sort of Single channel display to set
     if(Europi.tracks[track].channels[CV_OUT].type == CHNL_TYPE_CV){
-        // CV Channels can have a function of CV, AD or ADSR
-        switch(Europi.tracks[track].channels[CV_OUT].function){
-            default:
-            case CV:
-                DisplayPage = SingleChannel;
-				ActiveOverlays |= ovl_SingleChannel;
-                SingleChannelOffset = 0;
-                encoder_focus = track_select;
-                btnA_func = btnA_none;
-                btnB_func = btnB_tr_minus;
-                btnC_func = btnC_tr_plus;
-                btnD_func = btnD_done; 
-                save_run_stop = run_stop;
-            break;
-            case AD:
-                DisplayPage = SingleAD;
-				ActiveOverlays |= ovl_SingleAD;
-                SingleChannelOffset = 0;
-                encoder_focus = none;
-                btnA_func = btnA_none;
-                btnB_func = btnB_tr_minus;
-                btnC_func = btnC_tr_plus;
-                btnD_func = btnD_done; 
-                save_run_stop = run_stop;
-            break;
-            case ADSR:
-                DisplayPage = SingleADSR;
-				ActiveOverlays |= ovl_SingleADSR;
-                SingleChannelOffset = 0;
-                encoder_focus = none;
-                btnA_func = btnA_none;
-                btnB_func = btnB_tr_minus;
-                btnC_func = btnC_tr_plus;
-                btnD_func = btnD_done; 
-                save_run_stop = run_stop;
-            break;
-        }
+        DisplayPage = SingleChannel;
+        ActiveOverlays |= ovl_SingleChannel;
+        SingleChannelOffset = 0;
+        encoder_focus = track_select;
+        btnA_func = btnA_none;
+        btnB_func = btnB_tr_minus;
+        btnC_func = btnC_tr_plus;
+        btnD_func = btnD_done; 
+        save_run_stop = run_stop;
     }
 }
 
@@ -1065,19 +1041,6 @@ void init_sequence(void)
 	}
 	//Europi.tracks[0].last_step = 32; /* track 0 always 32 steps */
 
-    // AD Profile on channel 4
-    Europi.tracks[3].channels[CV_OUT].function = AD;
-    Europi.tracks[3].ad_adsr.a_length = 000000;
-    Europi.tracks[3].ad_adsr.d_length = 200000;
-
-    // ADSR Profile on Channel 5
-    Europi.tracks[4].channels[CV_OUT].function = ADSR;
-    Europi.tracks[4].ad_adsr.a_length = 0;
-    Europi.tracks[4].ad_adsr.d_length = 100000;
-    Europi.tracks[4].ad_adsr.s_level = 50;          // 50%
-    Europi.tracks[4].ad_adsr.s_length = 500000;
-    Europi.tracks[4].ad_adsr.r_length = 300000;
-    
 
 	for (track=0;track<MAX_TRACKS;track++){
 		if (Europi.tracks[track].channels[CV_OUT].enabled == TRUE){

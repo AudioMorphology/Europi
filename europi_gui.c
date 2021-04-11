@@ -1255,6 +1255,7 @@ void gui_grid(void){
  * displayed page
  */
 void ShowScreenOverlays(void){
+    gui_debug();
     if(ActiveOverlays & ovl_MainMenu){
         gui_MainMenu();
     }
@@ -2091,7 +2092,6 @@ void ShowScreenOverlays(void){
     // The soft button function bar is always displayed 
     // at the bottom of the screen
     gui_ButtonBar();
-    gui_debug();
 }
 
 /*
