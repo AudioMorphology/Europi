@@ -641,6 +641,7 @@ struct channel {
 	uint16_t scale_max;				/* Value required to generate 10v output voltage */
 	int enabled;			/* Whether this channel is in use or not */
 	int type;				/* Types include CV, MOD, GATE, MIDI */
+	int clock_divider;
 	int quantise;			/* whether this channel is quantised to a particular scale 0=OFF*/
 	long transpose;			/* fixed (transpose) voltage offset applied to this channel */
 	int	octaves;			/* How many octaves are covered from scale_zero to scale_max */
@@ -658,6 +659,8 @@ struct track{
 	int current_step;		    /* Tracks where this track is going next */
 	int last_step;			    /* sets the end step for a particular track */
     enum track_dir_t direction; /* Forwards, Backwards, Pendulum, Random */
+	int clock_divisor;			/* Each track can run at sub-multiples of main clock */
+	int clock_divisor_counter;	/* Tracks clock sub-divisions */
     //struct ad_adsr_t ad_adsr;   /* Holds per-track AD or ADSR shapes */
 };
 /*

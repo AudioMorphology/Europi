@@ -132,6 +132,8 @@ void seq_new(void){
 		Europi.tracks[track].track_busy = FALSE;
 		Europi.tracks[track].last_step = 16;
 		Europi.tracks[track].current_step = 0;
+        Europi.tracks[track].clock_divisor = 1;
+        Europi.tracks[track].clock_divisor_counter = 0;
 		Europi.tracks[track].channels[CV_OUT].quantise = 1;	// default quantization = semitones	
 		Europi.tracks[track].channels[CV_OUT].transpose = 0;	 
 		Europi.tracks[track].channels[CV_OUT].type = CHNL_TYPE_CV;
@@ -154,10 +156,13 @@ void seq_new(void){
 			Europi.tracks[track].channels[MOD_OUT].steps[step].duty_cycle = 0;
 			Europi.tracks[track].channels[GATE_OUT].steps[step].ratchets = 1;
 			Europi.tracks[track].channels[GATE_OUT].steps[step].repetitions = 1;
+            Europi.tracks[track].channels[GATE_OUT].steps[step].repeat_counter = 0;
 			Europi.tracks[track].channels[GATE_OUT].steps[step].fill = 0;
 			Europi.tracks[track].channels[GATE_OUT].steps[step].gate_type = Gate_95;
 		}
 	}
+    // !!! Temp testing
+    Europi.tracks[1].clock_divisor = 4;
 }
 /*
  * Set all screen overlays OFF

@@ -244,242 +244,247 @@ void next_step(void)
 	for (track = 0;track < last_track; track++){
 		/* if this track is busy doing something else, then it won't advance to the next step */
 		if (Europi.tracks[track].track_busy == FALSE){
-			/* Each Track has its own end point */
-			previous_step = Europi.tracks[track].current_step;
-            /* Switch behaviour depending on the direction this track moves in */
-            switch (Europi.tracks[track].direction){
-                case Forwards:
-                default:
-                    if(++Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repeat_counter >= Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repetitions || step_one == TRUE){
-                       Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repeat_counter = 0;
-                       if (++Europi.tracks[track].current_step >= Europi.tracks[track].last_step || step_one == TRUE){
-                            Europi.tracks[track].current_step = 0;
-                            /* IF we've got Europi hardware, trigger the Step 1 pulse as Track 0 passes through Step 0 */
-                            if ((is_europi == TRUE) && (track == 0)){
-                                /* Track 0 Channel 1 will have the GPIO Handle for the PCF8574 channel 3 is Step 1 Out*/
-                                struct gate sGate;
-                                sGate.track = track;
-                                sGate.i2c_handle = Europi.tracks[0].channels[GATE_OUT].i2c_handle;
-                                sGate.i2c_address = Europi.tracks[0].channels[GATE_OUT].i2c_address;
-                                sGate.i2c_channel = STEP1_OUT;
-                                sGate.i2c_device = DEV_PCF8574;
-                                sGate.gate_type = Trigger;
-                                sGate.ratchets = 1;
-                                sGate.fill = 1;
-                                struct gate *pGate = malloc(sizeof(struct gate));
-                                memcpy(pGate, &sGate, sizeof(struct gate));
-                                if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
-                                    log_msg("Gate thread creation error\n");
-                                }
-                            }
-                        }
-                    }                
-                    break;
-                case Backwards:
-                    if(++Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repeat_counter >= Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repetitions || step_one == TRUE){
-                       Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repeat_counter = 0;
-                        if(Europi.tracks[track].current_step == 0 && step_one == FALSE){
-                            Europi.tracks[track].current_step = Europi.tracks[track].last_step -1;
-                        }
-                        else if (Europi.tracks[track].current_step == 1 || step_one == TRUE){
-                            Europi.tracks[track].current_step = 0;
-                            /* IF we've got Europi hardware, trigger the Step 1 pulse as Track 0 passes through Step 0 */
-                            if ((is_europi == TRUE) && (track == 0)){
-                                /* Track 0 Channel 1 will have the GPIO Handle for the PCF8574 channel 3 is Step 1 Out*/
-                                struct gate sGate;
-                                sGate.track = track;
-                                sGate.i2c_handle = Europi.tracks[0].channels[GATE_OUT].i2c_handle;
-                                sGate.i2c_address = Europi.tracks[0].channels[GATE_OUT].i2c_address;
-                                sGate.i2c_channel = STEP1_OUT;
-                                sGate.i2c_device = DEV_PCF8574;
-                                sGate.gate_type = Trigger;
-                                sGate.ratchets = 1;
-                                sGate.fill = 1;
-                                struct gate *pGate = malloc(sizeof(struct gate));
-                                memcpy(pGate, &sGate, sizeof(struct gate));
-                                if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
-                                    log_msg("Gate thread creation error\n");
-                                }
-                            }
-                        }
-                        else Europi.tracks[track].current_step--;
-                    }
-                break;
-                case Pendulum_F:
-                    /* Advances forwards until it reaches the last step */
-                    if(++Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repeat_counter >= Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repetitions || step_one == TRUE){
-                       Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repeat_counter = 0;
-                        if (++Europi.tracks[track].current_step >= Europi.tracks[track].last_step && step_one == FALSE){
-                            Europi.tracks[track].current_step--;
-                            Europi.tracks[track].direction = Pendulum_B;
-                        }
-                        else if (step_one == TRUE) {
-                            Europi.tracks[track].current_step = 0;
-                            /* IF we've got Europi hardware, trigger the Step 1 pulse as Track 0 passes through Step 0 */
-                            if ((is_europi == TRUE) && (track == 0)){
-                                /* Track 0 Channel 1 will have the GPIO Handle for the PCF8574 channel 3 is Step 1 Out*/
-                                struct gate sGate;
-                                sGate.track = track;
-                                sGate.i2c_handle = Europi.tracks[0].channels[GATE_OUT].i2c_handle;
-                                sGate.i2c_address = Europi.tracks[0].channels[GATE_OUT].i2c_address;
-                                sGate.i2c_channel = STEP1_OUT;
-                                sGate.i2c_device = DEV_PCF8574;
-                                sGate.gate_type = Trigger;
-                                sGate.ratchets = 1;
-                                sGate.fill = 1;
-                                struct gate *pGate = malloc(sizeof(struct gate));
-                                memcpy(pGate, &sGate, sizeof(struct gate));
-                                if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
-                                    log_msg("Gate thread creation error\n");
-                                }
-                            }
-                        }
-                    }
-                break;
-                case Pendulum_B:
-                    if(++Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repeat_counter >= Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repetitions || step_one == TRUE){
-                       Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repeat_counter = 0;
-                        if(Europi.tracks[track].current_step == 0 || step_one == TRUE){
-                            Europi.tracks[track].direction = Pendulum_F;
-                            Europi.tracks[track].current_step = 0;
-                            /* IF we've got Europi hardware, trigger the Step 1 pulse as Track 0 passes through Step 0 */
-                            if ((is_europi == TRUE) && (track == 0)){
-                                /* Track 0 Channel 1 will have the GPIO Handle for the PCF8574 channel 3 is Step 1 Out*/
-                                struct gate sGate;
-                                sGate.track = track;
-                                sGate.i2c_handle = Europi.tracks[0].channels[GATE_OUT].i2c_handle;
-                                sGate.i2c_address = Europi.tracks[0].channels[GATE_OUT].i2c_address;
-                                sGate.i2c_channel = STEP1_OUT;
-                                sGate.i2c_device = DEV_PCF8574;
-                                sGate.gate_type = Trigger;
-                                sGate.ratchets = 1;
-                                sGate.fill = 1;
-                                struct gate *pGate = malloc(sizeof(struct gate));
-                                memcpy(pGate, &sGate, sizeof(struct gate));
-                                if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
-                                    log_msg("Gate thread creation error\n");
-                                }
-                            }
-                        }
-                        else Europi.tracks[track].current_step--;
-                    }
-                break;
-                case Random:
-                    if(++Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repeat_counter >= Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repetitions || step_one == TRUE){
-                       Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repeat_counter = 0;
-                        Europi.tracks[track].current_step = rand() % Europi.tracks[track].last_step;
-                        if(Europi.tracks[track].current_step == 0 || step_one == TRUE){
-                            Europi.tracks[track].current_step = 0;
-                            if ((is_europi == TRUE) && (track == 0)){
-                                /* Track 0 Channel 1 will have the GPIO Handle for the PCF8574 channel 3 is Step 1 Out*/
-                                struct gate sGate;
-                                sGate.track = track;
-                                sGate.i2c_handle = Europi.tracks[0].channels[GATE_OUT].i2c_handle;
-                                sGate.i2c_address = Europi.tracks[0].channels[GATE_OUT].i2c_address;
-                                sGate.i2c_channel = STEP1_OUT;
-                                sGate.i2c_device = DEV_PCF8574;
-                                sGate.gate_type = Trigger;
-                                sGate.ratchets = 1;
-                                sGate.fill = 1;
-                                struct gate *pGate = malloc(sizeof(struct gate));
-                                memcpy(pGate, &sGate, sizeof(struct gate));
-                                if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
-                                    log_msg("Gate thread creation error\n");
-                                }
-                            }
-                        }
-                    }
-                break;
-			}
-			/* Deal with the various different types of Analogue output
-             * In General, this launches a thread to deal with anything
-             * that isn't a simple static voltage, as this removes the
-             * processing load from the main program loop
-             */
-            if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE) {
-				//log_msg("CV Out, Trk: %d Chnl: %d, Val: %d\n",track,CV_OUT,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
-                switch(Europi.tracks[track].channels[CV_OUT].type){
-                    default:
-                    case CHNL_TYPE_CV:
-                        // CV Channels implement static CV & Slew
-						if(Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type == Off){
-							// No Slew - just set the output CV
-							//log_msg("SnglChnlWr, Trk: %d Chnl: %d, i2c: %d Val: %d\n",track,CV_OUT,Europi.tracks[track].channels[CV_OUT].i2c_channel,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
-							DACSingleChannelWrite(track,Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
+			// Each track can be running at a Sub-Division of the main clock 
+			// So, if we haven't reached the required repetitions for this track, don't move on to the next step
+			if (++Europi.tracks[track].clock_divisor_counter >= Europi.tracks[track].clock_divisor){
+				Europi.tracks[track].clock_divisor_counter = 0;
+				/* Each Track has its own end point */
+				previous_step = Europi.tracks[track].current_step;
+				/* Switch behaviour depending on the direction this track moves in */
+				switch (Europi.tracks[track].direction){
+					case Forwards:
+					default:
+						if(++Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repeat_counter >= Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repetitions || step_one == TRUE){
+						Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repeat_counter = 0;
+						if (++Europi.tracks[track].current_step >= Europi.tracks[track].last_step || step_one == TRUE){
+								Europi.tracks[track].current_step = 0;
+								/* IF we've got Europi hardware, trigger the Step 1 pulse as Track 0 passes through Step 0 */
+								if ((is_europi == TRUE) && (track == 0)){
+									/* Track 0 Channel 1 will have the GPIO Handle for the PCF8574 channel 3 is Step 1 Out*/
+									struct gate sGate;
+									sGate.track = track;
+									sGate.i2c_handle = Europi.tracks[0].channels[GATE_OUT].i2c_handle;
+									sGate.i2c_address = Europi.tracks[0].channels[GATE_OUT].i2c_address;
+									sGate.i2c_channel = STEP1_OUT;
+									sGate.i2c_device = DEV_PCF8574;
+									sGate.gate_type = Trigger;
+									sGate.ratchets = 1;
+									sGate.fill = 1;
+									struct gate *pGate = malloc(sizeof(struct gate));
+									memcpy(pGate, &sGate, sizeof(struct gate));
+									if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
+										log_msg("Gate thread creation error\n");
+									}
+								}
+							}
+						}                
+						break;
+					case Backwards:
+						if(++Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repeat_counter >= Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repetitions || step_one == TRUE){
+						Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repeat_counter = 0;
+							if(Europi.tracks[track].current_step == 0 && step_one == FALSE){
+								Europi.tracks[track].current_step = Europi.tracks[track].last_step -1;
+							}
+							else if (Europi.tracks[track].current_step == 1 || step_one == TRUE){
+								Europi.tracks[track].current_step = 0;
+								/* IF we've got Europi hardware, trigger the Step 1 pulse as Track 0 passes through Step 0 */
+								if ((is_europi == TRUE) && (track == 0)){
+									/* Track 0 Channel 1 will have the GPIO Handle for the PCF8574 channel 3 is Step 1 Out*/
+									struct gate sGate;
+									sGate.track = track;
+									sGate.i2c_handle = Europi.tracks[0].channels[GATE_OUT].i2c_handle;
+									sGate.i2c_address = Europi.tracks[0].channels[GATE_OUT].i2c_address;
+									sGate.i2c_channel = STEP1_OUT;
+									sGate.i2c_device = DEV_PCF8574;
+									sGate.gate_type = Trigger;
+									sGate.ratchets = 1;
+									sGate.fill = 1;
+									struct gate *pGate = malloc(sizeof(struct gate));
+									memcpy(pGate, &sGate, sizeof(struct gate));
+									if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
+										log_msg("Gate thread creation error\n");
+									}
+								}
+							}
+							else Europi.tracks[track].current_step--;
 						}
-						else {
-							// Slew
-							//log_msg("slew\n");
-							struct slew sSlew;
-							sSlew.track = track;
-							sSlew.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
-							sSlew.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;
-							sSlew.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
-							sSlew.start_value = Europi.tracks[track].channels[CV_OUT].steps[previous_step].scaled_value;
-							sSlew.end_value = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value;
-							sSlew.slew_length = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_length;
-							sSlew.slew_type = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type;
-							sSlew.slew_shape = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_shape;
-							struct slew *pSlew = malloc(sizeof(struct slew));
-							memcpy(pSlew, &sSlew, sizeof(struct slew));
-							if(pthread_create(&ThreadId, &detached_attr, &SlewThread, pSlew)){
-								log_msg("Slew thread creation error\n");
+					break;
+					case Pendulum_F:
+						/* Advances forwards until it reaches the last step */
+						if(++Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repeat_counter >= Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repetitions || step_one == TRUE){
+						Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repeat_counter = 0;
+							if (++Europi.tracks[track].current_step >= Europi.tracks[track].last_step && step_one == FALSE){
+								Europi.tracks[track].current_step--;
+								Europi.tracks[track].direction = Pendulum_B;
+							}
+							else if (step_one == TRUE) {
+								Europi.tracks[track].current_step = 0;
+								/* IF we've got Europi hardware, trigger the Step 1 pulse as Track 0 passes through Step 0 */
+								if ((is_europi == TRUE) && (track == 0)){
+									/* Track 0 Channel 1 will have the GPIO Handle for the PCF8574 channel 3 is Step 1 Out*/
+									struct gate sGate;
+									sGate.track = track;
+									sGate.i2c_handle = Europi.tracks[0].channels[GATE_OUT].i2c_handle;
+									sGate.i2c_address = Europi.tracks[0].channels[GATE_OUT].i2c_address;
+									sGate.i2c_channel = STEP1_OUT;
+									sGate.i2c_device = DEV_PCF8574;
+									sGate.gate_type = Trigger;
+									sGate.ratchets = 1;
+									sGate.fill = 1;
+									struct gate *pGate = malloc(sizeof(struct gate));
+									memcpy(pGate, &sGate, sizeof(struct gate));
+									if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
+										log_msg("Gate thread creation error\n");
+									}
+								}
 							}
 						}
-                    break;
-                    case CHNL_TYPE_MIDI:
-                        MIDISingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_channel, 0x40, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);   
-                    break;
-                }
-                               
-            }
-			// MOD Channel
-            if(Europi.tracks[track].channels[MOD_OUT].enabled == TRUE) {
-                switch(Europi.tracks[track].channels[MOD_OUT].type){
-                    default:
-                    case CHNL_TYPE_MOD:
-						if(Europi.tracks[track].channels[MOD_OUT].steps[Europi.tracks[track].current_step].mod_shape == Mod_Off){
-							// Just Output Zero - no need for the thread launch overhead
-							DACSingleChannelWrite(track,Europi.tracks[track].channels[MOD_OUT].i2c_handle, Europi.tracks[track].channels[MOD_OUT].i2c_address, Europi.tracks[track].channels[MOD_OUT].i2c_channel, 0);
+					break;
+					case Pendulum_B:
+						if(++Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repeat_counter >= Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repetitions || step_one == TRUE){
+						Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repeat_counter = 0;
+							if(Europi.tracks[track].current_step == 0 || step_one == TRUE){
+								Europi.tracks[track].direction = Pendulum_F;
+								Europi.tracks[track].current_step = 0;
+								/* IF we've got Europi hardware, trigger the Step 1 pulse as Track 0 passes through Step 0 */
+								if ((is_europi == TRUE) && (track == 0)){
+									/* Track 0 Channel 1 will have the GPIO Handle for the PCF8574 channel 3 is Step 1 Out*/
+									struct gate sGate;
+									sGate.track = track;
+									sGate.i2c_handle = Europi.tracks[0].channels[GATE_OUT].i2c_handle;
+									sGate.i2c_address = Europi.tracks[0].channels[GATE_OUT].i2c_address;
+									sGate.i2c_channel = STEP1_OUT;
+									sGate.i2c_device = DEV_PCF8574;
+									sGate.gate_type = Trigger;
+									sGate.ratchets = 1;
+									sGate.fill = 1;
+									struct gate *pGate = malloc(sizeof(struct gate));
+									memcpy(pGate, &sGate, sizeof(struct gate));
+									if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
+										log_msg("Gate thread creation error\n");
+									}
+								}
+							}
+							else Europi.tracks[track].current_step--;
 						}
-						else{
-							// Launch a modulation thread for this step
-							struct modstep sMod;
-							sMod.track = track;
-							sMod.i2c_handle = Europi.tracks[track].channels[MOD_OUT].i2c_handle;
-							sMod.i2c_address = Europi.tracks[track].channels[MOD_OUT].i2c_address;
-							sMod.i2c_channel =  Europi.tracks[track].channels[MOD_OUT].i2c_channel;
-							sMod.i2c_device = Europi.tracks[track].channels[MOD_OUT].i2c_device;
-							sMod.mod_shape = Europi.tracks[track].channels[MOD_OUT].steps[Europi.tracks[track].current_step].mod_shape;
-							sMod.min = Europi.tracks[track].channels[MOD_OUT].steps[Europi.tracks[track].current_step].min;
-							sMod.max = Europi.tracks[track].channels[MOD_OUT].steps[Europi.tracks[track].current_step].max;
-							sMod.duty_cycle = Europi.tracks[track].channels[MOD_OUT].steps[Europi.tracks[track].current_step].duty_cycle;
-							struct modstep *pModstep = malloc(sizeof(struct modstep));
-							memcpy(pModstep, &sMod, sizeof(struct modstep));
-							if(pthread_create(&ThreadId, &detached_attr, &ModThread, pModstep)){
+					break;
+					case Random:
+						if(++Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repeat_counter >= Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repetitions || step_one == TRUE){
+						Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].repeat_counter = 0;
+							Europi.tracks[track].current_step = rand() % Europi.tracks[track].last_step;
+							if(Europi.tracks[track].current_step == 0 || step_one == TRUE){
+								Europi.tracks[track].current_step = 0;
+								if ((is_europi == TRUE) && (track == 0)){
+									/* Track 0 Channel 1 will have the GPIO Handle for the PCF8574 channel 3 is Step 1 Out*/
+									struct gate sGate;
+									sGate.track = track;
+									sGate.i2c_handle = Europi.tracks[0].channels[GATE_OUT].i2c_handle;
+									sGate.i2c_address = Europi.tracks[0].channels[GATE_OUT].i2c_address;
+									sGate.i2c_channel = STEP1_OUT;
+									sGate.i2c_device = DEV_PCF8574;
+									sGate.gate_type = Trigger;
+									sGate.ratchets = 1;
+									sGate.fill = 1;
+									struct gate *pGate = malloc(sizeof(struct gate));
+									memcpy(pGate, &sGate, sizeof(struct gate));
+									if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
+										log_msg("Gate thread creation error\n");
+									}
+								}
 							}
 						}
-                    break;
-                }
-                               
-            }
-			// Gate Channel
-			/* launch a thread to handle the gate function for each channel / step */
-			if (Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ){
-                struct gate sGate;
-                sGate.track = track;
-                sGate.i2c_handle = Europi.tracks[track].channels[GATE_OUT].i2c_handle;
-                sGate.i2c_address = Europi.tracks[track].channels[GATE_OUT].i2c_address;
-                sGate.i2c_channel =  Europi.tracks[track].channels[GATE_OUT].i2c_channel;
-                sGate.i2c_device = Europi.tracks[track].channels[GATE_OUT].i2c_device;
-                sGate.ratchets = Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].ratchets;
-                sGate.gate_type = Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_type;
-                sGate.fill = Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].fill;
-                struct gate *pGate = malloc(sizeof(struct gate));
-                memcpy(pGate, &sGate, sizeof(struct gate));
-                if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
-                    log_msg("Gate thread creation error\n");
-                }
+					break;
+				}
+				/* Deal with the various different types of Analogue output
+				* In General, this launches a thread to deal with anything
+				* that isn't a simple static voltage, as this removes the
+				* processing load from the main program loop
+				*/
+				if(Europi.tracks[track].channels[CV_OUT].enabled == TRUE) {
+					//log_msg("CV Out, Trk: %d Chnl: %d, Val: %d\n",track,CV_OUT,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
+					switch(Europi.tracks[track].channels[CV_OUT].type){
+						default:
+						case CHNL_TYPE_CV:
+							// CV Channels implement static CV & Slew
+							if(Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type == Off){
+								// No Slew - just set the output CV
+								//log_msg("SnglChnlWr, Trk: %d Chnl: %d, i2c: %d Val: %d\n",track,CV_OUT,Europi.tracks[track].channels[CV_OUT].i2c_channel,Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
+								DACSingleChannelWrite(track,Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_address, Europi.tracks[track].channels[CV_OUT].i2c_channel, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value);
+							}
+							else {
+								// Slew
+								//log_msg("slew\n");
+								struct slew sSlew;
+								sSlew.track = track;
+								sSlew.i2c_handle = Europi.tracks[track].channels[CV_OUT].i2c_handle;
+								sSlew.i2c_address = Europi.tracks[track].channels[CV_OUT].i2c_address;
+								sSlew.i2c_channel = Europi.tracks[track].channels[CV_OUT].i2c_channel;
+								sSlew.start_value = Europi.tracks[track].channels[CV_OUT].steps[previous_step].scaled_value;
+								sSlew.end_value = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].scaled_value;
+								sSlew.slew_length = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_length;
+								sSlew.slew_type = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_type;
+								sSlew.slew_shape = Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].slew_shape;
+								struct slew *pSlew = malloc(sizeof(struct slew));
+								memcpy(pSlew, &sSlew, sizeof(struct slew));
+								if(pthread_create(&ThreadId, &detached_attr, &SlewThread, pSlew)){
+									log_msg("Slew thread creation error\n");
+								}
+							}
+						break;
+						case CHNL_TYPE_MIDI:
+							MIDISingleChannelWrite(Europi.tracks[track].channels[CV_OUT].i2c_handle, Europi.tracks[track].channels[CV_OUT].i2c_channel, 0x40, Europi.tracks[track].channels[CV_OUT].steps[Europi.tracks[track].current_step].raw_value);   
+						break;
+					}
+								
+				}
+				// MOD Channel
+				if(Europi.tracks[track].channels[MOD_OUT].enabled == TRUE) {
+					switch(Europi.tracks[track].channels[MOD_OUT].type){
+						default:
+						case CHNL_TYPE_MOD:
+							if(Europi.tracks[track].channels[MOD_OUT].steps[Europi.tracks[track].current_step].mod_shape == Mod_Off){
+								// Just Output Zero - no need for the thread launch overhead
+								DACSingleChannelWrite(track,Europi.tracks[track].channels[MOD_OUT].i2c_handle, Europi.tracks[track].channels[MOD_OUT].i2c_address, Europi.tracks[track].channels[MOD_OUT].i2c_channel, 0);
+							}
+							else{
+								// Launch a modulation thread for this step
+								struct modstep sMod;
+								sMod.track = track;
+								sMod.i2c_handle = Europi.tracks[track].channels[MOD_OUT].i2c_handle;
+								sMod.i2c_address = Europi.tracks[track].channels[MOD_OUT].i2c_address;
+								sMod.i2c_channel =  Europi.tracks[track].channels[MOD_OUT].i2c_channel;
+								sMod.i2c_device = Europi.tracks[track].channels[MOD_OUT].i2c_device;
+								sMod.mod_shape = Europi.tracks[track].channels[MOD_OUT].steps[Europi.tracks[track].current_step].mod_shape;
+								sMod.min = Europi.tracks[track].channels[MOD_OUT].steps[Europi.tracks[track].current_step].min;
+								sMod.max = Europi.tracks[track].channels[MOD_OUT].steps[Europi.tracks[track].current_step].max;
+								sMod.duty_cycle = Europi.tracks[track].channels[MOD_OUT].steps[Europi.tracks[track].current_step].duty_cycle;
+								struct modstep *pModstep = malloc(sizeof(struct modstep));
+								memcpy(pModstep, &sMod, sizeof(struct modstep));
+								if(pthread_create(&ThreadId, &detached_attr, &ModThread, pModstep)){
+								}
+							}
+						break;
+					}
+								
+				}
+				// Gate Channel
+				/* launch a thread to handle the gate function for each channel / step */
+				if (Europi.tracks[track].channels[GATE_OUT].enabled == TRUE ){
+					struct gate sGate;
+					sGate.track = track;
+					sGate.i2c_handle = Europi.tracks[track].channels[GATE_OUT].i2c_handle;
+					sGate.i2c_address = Europi.tracks[track].channels[GATE_OUT].i2c_address;
+					sGate.i2c_channel =  Europi.tracks[track].channels[GATE_OUT].i2c_channel;
+					sGate.i2c_device = Europi.tracks[track].channels[GATE_OUT].i2c_device;
+					sGate.ratchets = Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].ratchets;
+					sGate.gate_type = Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].gate_type;
+					sGate.fill = Europi.tracks[track].channels[GATE_OUT].steps[Europi.tracks[track].current_step].fill;
+					struct gate *pGate = malloc(sizeof(struct gate));
+					memcpy(pGate, &sGate, sizeof(struct gate));
+					if(pthread_create(&ThreadId, &detached_attr, &GateThread, pGate)){
+						log_msg("Gate thread creation error\n");
+					}
+				}
 			}
 		}
 	}
