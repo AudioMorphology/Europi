@@ -810,16 +810,33 @@ void *ModThread(void *arg)
  * per step. Above this, it just outputs 100% ratchets.
  * 
  * The thread lives just to perform the gate, then ends itself
+ *
+ * Track swing perceentage is an amount from 50% (no swing) to 90%
+ * which delays the gate on Even-numbered steps by a percentage of
+ * the overall step length
  */
 void *GateThread(void *arg)
 {
 	struct gate *pGate = (struct gate *)arg;
-    // If global tuning is on, ignore all Gate info, just turn all the gates ON and quit
+	uint32_t step_ticks_local = step_ticks;	
+    uint32_t swing_delay;
+	// If global tuning is on, ignore all Gate info, just turn all the gates ON and quit
     if(TuningOn == TRUE){
         GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,1); 
         free(pGate);
         return(0);
     }
+	if ((Europi.tracks[pGate->track].swing_percent > 50) && (Europi.tracks[pGate->track].swing_percent <= 90)) {
+		//Track has a swing percent set
+		if(Europi.tracks[pGate->track].current_step % 2 == 0){
+			// Even-numbered step, with swing, so delay the onset of the Gate by the swing percentage
+			swing_delay = (step_ticks_local * (Europi.tracks[pGate->track].swing_percent - 50)) / 100;
+			// Reduce the remaiining step length by thhis amount (so that everything fits)
+			step_ticks_local -= swing_delay;
+			log_msg("Trk: %d, Pct: %d, STicks: %d, S_delay: %d",pGate->track,Europi.tracks[pGate->track].swing_percent,step_ticks,swing_delay);
+			usleep(swing_delay);
+		}
+	}
 	//log_msg("GateThread H: %d, Ch: %d, Dev: %d\n",pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device);
     if (pGate->ratchets <= 1){
         //Normal Gate
@@ -838,22 +855,22 @@ void *GateThread(void *arg)
             break;
             case Gate_25:
                 GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,1);
-                usleep((step_ticks * 25)/100);
+                usleep((step_ticks_local * 25)/100);
                 GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,0);
             break;
             case Gate_50:
                 GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,1);
-                usleep((step_ticks * 50)/100);
+                usleep((step_ticks_local * 50)/100);
                 GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,0);
             break;
             case Gate_75:
                 GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,1);
-                usleep((step_ticks * 75)/100);
+                usleep((step_ticks_local * 75)/100);
                 GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,0);
             break;
             case Gate_95:
                 GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,1);
-                usleep((step_ticks * 95)/100);
+                usleep((step_ticks_local * 95)/100);
                 GATESingleOutput(pGate->i2c_handle, pGate->i2c_channel,pGate->i2c_device,0);
             break;
         }
@@ -865,7 +882,7 @@ void *GateThread(void *arg)
          * whereas a typical Step length would be between 200k and, perhaps, 1m2, so taking
          * off 10k for the function calling overhead feels about right
          */
-        int sleep_time = ((step_ticks - 10000) / pGate->ratchets)/2;
+        int sleep_time = ((step_ticks_local - 10000) / pGate->ratchets)/2;
 
         int i;
         for (i = 0; i < pGate->ratchets; i++){

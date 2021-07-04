@@ -134,6 +134,7 @@ void seq_new(void){
 		Europi.tracks[track].current_step = 0;
         Europi.tracks[track].clock_divisor = 1;
         Europi.tracks[track].clock_divisor_counter = 0;
+        Europi.tracks[track].swing_percent = 62;
 		Europi.tracks[track].channels[CV_OUT].quantise = 1;	// default quantization = semitones	
 		Europi.tracks[track].channels[CV_OUT].transpose = 0;	 
 		Europi.tracks[track].channels[CV_OUT].type = CHNL_TYPE_CV;

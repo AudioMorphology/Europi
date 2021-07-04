@@ -661,6 +661,7 @@ struct track{
     enum track_dir_t direction; /* Forwards, Backwards, Pendulum, Random */
 	int clock_divisor;			/* Each track can run at sub-multiples of main clock */
 	int clock_divisor_counter;	/* Tracks clock sub-divisions */
+	int swing_percent;			/* Between 50% (no swing) and 95% sets the delay percentage to even-numbered steps */
     //struct ad_adsr_t ad_adsr;   /* Holds per-track AD or ADSR shapes */
 };
 /*
