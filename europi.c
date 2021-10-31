@@ -135,7 +135,7 @@ char debug_messages[10][80];
 int next_debug_slot = 0;
 
 /* Raylib-related stuff */
-SpriteFont font1;
+Font font1;
 Texture2D Splash;	                // Splash screen texture
 Texture2D KeyboardTexture;          // Keyboard Overlay texture
 Texture2D DialogTexture;            // Common dialog control

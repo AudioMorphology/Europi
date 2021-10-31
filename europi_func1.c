@@ -134,7 +134,7 @@ extern int midiThreadLaunched[];
 extern uint8_t mcp23008_state[16];
 extern int test_v;
 pthread_t ThreadId; 		// Pointer to detatched Thread Ids (re-used by each/every detatched thread)
-extern SpriteFont font1;
+extern Font font1;
 extern Texture2D Splash;
 extern Texture2D KeyboardTexture;
 extern Texture2D DialogTexture;
