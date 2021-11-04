@@ -6,17 +6,17 @@ The Europi is a 16hp Eurorack format sequencer powered by the Raspberry Pi singl
 
 Europi has been designed to be modular and expandable. The main Europi module, which interfaces directly with the Raspberry Pi has the following features:
 
-320 x 240 pixel 16-bit colour touchscreen display
-Continuous rotary push-button encoder
-4 x tactile 'soft' buttons
-2 x 1 v/Oct CV output (16-Bit resolution over a 10 volt range)
-2 x Modulation outputs (16-Bit resolution over a 10 volt range)
-2 x Gate ouputs (+5 volt leading-edge triggered)
-Clock Out
-Clock In
-Step 1 Out
-Reset In
-Hold In
+* 320 x 240 pixel 16-bit colour touchscreen display
+* Continuous rotary push-button encoder
+* 4 x tactile 'soft' buttons
+* 2 x 1 v/Oct CV output (16-Bit resolution over a 10 volt range)
+* 2 x Modulation outputs (16-Bit resolution over a 10 volt range)
+* 2 x Gate ouputs (+5 volt leading-edge triggered)
+* Clock Out
+* Clock In
+* Step 1 Out
+* Reset In
+* Hold In
 
 The primary Europi module interfaces with a number of secondary modules.
 
